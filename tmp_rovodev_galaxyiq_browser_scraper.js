@@ -88,6 +88,11 @@
                     ? Math.round(((oldPrice - price) / oldPrice) * 100) 
                     : 0;
                 
+                // Check stock status
+                const stockBadge = div.querySelector('.pr_flash');
+                const isOutOfStock = stockBadge && stockBadge.textContent.includes('إنتهى من المخزن');
+                const inStock = !isOutOfStock;
+                
                 // Generate ID (hash the title)
                 const hashCode = (str) => {
                     let hash = 0;
@@ -112,7 +117,7 @@
                     image: image,
                     link: link,
                     store: 'Galaxy IQ',
-                    in_stock: true,
+                    in_stock: inStock,
                     category: currentCategory
                 });
             } catch (e) {
