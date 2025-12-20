@@ -111,6 +111,17 @@ def import_galaxyiq_manual():
         "products": merged_products
     }
     
+    # Recalculate total_products across ALL sites
+    total_products = sum(
+        len(site_data.get("products", []))
+        for site_data in existing_data.get("sites", {}).values()
+    )
+    existing_data["total_products"] = total_products
+    existing_data["last_updated"] = datetime.now().isoformat()
+    
+    print(f"\n📊 Final Stats:")
+    print(f"  Total products across all sites: {total_products}")
+    
     # Save to products.json
     products_path = Path(__file__).parent.parent / "public" / "data" / "products.json"
     with open(products_path, 'w', encoding='utf-8') as f:
