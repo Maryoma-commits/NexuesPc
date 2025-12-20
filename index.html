@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NexusPC | AI Component Finder</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            nexus: {
+              950: '#020617', // Darker base
+              900: '#0f172a',
+              800: '#1e293b',
+              700: '#334155',
+              glass: 'rgba(30, 41, 59, 0.7)',
+              accent: '#06b6d4', // Cyan-500
+              accentHover: '#0891b2',
+              secondary: '#6366f1', // Indigo-500
+            }
+          },
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+          },
+          animation: {
+            'blob': 'blob 7s infinite',
+            'fade-in': 'fadeIn 0.5s ease-out forwards',
+            'slide-up': 'slideUp 0.5s ease-out forwards',
+          },
+          keyframes: {
+            blob: {
+              '0%': { transform: 'translate(0px, 0px) scale(1)' },
+              '33%': { transform: 'translate(30px, -50px) scale(1.1)' },
+              '66%': { transform: 'translate(-20px, 20px) scale(0.9)' },
+              '100%': { transform: 'translate(0px, 0px) scale(1)' },
+            },
+            fadeIn: {
+              '0%': { opacity: '0' },
+              '100%': { opacity: '1' },
+            },
+            slideUp: {
+              '0%': { opacity: '0', transform: 'translateY(20px)' },
+              '100%': { opacity: '1', transform: 'translateY(0)' },
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="/code/style.css" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #020617;
+      color: white;
+      overflow-x: hidden;
+    }
+
+    /* Tech Grid Background */
+    .bg-grid-pattern {
+      background-size: 50px 50px;
+      background-image:
+        linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+      mask-image: radial-gradient(ellipse at center, black 40%, transparent 80%);
+    }
+
+    /* Custom scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: #020617;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 10px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: #06b6d4;
+    }
+
+    /* Hide scrollbar for category navigation */
+    .scrollbar-hide::-webkit-scrollbar {
+      display: none;
+    }
+
+    .scrollbar-hide {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+
+    /* Cyber Toggle Switch Styles */
+    .cyber-toggle {
+      --hue: 180;
+      --core-size: 45px;
+      display: inline-block;
+      padding: 0;
+      background: transparent;
+      border-radius: 18px;
+      position: relative;
+      overflow: visible;
+      transition: transform 0.3s ease-in-out;
+    }
+
+    .cyber-toggle:hover {
+      transform: perspective(100px) rotateX(5deg) rotateY(-5deg);
+    }
+
+    .cyber-input {
+      position: absolute;
+      opacity: 0;
+    }
+
+    .cyber-label {
+      display: block;
+      cursor: pointer;
+      width: var(--core-size);
+      height: calc(var(--core-size) / 2);
+      position: relative;
+      transition: filter 0.3s ease;
+    }
+
+    .cyber-core {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      background: #1a1a2f;
+      border-radius: 40px;
+      transition: all 0.4s ease;
+      overflow: hidden;
+      box-shadow:
+        inset 0 4px 12px rgba(255, 255, 255, 0.1),
+        inset 0 -4px 12px rgba(0, 0, 0, 0.4);
+    }
+
+    .cyber-toggle-circle {
+      position: absolute;
+      width: calc(var(--core-size) / 2 - 8px);
+      height: calc(var(--core-size) / 2 - 8px);
+      background: #ffffff;
+      border-radius: 50%;
+      top: 4px;
+      left: 4px;
+      transition: transform 0.4s ease;
+      box-shadow:
+        0 2px 8px rgba(0, 0, 0, 0.3),
+        inset 0 1px 2px rgba(255, 255, 255, 0.8);
+    }
+
+    .cyber-power-line {
+      position: absolute;
+      width: calc(var(--core-size) * 1.14159 + 4rem);
+      height: 2px;
+      background: linear-gradient(135deg,
+          hsl(280, 80%, 40%),
+          hsl(320, 70%, 50%),
+          hsl(340, 85%, 45%));
+      top: 50%;
+      left: calc(-1 * (var(--core-size) + 2rem));
+      transform: translateY(-220%);
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .cyber-power-ring {
+      position: absolute;
+      inset: -2px;
+      outline: 3px solid transparent;
+      border-radius: 12px;
+      opacity: 0;
+      transform: scale(1);
+      pointer-events: none;
+      box-shadow: 0 0 6px transparent;
+      background: linear-gradient(to right,
+          rgba(99, 49, 49, 0.2) 0%,
+          rgba(31, 28, 212, 0.2) 15%,
+          rgba(64, 6, 112, 0.2) 30%,
+          rgba(131, 33, 161, 0.2) 45%,
+          rgba(132, 14, 179, 0.2) 60%,
+          rgba(255, 0, 242, 0.2) 100%);
+      background-size: 200% 100%;
+    }
+
+    .cyber-input:checked~.cyber-label .cyber-core {
+      background: #242444;
+      box-shadow:
+        inset 0 4px 24px rgba(255, 255, 255, 0.2),
+        inset 0 -4px 12px rgba(0, 0, 0, 0.6),
+        0 0 8px rgba(79, 78, 78, 0.6);
+    }
+
+    .cyber-input:checked~.cyber-label .cyber-toggle-circle {
+      transform: translateX(calc(var(--core-size) / 2));
+    }
+
+    .cyber-input:checked+.cyber-label .cyber-power-line {
+      animation: power-line-in 0.6s ease forwards;
+    }
+
+    .cyber-input:checked+.cyber-label .cyber-power-ring {
+      animation:
+        power-ring-appear 0.6s ease 0.3s forwards,
+        ring-glow 2.5s linear infinite 0.9s;
+    }
+
+    .cyber-input:checked+.cyber-label .cyber-power-ring .ring-particle {
+      animation: ring-particle-fly 1s ease-out infinite var(--delay);
+    }
+
+    .cyber-input:not(:checked)+.cyber-label .cyber-power-ring {
+      animation: power-ring-break 0.8s ease forwards;
+    }
+
+    .cyber-power-ring .ring-particle {
+      position: absolute;
+      width: 4px;
+      height: 4px;
+      background: #ffffff;
+      border-radius: 50%;
+      opacity: 0;
+      left: var(--x);
+      top: var(--y);
+    }
+
+    @keyframes power-line-in {
+      0% {
+        opacity: 1;
+        transform: translateY(-50%) translateX(-100%);
+      }
+
+      50% {
+        opacity: 1;
+        transform: translateY(-50%) translateX(0);
+      }
+
+      100% {
+        opacity: 0;
+        transform: translateY(-50%) translateX(100%);
+      }
+    }
+
+    @keyframes power-ring-appear {
+      0% {
+        opacity: 0;
+        transform: scale(0.8);
+      }
+
+      50% {
+        opacity: 1;
+        transform: scale(1.1);
+      }
+
+      100% {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+
+    @keyframes ring-glow {
+      0% {
+        background-position: 0% 0;
+        box-shadow: 0 0 6px rgba(255, 255, 255, 0.8);
+      }
+
+      50% {
+        background-position: 100% 0;
+        box-shadow: 0 0 6px rgba(0, 0, 0, 0.8);
+      }
+
+      100% {
+        background-position: 200% 0;
+        box-shadow: 0 0 6px rgba(255, 255, 255, 0.8);
+      }
+    }
+
+    @keyframes power-ring-break {
+      0% {
+        opacity: 1;
+        clip-path: inset(0 0 0 0);
+      }
+
+      25% {
+        clip-path: inset(0 25% 0 25%);
+      }
+
+      50% {
+        clip-path: inset(25% 25% 25% 25%);
+      }
+
+      75% {
+        clip-path: inset(40% 40% 40% 40%);
+      }
+
+      100% {
+        opacity: 0;
+        clip-path: inset(50% 50% 50% 50%);
+      }
+    }
+
+    @keyframes ring-particle-fly {
+      0% {
+        opacity: 1;
+        transform: translate(0, 0);
+      }
+
+      100% {
+        opacity: 0;
+        transform: translate(var(--px), var(--py));
+      }
+    }
+
+    .cyber-particles {
+      position: absolute;
+      inset: 0;
+    }
+
+    .particle {
+      position: absolute;
+      width: 4px;
+      height: 4px;
+      background: hsl(var(--hue), 100%, 70%);
+      border-radius: 50%;
+      opacity: 0;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+    }
+
+    .cyber-input:checked~.cyber-label .particle {
+      animation: particle-fly 0.8s ease-out forwards;
+    }
+
+    @keyframes particle-fly {
+      0% {
+        opacity: 1;
+        transform: translate(-50%, -50%);
+      }
+
+      100% {
+        opacity: 0;
+        transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy)));
+      }
+    }
+
+    .particle:nth-child(1) {
+      --dx: 20px;
+      --dy: -20px;
+    }
+
+    .particle:nth-child(2) {
+      --dx: -15px;
+      --dy: 25px;
+    }
+
+    .particle:nth-child(3) {
+      --dx: 25px;
+      --dy: 15px;
+    }
+
+    .particle:nth-child(4) {
+      --dx: -20px;
+      --dy: -15px;
+    }
+
+    .particle:nth-child(5) {
+      --dx: 0px;
+      --dy: -30px;
+    }
+
+    .cyber-label:hover .cyber-core {
+      transform: scale(1.05);
+      filter: brightness(1.2);
+      box-shadow:
+        inset 0 4px 24px rgba(255, 255, 255, 0.3),
+        inset 0 -4px 12px rgba(0, 0, 0, 0.5);
+    }
+
+    .cyber-input:active~.cyber-label .cyber-core {
+      transform: scale(0.95);
+    }
+
+    .cyber-input:focus-visible~.cyber-label .cyber-core {
+      outline: 2px solid hsl(var(--hue), 100%, 50%);
+      outline-offset: 4px;
+    }
+
+    .cyber-toggle::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background-image: linear-gradient(rgba(255, 255, 255, 0.02) 1px,
+          transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+      background-size: 4px 4px;
+      opacity: 0.5;
+      pointer-events: none;
+    }
+
+    /* Theme Variables */
+    :root {
+      /* Dark Theme (default) */
+      --bg-primary: #0f0f23;
+      --bg-secondary: #1a1a2e;
+      --bg-card: rgba(30, 30, 46, 0.8);
+      --text-primary: #ffffff;
+      --text-secondary: #a0a0a0;
+      --text-muted: #6b7280;
+      --border-color: rgba(255, 255, 255, 0.1);
+      --accent-color: #3b82f6;
+      --sidebar-bg: rgba(26, 26, 46, 0.5);
+      --card-bg: rgba(30, 30, 46, 0.8);
+      --navbar-bg: rgba(15, 15, 35, 0.8);
+    }
+
+    .light-theme {
+      --bg-primary: #f0f0f5;
+      --bg-secondary: #ffffff;
+      --bg-card: rgba(255, 255, 255, 0.95);
+      --text-primary: #1a1a1a;
+      --text-secondary: #4a4a4a;
+      --text-muted: #71717a;
+      --border-color: rgba(0, 0, 0, 0.08);
+      --accent-color: #2563eb;
+      --sidebar-bg: rgba(255, 255, 255, 0.7);
+      --card-bg: rgba(255, 255, 255, 0.95);
+      --navbar-bg: rgba(255, 255, 255, 0.9);
+    }
+
+    body {
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
+      transition: background-color 0.3s ease, color 0.3s ease;
+    }
+
+    /* Apply theme to components */
+    /* ========== LIGHT THEME OVERRIDES ========== */
+
+    /* Main container and body */
+    .light-theme,
+    .light-theme body {
+      background-color: #f5f7fa !important;
+      color: #1a1a2e !important;
+    }
+
+    .light-theme .bg-nexus-950 {
+      background-color: #f5f7fa !important;
+    }
+
+    .light-theme .bg-nexus-950\/80,
+    .light-theme .bg-nexus-900 {
+      background-color: #ffffff !important;
+    }
+
+    /* Navbar */
+    .light-theme nav,
+    .light-theme .bg-nexus-950\/80 {
+      background-color: rgba(255, 255, 255, 0.9) !important;
+      backdrop-filter: blur(12px);
+      border-bottom-color: rgba(0, 0, 0, 0.08) !important;
+    }
+
+    /* Sidebar */
+    .light-theme aside,
+    .light-theme .sticky {
+      background-color: rgba(255, 255, 255, 0.8) !important;
+    }
+
+    /* Category Nav */
+    .light-theme .from-slate-900\/50,
+    .light-theme .to-slate-800\/50 {
+      background: linear-gradient(to right, rgba(255, 255, 255, 0.9), rgba(248, 250, 252, 0.9)) !important;
+    }
+
+    /* Product Cards */
+    .light-theme .group.bg-nexus-900,
+    .light-theme .from-nexus-900,
+    .light-theme .to-nexus-950,
+    .light-theme .bg-gradient-to-b {
+      background: #ffffff !important;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
+    }
+
+    /* Footer */
+    .light-theme footer,
+    .light-theme .bg-black\/20 {
+      background-color: rgba(255, 255, 255, 0.9) !important;
+      border-top-color: rgba(0, 0, 0, 0.08) !important;
+    }
+
+    /* Text Colors - Primary */
+    .light-theme .text-white,
+    .light-theme .text-gray-100,
+    .light-theme .text-gray-200 {
+      color: #1a1a2e !important;
+    }
+
+    /* Text Colors - Secondary */
+    .light-theme .text-gray-300 {
+      color: #374151 !important;
+    }
+
+    .light-theme .text-gray-400 {
+      color: #6b7280 !important;
+    }
+
+    .light-theme .text-gray-500,
+    .light-theme .text-gray-600 {
+      color: #9ca3af !important;
+    }
+
+    /* Borders */
+    .light-theme .border-white\/5,
+    .light-theme .border-white\/10,
+    .light-theme .border-white\/20 {
+      border-color: rgba(0, 0, 0, 0.08) !important;
+    }
+
+    /* Backgrounds - Glass/Blur effects */
+    .light-theme .bg-white\/5,
+    .light-theme .bg-white\/10 {
+      background-color: rgba(0, 0, 0, 0.03) !important;
+    }
+
+    .light-theme .bg-black\/40,
+    .light-theme .bg-black\/30,
+    .light-theme .bg-black\/20,
+    .light-theme .bg-black\/60,
+    .light-theme .bg-black\/70 {
+      background-color: rgba(255, 255, 255, 0.9) !important;
+      color: #1a1a2e !important;
+    }
+
+    /* Dropdown/Select Elements */
+    .light-theme select,
+    .light-theme .bg-black\/40 {
+      background-color: #ffffff !important;
+      color: #1a1a2e !important;
+      border-color: rgba(0, 0, 0, 0.15) !important;
+    }
+
+    /* Input fields */
+    .light-theme input {
+      color: #1a1a2e !important;
+    }
+
+    .light-theme input::placeholder {
+      color: #9ca3af !important;
+    }
+
+    /* Gradient text adjustments */
+    .light-theme .bg-clip-text.text-transparent.bg-gradient-to-r.from-white {
+      background-image: linear-gradient(to right, #1a1a2e, #374151) !important;
+      -webkit-background-clip: text !important;
+      background-clip: text !important;
+    }
+
+    /* Ambient blob backgrounds - hide in light mode */
+    .light-theme .animate-blob {
+      opacity: 0.03 !important;
+    }
+
+    /* Grid pattern - adjust for light mode */
+    .light-theme .bg-grid-pattern {
+      background-image:
+        linear-gradient(to right, rgba(0, 0, 0, 0.03) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(0, 0, 0, 0.03) 1px, transparent 1px) !important;
+    }
+
+    /* Skeleton loaders */
+    .light-theme .animate-pulse {
+      background-color: rgba(0, 0, 0, 0.05) !important;
+    }
+
+    /* Error state */
+    .light-theme .bg-red-500\/10 {
+      background-color: rgba(239, 68, 68, 0.1) !important;
+    }
+
+    /* Scrollbar for light mode */
+    .light-theme ::-webkit-scrollbar-track {
+      background: #f5f7fa !important;
+    }
+
+    .light-theme ::-webkit-scrollbar-thumb {
+      background: #cbd5e1 !important;
+    }
+
+    .light-theme ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8 !important;
+    }
+
+    /* Cyber toggle adjustments for light mode */
+    .light-theme .cyber-core {
+      background: #e2e8f0 !important;
+      box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+    }
+
+    .light-theme .cyber-input:checked~.cyber-label .cyber-core {
+      background: #cbd5e1 !important;
+    }
+
+    /* Category count badges in light mode */
+    .light-theme .bg-gray-600\/50 {
+      background-color: rgba(6, 182, 212, 0.15) !important;
+      color: #0891b2 !important;
+    }
+
+    .light-theme .bg-cyan-400\/20 {
+      background-color: rgba(6, 182, 212, 0.2) !important;
+      color: #0891b2 !important;
+    }
+
+    .light-theme .text-cyan-300 {
+      color: #0891b2 !important;
+    }
+
+    /* Retailer count badges in sidebar */
+    .light-theme .bg-black\/30 {
+      background-color: rgba(6, 182, 212, 0.1) !important;
+      color: #0e7490 !important;
+    }
+
+    .light-theme .bg-nexus-accent {
+      background-color: #06b6d4 !important;
+      color: #ffffff !important;
+    }
+  </style>
+  <script type="importmap">
+{
+  "imports": {
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.30.0",
+    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.555.0",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "react": "https://aistudiocdn.com/react@^19.2.0"
+  }
+}
+</script>
+</head>
+
+<body>
+  <div id="root"></div>
+  <script type="module" src="/index.tsx"></script>
+</body>
+
+</html>

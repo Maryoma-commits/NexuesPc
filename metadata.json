@@ -1,0 +1,5 @@
+{
+  "name": "NexusPC - Component Aggregator",
+  "description": "A smart PC component finder that aggregates prices and availability from multiple retailers using AI-powered search, featuring real-time sorting and filtering.",
+  "requestFramePermissions": []
+}

@@ -1,0 +1,1924 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PC Component Compatibility Editor - Main Database</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: #2d2d2d;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+            overflow: hidden;
+            color: #e0e0e0;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #1a202c 0%, #4a5568 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+        
+        .controls {
+            padding: 30px;
+            background: #3a3a3a;
+            border-bottom: 1px solid #555;
+        }
+        
+        .controls-row {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        
+        .control-group label {
+            font-weight: 600;
+            color: #e0e0e0;
+            font-size: 0.9em;
+        }
+        
+        select, button, input {
+            padding: 10px 15px;
+            border: 2px solid #555;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            background: #4a4a4a !important;
+            color: #e0e0e0 !important;
+        }
+        
+        select:focus, input:focus {
+            outline: none;
+            border-color: #6a9bd1;
+            box-shadow: 0 0 0 3px rgba(106, 155, 209, 0.2);
+        }
+        
+        select option {
+            background: #4a4a4a !important;
+            color: #e0e0e0 !important;
+            padding: 10px;
+        }
+        
+        button {
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            min-width: 120px;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(52, 152, 219, 0.4);
+        }
+        
+        button:disabled {
+            background: #bdc3c7;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .stats {
+            display: flex;
+            gap: 20px;
+            margin-top: 15px;
+        }
+        
+        .stat-card {
+            background: #4a4a4a;
+            padding: 15px 20px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            flex: 1;
+        }
+        
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #3498db;
+        }
+        
+        .stat-label {
+            color: #7f8c8d;
+            font-size: 0.9em;
+        }
+        
+        .content {
+            padding: 30px;
+        }
+        
+        .product-card {
+            background: #f8f9fa;
+            border: 2px solid #e9ecef;
+            border-radius: 12px;
+            margin-bottom: 25px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+        
+        .product-card:hover {
+            border-color: #3498db;
+            box-shadow: 0 10px 30px rgba(52, 152, 219, 0.1);
+        }
+        
+        .product-header {
+            background: #4a4a4a;
+            padding: 20px;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .product-title {
+            font-size: 1.3em;
+            font-weight: 600;
+            color: #e0e0e0;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border-radius: 6px;
+            padding: 8px;
+        }
+        
+        .product-title:hover {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
+        }
+        
+        .product-title::after {
+            content: " 🔍";
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .product-title:hover::after {
+            opacity: 1;
+        }
+        
+        .product-meta {
+            display: flex;
+            gap: 15px;
+            color: #7f8c8d;
+            font-size: 0.9em;
+        }
+        
+        .product-meta span {
+            background: #ecf0f1;
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+        
+        .specs-editor {
+            padding: 25px;
+        }
+        
+        .specs-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .modal-specs-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .spec-field {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .spec-field label {
+            font-weight: 600;
+            color: #e0e0e0;
+            font-size: 0.9em;
+        }
+        
+        .has-specs {
+            background: #d4edda;
+            border-color: #c3e6cb;
+        }
+        
+        .missing-spec {
+            background: #f8d7da;
+            border-color: #f5c6cb;
+        }
+        
+        .actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            padding-top: 15px;
+            border-top: 1px solid #e9ecef;
+        }
+        
+        .btn-save {
+            background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
+        }
+        
+        .btn-skip {
+            background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+        }
+        
+        .btn-previous {
+            background: linear-gradient(135deg, #95a5a6 0%, #7f8c8d 100%);
+        }
+        
+        .progress-bar {
+            height: 6px;
+            background: #e9ecef;
+            border-radius: 3px;
+            overflow: hidden;
+            margin: 20px 0;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+            transition: width 0.3s ease;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 60px;
+            color: #7f8c8d;
+        }
+        
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .success-message {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        
+        .product-list-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #3a3a3a;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .product-list-table th {
+            background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
+            color: white;
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+        }
+        
+        .product-list-table td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #e9ecef;
+            vertical-align: middle;
+        }
+        
+        .product-list-table tr:hover {
+            background: #4a4a4a;
+        }
+        
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 600;
+            text-align: center;
+            min-width: 80px;
+            display: inline-block;
+        }
+        
+        .status-completed {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .status-partial {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .status-missing {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .edit-btn {
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85em;
+        }
+        
+        .edit-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 3px 8px rgba(52, 152, 219, 0.4);
+        }
+        
+        .delete-btn {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85em;
+            margin-left: 8px;
+        }
+        
+        .delete-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 3px 8px rgba(231, 76, 60, 0.4);
+        }
+        
+        .product-title-link {
+            color: #e0e0e0;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        
+        .product-title-link:hover {
+            color: #3498db;
+            cursor: pointer;
+        }
+        
+        .product-image {
+            width: 50px;
+            height: 50px;
+            object-fit: cover;
+            border-radius: 6px;
+            border: 1px solid #e9ecef;
+            flex-shrink: 0;
+        }
+        
+        .product-image:hover {
+            border-color: #3498db;
+            transform: scale(1.05);
+            transition: all 0.3s ease;
+        }
+        
+        .category-buttons {
+            display: flex;
+            gap: 15px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+        
+        .category-btn {
+            background: #f8f9fa;
+            border: 2px solid #e9ecef;
+            color: #6c757d;
+            padding: 12px 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            min-width: 180px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .category-btn:hover {
+            border-color: #3498db;
+            background: #f1f8ff;
+            transform: translateY(-2px);
+        }
+        
+        .category-btn.active {
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+            color: white;
+            border-color: #2980b9;
+        }
+        
+        .category-btn .count {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.9em;
+            min-width: 24px;
+            text-align: center;
+        }
+        
+        .category-btn.active .count {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        
+        .filter-badges {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .filter-badge {
+            background: #e3f2fd;
+            color: #1976d2;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+        
+        @media (max-width: 768px) {
+            .controls-row {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .specs-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .stats {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔧 PC Component Compatibility Editor</h1>
+            <p>Add compatibility specifications directly to your main product database</p>
+        </div>
+        
+        <div class="controls">
+            <div class="controls-row">
+                <div class="control-group">
+                    <label for="categorySelect">Component Type</label>
+                    <select id="categorySelect">
+                        <option value="">Select Component Type</option>
+                    </select>
+                </div>
+                
+                <div class="control-group">
+                    <label for="storeSelect">Store</label>
+                    <select id="storeSelect">
+                        <option value="all">All Stores</option>
+                    </select>
+                </div>
+                
+                <div class="control-group">
+                    <label for="searchInput">Search</label>
+                    <input type="text" id="searchInput" placeholder="Search products...">
+                </div>
+                
+                <div class="control-group">
+                    <button id="bulkEditBtn" onclick="openBulkEditModal()" disabled>
+                        📝 Bulk Edit (<span id="selectedCount">0</span>)
+                    </button>
+                </div>
+            </div>
+            
+            <div class="category-buttons">
+                <button id="unedited" class="category-btn active" onclick="selectCategory('unedited')">
+                    📝 Unedited Products <span class="count" id="unedited-count">0</span>
+                </button>
+                <button id="completed" class="category-btn" onclick="selectCategory('completed')">
+                    ✅ Completed Products <span class="count" id="completed-count">0</span>
+                </button>
+            </div>
+            
+            <div class="filter-badges" id="categoryInfo"></div>
+            
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+            </div>
+            
+            <div class="stats">
+                <div class="stat-card">
+                    <div class="stat-number" id="totalProducts">0</div>
+                    <div class="stat-label">Total Products</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="completedProducts">0</div>
+                    <div class="stat-label">Complete Specs</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="missingSpecs">0</div>
+                    <div class="stat-label">No Specs</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="content">
+            <div class="success-message" id="successMessage">
+                Specifications saved successfully to main database!
+            </div>
+            
+            <div class="loading" id="loadingState">
+                <div class="spinner"></div>
+                <p>Loading products from main database...</p>
+            </div>
+            
+            <div id="productList">
+                <!-- Product list view (default and only view) -->
+                <div style="text-align: center; padding: 60px; color: #7f8c8d;">
+                    <h3>Select a component type and category to start</h3>
+                    <p>Choose from CPU, Motherboards, RAM, Power Supply, Case, or Cooler</p>
+                </div>
+            </div>
+            
+            <!-- Modal for editing specs -->
+            <div id="editModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
+                <div style="position: relative; margin: 5% auto; width: 80%; max-width: 800px; background: #2d2d2d; border-radius: 15px; padding: 30px; max-height: 80vh; overflow-y: auto; color: #e0e0e0;">
+                    <div id="modalContent">
+                        <!-- Modal content will be loaded here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global state
+        let allProductsData = {};
+        let allCategoryProducts = [];
+        let currentProducts = [];
+        let currentComponentType = '';
+        let currentStatus = 'unedited';
+        
+        // PC Builder categories only
+        const pcBuilderCategories = ['CPU', 'GPU', 'Motherboards', 'RAM', 'Laptop RAM', 'Power Supply', 'Cooler', 'Fans', 'Thermals'];
+        
+        // Helper function to get product image URL from various possible fields
+        function getProductImageUrl(product) {
+            // Try different possible image field structures used by different stores
+            const fallbackImage = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAiIGhlaWdodD0iNTAiIHZpZXdCb3g9IjAgMCA1MCA1MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjUwIiBoZWlnaHQ9IjUwIiBmaWxsPSIjZjhmOWZhIi8+CjxwYXRoIGQ9Ik0yNSAxNUMxOS40NzcgMTUgMTUgMTkuNDc3IDE1IDI1QzE1IDMwLjUyMyAxOS40NzcgMzUgMjUgMzVDMzAuNTIzIDM1IDM1IDMwLjUyMyAzNSAyNUMzNSAxOS40NzcgMzAuNTIzIDE1IDI1IDE1Wk0yNSAzMkMyMS4xMzQgMzIgMTggMjguODY2IDE4IDI1QzE4IDIxLjEzNCAyMS4xMzQgMTggMjUgMThDMjguODY2IDE4IDMyIDIxLjEzNCAzMiAyNUMzMiAyOC44NjYgMjguODY2IDMyIDI1IDMyWiIgZmlsbD0iIzk0YTNiOCIvPgo8L3N2Zz4K';
+            
+            // Check various possible image field formats
+            return product.imageUrl ||           // GlobalIraq format
+                   product.image_url ||          // Alternative underscore format
+                   product.image?.src ||         // Alityan/GlobalIraq format (nested object)
+                   (typeof product.image === 'string' ? product.image : null) ||  // Kolshzin/3D-Iraq format (direct string)
+                   product.image?.url ||         // Alternative nested format
+                   product.img ||                // Simple img field
+                   product.picture ||            // Alternative picture field
+                   product.thumbnail ||          // Thumbnail field
+                   (Array.isArray(product.images) && product.images[0]) ||  // Images array
+                   fallbackImage;                // Fallback placeholder
+        }
+        
+        // Spec field templates for each category (PC Builder components only)
+        const specTemplates = {
+            CPU: [
+                { name: 'socket', label: 'Socket', type: 'select', options: ['LGA1851', 'LGA1700', 'LGA1200', 'LGA1151', 'LGA2066', 'AM4', 'AM5', 'TR4', 'sTRX4'] },
+                { name: 'tdp', label: 'TDP (W)', type: 'number', min: 15, max: 300 }
+            ],
+            GPU: [
+                { name: 'recommended_psu', label: 'Recommended PSU (W)', type: 'select', options: [400, 450, 500, 550, 600, 650, 700, 750, 800, 850, 1000, 1200, 1250, 1300, 1500, 1600] }
+            ],
+            Motherboards: [
+                { name: 'socket', label: 'Socket', type: 'radio', options: ['LGA1851', 'LGA1700', 'LGA1200', 'AM4', 'AM5', 'TR4', 'sTRX4'] },
+                { name: 'ram_type', label: 'RAM Type', type: 'radio', options: ['DDR4', 'DDR5'] }
+            ],
+            RAM: [
+                { name: 'memory_type', label: 'Memory Type', type: 'select', options: ['DDR4', 'DDR5'] }
+            ],
+            'Laptop RAM': [
+                // No specifications required
+            ],
+            'Power Supply': [
+                { name: 'wattage', label: 'Wattage', type: 'select', options: [400, 450, 500, 550, 600, 650, 700, 750, 800, 850, 1000, 1050, 1100, 1200, 1250, 1300, 1500, 1600] }
+            ],
+            Cooler: [
+                // No specifications required - category reassignment only
+            ],
+            Fans: [
+                // No specifications required
+            ],
+            Thermals: [
+                // No specifications required
+            ]
+        };
+        
+        // Load products from main database
+        async function loadMainProductsData() {
+            try {
+                console.log('📡 Fetching products.json...');
+                const response = await fetch(`./public/data/products.json?t=${Date.now()}`);
+                console.log('📡 Response status:', response.status, response.statusText);
+                
+                if (!response.ok) {
+                    throw new Error(`Failed to load products.json: ${response.status} ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                allProductsData = data;
+                
+                // Extract only PC builder categories from products
+                const availableCategories = new Set();
+                
+                if (data.sites) {
+                    for (const siteName in data.sites) {
+                        const siteData = data.sites[siteName];
+                        if (siteData.products) {
+                            siteData.products.forEach(product => {
+                                if (product.category && pcBuilderCategories.includes(product.category)) {
+                                    availableCategories.add(product.category);
+                                }
+                            });
+                        }
+                    }
+                }
+                
+                // Populate category dropdown with PC builder categories only
+                const categorySelect = document.getElementById('categorySelect');
+                categorySelect.innerHTML = '<option value="">Select Category</option>';
+                
+                // Sort in logical PC building order
+                const sortedCategories = pcBuilderCategories.filter(cat => availableCategories.has(cat));
+                
+                sortedCategories.forEach(category => {
+                    const option = document.createElement('option');
+                    option.value = category;
+                    option.textContent = category;
+                    categorySelect.appendChild(option);
+                });
+                
+                // Populate store dropdown
+                const storeSelect = document.getElementById('storeSelect');
+                storeSelect.innerHTML = '<option value="all">All Stores</option>';
+                
+                // Get all available stores from the data
+                const availableStores = Object.keys(allProductsData.sites || {});
+                availableStores.sort().forEach(storeName => {
+                    const option = document.createElement('option');
+                    option.value = storeName;
+                    option.textContent = storeName.charAt(0).toUpperCase() + storeName.slice(1);
+                    storeSelect.appendChild(option);
+                });
+                
+                return true;
+            } catch (error) {
+                console.error('Error loading main products data:', error);
+                document.getElementById('loadingState').innerHTML = `
+                    <div style="color: #e74c3c;">
+                        <h3>⚠️ Could not load products.json</h3>
+                        <p>Error: ${error.message}</p>
+                        <p>Make sure the server is running and products.json exists in public/data/</p>
+                    </div>
+                `;
+                return false;
+            }
+        }
+        
+        // Auto-load products when component type is selected
+        function loadProductsForComponent() {
+            const componentType = document.getElementById('categorySelect').value;
+            const selectedStore = document.getElementById('storeSelect').value;
+            
+            if (!componentType) {
+                // Clear everything if no component selected
+                allCategoryProducts = [];
+                currentProducts = [];
+                currentComponentType = '';
+                updateStats();
+                updateCategoryButtonCounts();
+                displayProductList();
+                return;
+            }
+            
+            document.getElementById('loadingState').style.display = 'block';
+            
+            // Extract products for this component type, filtered by store if selected
+            allCategoryProducts = [];
+            
+            if (allProductsData.sites) {
+                for (const siteName in allProductsData.sites) {
+                    // Skip if specific store selected and this isn't it
+                    if (selectedStore !== 'all' && selectedStore !== siteName) {
+                        continue;
+                    }
+                    
+                    const siteData = allProductsData.sites[siteName];
+                    if (siteData.products) {
+                        siteData.products.forEach(product => {
+                            if (product.category === componentType) {
+                                allCategoryProducts.push({
+                                    ...product,
+                                    retailer: siteName,
+                                    originalSite: siteName
+                                });
+                            }
+                        });
+                    }
+                }
+            }
+            
+            currentComponentType = componentType;
+            
+            // Update button counts and display current category
+            updateStats();
+            updateCategoryButtonCounts();
+            applyStatusFilter();
+            displayProductList();
+            
+            document.getElementById('loadingState').style.display = 'none';
+        }
+        
+        // Select a category (unedited/incomplete/completed)
+        function selectCategory(status) {
+            if (!currentComponentType) {
+                alert('Please select a component type first');
+                return;
+            }
+            
+            currentStatus = status;
+            
+            // Update active button
+            document.querySelectorAll('.category-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(status).classList.add('active');
+            
+            applyStatusFilter();
+            displayProductList();
+        }
+        
+        // Apply status-based filtering (3 categories)
+        function applyStatusFilter() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            
+            // Always start from ALL products in the component type
+            let filteredProducts = [...allCategoryProducts];
+            
+            // Apply search filter
+            if (searchTerm) {
+                filteredProducts = filteredProducts.filter(product => 
+                    product.title.toLowerCase().includes(searchTerm)
+                );
+            }
+            
+            // Apply status-based filter (3 categories)
+            const template = specTemplates[currentComponentType] || [];
+            filteredProducts = filteredProducts.filter(product => {
+                const specs = product.compatibility_specs;
+                
+                // Special handling for coolers and cases - match the counting logic
+                let requiredFieldCount = template.length;
+                let actualSpecCount = specs ? Object.keys(specs).filter(key => specs[key] !== null && specs[key] !== undefined && specs[key] !== '').length : 0;
+                
+                if (currentComponentType === 'Cooler' || currentComponentType === 'Case') {
+                    // For coolers and cases, only 1 field is required for completion
+                    requiredFieldCount = 1;
+                }
+                
+                switch (currentStatus) {
+                    case 'unedited':
+                        // Show products with NO specs at all
+                        return !specs || actualSpecCount === 0;
+                    case 'completed':
+                        // Show products with complete specs based on their type
+                        return actualSpecCount >= requiredFieldCount;
+                    default:
+                        return true;
+                }
+            });
+            
+            // Update current products list
+            currentProducts = filteredProducts;
+            
+            updateCategoryInfo(searchTerm);
+        }
+        
+        // Update category button counts
+        function updateCategoryButtonCounts() {
+            if (!currentComponentType || allCategoryProducts.length === 0) {
+                document.getElementById('unedited-count').textContent = '0';
+                document.getElementById('completed-count').textContent = '0';
+                return;
+            }
+            
+            const template = specTemplates[currentComponentType] || [];
+            let unedited = 0, completed = 0;
+            
+            allCategoryProducts.forEach(product => {
+                const specs = product.compatibility_specs;
+                
+                // Special handling for coolers and cases - any 1 field makes it complete
+                let requiredFieldCount = template.length;
+                let actualSpecCount = specs ? Object.keys(specs).filter(key => specs[key] !== null && specs[key] !== undefined && specs[key] !== '').length : 0;
+                
+                if (currentComponentType === 'Cooler' || currentComponentType === 'Case') {
+                    // For coolers and cases, only 1 field is required for completion
+                    requiredFieldCount = 1;
+                }
+                
+                if (actualSpecCount === 0) {
+                    unedited++;
+                } else {
+                    completed++;
+                }
+            });
+            
+            document.getElementById('unedited-count').textContent = unedited;
+            document.getElementById('completed-count').textContent = completed;
+        }
+        
+        // Update category info display
+        function updateCategoryInfo(searchTerm) {
+            const info = document.getElementById('categoryInfo');
+            info.innerHTML = '';
+            
+            if (currentComponentType) {
+                info.innerHTML += `<span class="filter-badge">Component: ${currentComponentType}</span>`;
+            }
+            
+            const selectedStore = document.getElementById('storeSelect').value;
+            if (selectedStore !== 'all') {
+                info.innerHTML += `<span class="filter-badge">Store: ${selectedStore.charAt(0).toUpperCase() + selectedStore.slice(1)}</span>`;
+            }
+            
+            if (searchTerm) {
+                info.innerHTML += `<span class="filter-badge">Search: "${searchTerm}"</span>`;
+            }
+            
+            if (currentProducts.length > 0) {
+                info.innerHTML += `<span class="filter-badge">Showing: ${currentProducts.length} products</span>`;
+            }
+        }
+        
+        // Update statistics for all products in component type
+        function updateStats() {
+            if (!currentComponentType) {
+                document.getElementById('totalProducts').textContent = 0;
+                document.getElementById('completedProducts').textContent = 0;
+                document.getElementById('missingSpecs').textContent = 0;
+                document.getElementById('progressFill').style.width = '0%';
+                return;
+            }
+            
+            const template = specTemplates[currentComponentType] || [];
+            const total = allCategoryProducts.length;
+            let completed = 0;
+            let partial = 0;
+            let missing = 0;
+            
+            allCategoryProducts.forEach(product => {
+                const specs = product.compatibility_specs;
+                const specCount = specs ? Object.keys(specs).filter(key => specs[key] !== null && specs[key] !== undefined && specs[key] !== '').length : 0;
+                
+                if (specCount === 0) {
+                    missing++;
+                } else if (specCount >= Math.max(1, template.length * 0.6)) {
+                    completed++;
+                } else {
+                    partial++;
+                }
+            });
+            
+            document.getElementById('totalProducts').textContent = total;
+            document.getElementById('completedProducts').textContent = completed;
+            document.getElementById('missingSpecs').textContent = missing;
+            
+            const progress = total > 0 ? (completed / total) * 100 : 0;
+            document.getElementById('progressFill').style.width = progress + '%';
+        }
+        
+        
+        
+        // Save single product specs to database
+        async function saveSingleProductSpec(product, updatedSpecs) {
+            try {
+                console.log('🔄 Saving specs for single product:', product.title);
+                console.log('📝 Specs:', updatedSpecs);
+                
+                const specData = {
+                    product_id: product.id,
+                    site_name: product.originalSite,
+                    compatibility_specs: updatedSpecs
+                };
+                
+                const response = await fetch('http://localhost:8000/save-single-spec', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(specData)
+                });
+                
+                console.log('📡 Response status:', response.status, response.statusText);
+                
+                const responseText = await response.text();
+                console.log('📋 Response data:', responseText);
+                
+                return response.ok;
+            } catch (error) {
+                console.error('❌ Error saving single spec:', error);
+                return false;
+            }
+        }
+        
+        async function saveSingleProductCategory(categoryData) {
+            try {
+                console.log('🔄 Saving category change only:', categoryData);
+                
+                const response = await fetch('http://localhost:8000/save-single-spec', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(categoryData)
+                });
+                
+                console.log('📡 Response status:', response.status, response.statusText);
+                
+                const responseText = await response.text();
+                console.log('📋 Response data:', responseText);
+                
+                return response.ok;
+            } catch (error) {
+                console.error('❌ Error saving category change:', error);
+                return false;
+            }
+        }
+
+        async function saveSingleProductSpecWithCategory(saveData) {
+            try {
+                console.log('🔄 Saving product data (specs + category):', saveData);
+                
+                const response = await fetch('http://localhost:8000/save-single-spec', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(saveData)
+                });
+                
+                console.log('📡 Response status:', response.status, response.statusText);
+                
+                const responseText = await response.text();
+                console.log('📋 Response data:', responseText);
+                
+                return response.ok;
+            } catch (error) {
+                console.error('❌ Error saving product with category:', error);
+                return false;
+            }
+        }
+
+        async function saveSingleProductSpecWithCategory(saveData) {
+            try {
+                console.log('🔄 Saving product data (specs + category):', saveData);
+                
+                const response = await fetch('http://localhost:8000/save-single-spec', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(saveData)
+                });
+                
+                console.log('📡 Response status:', response.status, response.statusText);
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || 'Failed to save specs');
+                }
+                
+                const result = await response.json();
+                console.log('✅ Saved specs:', result.message);
+                return true;
+            } catch (error) {
+                console.error('❌ Single spec save failed:', error);
+                return false;
+            }
+        }
+        
+        // Save to main database file (full backup method)
+        async function saveToMainDatabase() {
+            try {
+                console.log('🔄 Attempting to save full database...', allProductsData.total_products, 'products');
+                
+                const response = await fetch('http://localhost:8000/save-products', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(allProductsData)
+                });
+                
+                console.log('📡 Response status:', response.status, response.statusText);
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || 'Failed to save to database');
+                }
+                
+                const result = await response.json();
+                console.log('✅ Saved to main database:', result.message);
+                return true;
+            } catch (error) {
+                console.error('❌ Server save failed:', error);
+                console.log('📥 Falling back to download...');
+                // Fallback to download if server save fails
+                downloadDatabase();
+                return false; // Don't throw error, just return false
+            }
+        }
+        
+        // Download database as backup
+        function downloadDatabase() {
+            const dataStr = JSON.stringify(allProductsData, null, 2);
+            const dataBlob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(dataBlob);
+            
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `products_with_specs_${new Date().toISOString().slice(0, 10)}.json`;
+            link.click();
+            
+            URL.revokeObjectURL(url);
+        }
+        
+        // Navigate to next product
+        function nextProduct() {
+            if (currentIndex < currentProducts.length - 1) {
+                currentIndex++;
+                updateStats();
+                displayCurrentProduct();
+            } else {
+                alert(`All ${currentProducts.length} products in this category/filter have been processed!`);
+            }
+        }
+        
+        // Navigate to previous product
+        function previousProduct() {
+            if (currentIndex > 0) {
+                currentIndex--;
+                updateStats();
+                displayCurrentProduct();
+            }
+        }
+        
+        // Skip current product
+        function skipProduct() {
+            nextProduct();
+        }
+        
+        // Search product on Google
+        function searchProduct(productTitle, storeName) {
+            let searchQuery = productTitle;
+            const encodedQuery = encodeURIComponent(searchQuery);
+            const googleSearchUrl = `https://www.google.com/search?q=${encodedQuery}`;
+            window.open(googleSearchUrl, '_blank');
+        }
+        
+        // Delete product specifications and reset to unedited
+        async function deleteProductSpecs(index) {
+            const product = currentProducts[index];
+            
+            if (!confirm(`Are you sure you want to reset all specs for "${product.title}"? This will remove all compatibility data.`)) {
+                return;
+            }
+            
+            try {
+                // Remove compatibility specs from the product
+                delete product.compatibility_specs;
+                
+                // Update in allCategoryProducts as well
+                const originalProduct = allCategoryProducts.find(p => p.id === product.id);
+                if (originalProduct) {
+                    delete originalProduct.compatibility_specs;
+                }
+                
+                // Save to backend
+                const specData = {
+                    product_id: product.id,
+                    site_name: product.originalSite,
+                    compatibility_specs: null // This will remove the specs
+                };
+                
+                console.log('🗑️ Removing specs for:', product.title);
+                
+                const response = await fetch('http://localhost:8000/save-single-spec', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(specData)
+                });
+                
+                if (response.ok) {
+                    console.log('✅ Specs removed successfully');
+                    
+                    // Refresh the displays
+                    updateStats();
+                    updateCategoryButtonCounts();
+                    applyStatusFilter();
+                    displayProductList();
+                    
+                    // Show success message
+                    const successMsg = document.getElementById('successMessage');
+                    successMsg.textContent = `Specs reset for ${product.title} - moved to unedited products`;
+                    successMsg.style.display = 'block';
+                    setTimeout(() => successMsg.style.display = 'none', 3000);
+                    
+                } else {
+                    throw new Error('Failed to remove specs from database');
+                }
+                
+            } catch (error) {
+                console.error('❌ Error removing specs:', error);
+                alert('Error removing specs: ' + error.message);
+            }
+        }
+        
+        // Bulk edit functionality
+        function toggleSelectAll() {
+            const selectAll = document.getElementById('selectAll');
+            const checkboxes = document.querySelectorAll('.product-checkbox');
+            
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = selectAll.checked;
+            });
+            
+            updateBulkEditButton();
+        }
+        
+        function updateBulkEditButton() {
+            const checkboxes = document.querySelectorAll('.product-checkbox');
+            const selectedCheckboxes = document.querySelectorAll('.product-checkbox:checked');
+            const bulkEditBtn = document.getElementById('bulkEditBtn');
+            const selectedCount = document.getElementById('selectedCount');
+            
+            selectedCount.textContent = selectedCheckboxes.length;
+            bulkEditBtn.disabled = selectedCheckboxes.length === 0;
+            
+            // Update select all checkbox state
+            const selectAll = document.getElementById('selectAll');
+            if (selectedCheckboxes.length === 0) {
+                selectAll.indeterminate = false;
+                selectAll.checked = false;
+            } else if (selectedCheckboxes.length === checkboxes.length) {
+                selectAll.indeterminate = false;
+                selectAll.checked = true;
+            } else {
+                selectAll.indeterminate = true;
+            }
+        }
+        
+        function toggleProductCheckbox(index) {
+            const checkbox = document.querySelector(`input.product-checkbox[data-index="${index}"]`);
+            if (checkbox) {
+                checkbox.checked = !checkbox.checked;
+                updateBulkEditButton();
+                console.log(`🖼️ Image clicked - checkbox ${checkbox.checked ? 'checked' : 'unchecked'} for product ${index}`);
+            }
+        }
+        
+        function openBulkEditModal() {
+            const selectedCheckboxes = document.querySelectorAll('.product-checkbox:checked');
+            if (selectedCheckboxes.length === 0) return;
+            
+            const selectedProducts = Array.from(selectedCheckboxes).map(checkbox => {
+                const index = parseInt(checkbox.dataset.index);
+                return currentProducts[index];
+            });
+            
+            const modal = document.getElementById('editModal');
+            const modalContent = document.getElementById('modalContent');
+            
+            const template = specTemplates[currentComponentType] || [];
+            
+            let html = `
+                <h2>📝 Bulk Edit ${selectedProducts.length} Products</h2>
+                <p style="margin-bottom: 20px; color: #666;">Edit specifications for multiple products at once</p>
+                
+                <div class="spec-field" style="margin-bottom: 20px; background: #4a4a4a; padding: 15px; border-radius: 8px; border: 2px solid #007bff;">
+                    <label for="bulkProductCategory" style="display: block; margin-bottom: 8px; font-weight: bold; color: #007bff;">📁 Change Category (All Selected Products)</label>
+                    <select id="bulkProductCategory" style="width: 100%; padding: 10px; border: 2px solid #007bff; border-radius: 6px; background: #4a4a4a; color: #e0e0e0; font-size: 14px;">
+                        <option value="">Keep current categories</option>
+                        ${pcBuilderCategories.map(cat => 
+                            `<option value="${cat}">${cat}</option>`
+                        ).join('')}
+                    </select>
+                    <small style="color: #666; margin-top: 5px; display: block;">Select to reassign all selected products to a new category</small>
+                </div>
+                
+                <div class="modal-specs-container">
+            `;
+            
+            template.forEach(field => {
+                html += `
+                    <div class="spec-field">
+                        <label for="bulk_${field.name}">${field.label}</label>
+                        ${generateFieldInput(field, '', 'bulk_')}
+                    </div>
+                `;
+            });
+            
+            html += `
+                </div>
+                
+                <div class="actions">
+                    <button onclick="closeBulkEditModal()" class="btn-skip">Cancel</button>
+                    <button onclick="saveBulkSpecs()" class="btn-save">Save to ${selectedProducts.length} Products</button>
+                </div>
+            `;
+            
+            modalContent.innerHTML = html;
+            modal.style.display = 'block';
+        }
+        
+        function closeBulkEditModal() {
+            document.getElementById('editModal').style.display = 'none';
+        }
+        
+        async function saveBulkSpecs() {
+            const selectedCheckboxes = document.querySelectorAll('.product-checkbox:checked');
+            const selectedProducts = Array.from(selectedCheckboxes).map(checkbox => {
+                const index = parseInt(checkbox.dataset.index);
+                return currentProducts[index];
+            });
+            
+            const template = specTemplates[currentComponentType] || [];
+            const bulkSpecs = {};
+            
+            // Check for bulk category change
+            const newBulkCategory = document.getElementById('bulkProductCategory').value;
+            const bulkCategoryChanged = newBulkCategory && newBulkCategory !== '';
+            
+            // Collect values from form
+            template.forEach(field => {
+                if (field.type === 'checkbox') {
+                    const checkboxes = document.querySelectorAll(`input[name="bulk_${field.name}"]:checked`);
+                    if (checkboxes.length > 0) {
+                        bulkSpecs[field.name] = Array.from(checkboxes).map(cb => cb.value);
+                    }
+                } else if (field.type === 'radio') {
+                    const radio = document.querySelector(`input[name="bulk_${field.name}"]:checked`);
+                    if (radio && radio.value) {
+                        bulkSpecs[field.name] = radio.value;
+                    }
+                } else {
+                    const input = document.getElementById(`bulk_${field.name}`);
+                    if (input && input.value) {
+                        bulkSpecs[field.name] = input.value;
+                    }
+                }
+            });
+            
+            if (Object.keys(bulkSpecs).length === 0 && !bulkCategoryChanged) {
+                alert('Please enter at least one specification value or select a category change');
+                return;
+            }
+            
+            let successCount = 0;
+            const totalProducts = selectedProducts.length;
+            
+            // Save specs for each selected product
+            for (const product of selectedProducts) {
+                try {
+                    // Handle category change
+                    if (bulkCategoryChanged) {
+                        console.log(`🔄 Bulk category change: "${product.category}" → "${newBulkCategory}" for ${product.title}`);
+                        
+                        // Store original category for persistence
+                        if (!product.original_category) {
+                            product.original_category = product.category;
+                        }
+                        product.manual_category = newBulkCategory;
+                        product.category = newBulkCategory;
+                    }
+                    
+                    // Merge with existing specs (don't overwrite existing values)
+                    const currentSpecs = product.compatibility_specs || {};
+                    const updatedSpecs = { ...currentSpecs, ...bulkSpecs };
+                    
+                    // Create save data
+                    let saveData = {
+                        product_id: product.id,
+                        site_name: product.originalSite,
+                        compatibility_specs: updatedSpecs
+                    };
+                    
+                    // Add category data if changed
+                    if (bulkCategoryChanged) {
+                        saveData.category = newBulkCategory;
+                        saveData.manual_category = newBulkCategory;
+                        saveData.original_category = product.original_category;
+                    }
+                    
+                    const success = await saveSingleProductSpecWithCategory(saveData);
+                    if (success) {
+                        // Update local data
+                        product.compatibility_specs = updatedSpecs;
+                        
+                        // Update in allCategoryProducts as well
+                        const originalProduct = allCategoryProducts.find(p => p.id === product.id);
+                        if (originalProduct) {
+                            originalProduct.compatibility_specs = updatedSpecs;
+                            if (bulkCategoryChanged) {
+                                originalProduct.category = newBulkCategory;
+                                originalProduct.manual_category = newBulkCategory;
+                                if (!originalProduct.original_category) {
+                                    originalProduct.original_category = product.original_category;
+                                }
+                            }
+                        }
+                        
+                        successCount++;
+                    }
+                } catch (error) {
+                    console.error('Error saving specs for product:', product.title, error);
+                }
+            }
+            
+            // Close modal
+            closeBulkEditModal();
+            
+            // Clear selections
+            document.querySelectorAll('.product-checkbox').forEach(cb => cb.checked = false);
+            document.getElementById('selectAll').checked = false;
+            updateBulkEditButton();
+            
+            // Refresh displays
+            updateStats();
+            updateCategoryButtonCounts();
+            applyStatusFilter();
+            displayProductList();
+            
+            // Show success message
+            const successMsg = document.getElementById('successMessage');
+            successMsg.textContent = `Bulk edit completed: ${successCount}/${totalProducts} products updated successfully`;
+            successMsg.style.display = 'block';
+            setTimeout(() => successMsg.style.display = 'none', 5000);
+        }
+        
+        function generateFieldInput(field, value, prefix = '') {
+            const fieldId = `${prefix}${field.name}`;
+            
+            switch (field.type) {
+                case 'select':
+                    let options = '';
+                    field.options.forEach(option => {
+                        const selected = value === option.toString() ? 'selected' : '';
+                        options += `<option value="${option}" ${selected}>${option}</option>`;
+                    });
+                    return `<select id="${fieldId}"><option value="">Select ${field.label}</option>${options}</select>`;
+                
+                case 'number':
+                    const min = field.min ? `min="${field.min}"` : '';
+                    const max = field.max ? `max="${field.max}"` : '';
+                    return `<input type="number" id="${fieldId}" value="${value}" ${min} ${max} placeholder="Enter ${field.label}">`;
+                
+                case 'checkbox':
+                    let checkboxes = '';
+                    field.options.forEach(option => {
+                        const checked = Array.isArray(value) && value.includes(option) ? 'checked' : '';
+                        checkboxes += `
+                            <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                                <input type="checkbox" name="${fieldId}" value="${option}" ${checked}>
+                                ${option}
+                            </label>
+                        `;
+                    });
+                    return `<div>${checkboxes}</div>`;
+                
+                case 'radio':
+                    let radios = '';
+                    field.options.forEach(option => {
+                        const checked = value === option ? 'checked' : '';
+                        radios += `
+                            <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                                <input type="radio" name="${fieldId}" value="${option}" ${checked}>
+                                ${option}
+                            </label>
+                        `;
+                    });
+                    return `<div>${radios}</div>`;
+                
+                default:
+                    return `<input type="text" id="${fieldId}" value="${value}" placeholder="Enter ${field.label}">`;
+            }
+        }
+        
+        
+        // Display products in table format
+        function displayProductList() {
+            if (!currentComponentType) {
+                document.getElementById('productList').innerHTML = `
+                    <div style="text-align: center; padding: 60px; color: #7f8c8d;">
+                        <h3>Select a component type to start</h3>
+                        <p>Choose from CPU, Motherboards, RAM, Power Supply, Case, or Cooler</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            if (!currentProducts.length) {
+                const statusNames = {
+                    'unedited': 'unedited',
+                    'incomplete': 'incomplete', 
+                    'completed': 'completed'
+                };
+                
+                document.getElementById('productList').innerHTML = `
+                    <div style="text-align: center; padding: 60px; color: #7f8c8d;">
+                        <h3>No ${statusNames[currentStatus]} products found</h3>
+                        <p>Try selecting a different category or search for specific products.</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            const template = specTemplates[currentComponentType] || [];
+            
+            let html = `
+                <table class="product-list-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 5%;">
+                                <input type="checkbox" id="selectAll" onchange="toggleSelectAll()" />
+                            </th>
+                            <th style="width: 45%;">Product</th>
+                            <th style="width: 15%;">Store</th>
+                            <th style="width: 12%;">Price</th>
+                            <th style="width: 10%;">Status</th>
+                            <th style="width: 13%;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            
+            currentProducts.forEach((product, index) => {
+                const specs = product.compatibility_specs || {};
+                
+                // Use same logic as filtering for consistent status
+                let requiredFieldCount = template.length;
+                let actualSpecCount = Object.keys(specs).filter(key => specs[key] !== null && specs[key] !== undefined && specs[key] !== '').length;
+                
+                if (currentComponentType === 'Cooler' || currentComponentType === 'Case') {
+                    // For coolers and cases, only 1 field is required for completion
+                    requiredFieldCount = 1;
+                }
+                
+                let status, statusClass;
+                if (actualSpecCount === 0) {
+                    status = 'Missing';
+                    statusClass = 'status-missing';
+                } else {
+                    status = 'Completed';
+                    statusClass = 'status-completed';
+                }
+                
+                const price = product.price ? product.price.toLocaleString() + ' IQD' : 'N/A';
+                const titleShort = product.title.length > 50 ? product.title.substring(0, 50) + '...' : product.title;
+                
+                html += `
+                    <tr>
+                        <td style="text-align: center;">
+                            <input type="checkbox" class="product-checkbox" data-index="${index}" onchange="updateBulkEditButton()" />
+                        </td>
+                        <td>
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <img src="${getProductImageUrl(product)}" 
+                                     alt="${product.title}" 
+                                     style="width: 75px; height: 75px; object-fit: cover; border-radius: 6px; border: 1px solid #e9ecef; cursor: pointer;"
+                                     onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAiIGhlaWdodD0iNTAiIHZpZXdCb3g9IjAgMCA1MCA1MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjUwIiBoZWlnaHQ9IjUwIiBmaWxsPSIjZjhmOWZhIi8+CjxwYXRoIGQ9Ik0yNSAxNUMxOS40NzcgMTUgMTUgMTkuNDc3IDE1IDI1QzE1IDMwLjUyMyAxOS40NzcgMzUgMjUgMzVDMzAuNTIzIDM1IDM1IDMwLjUyMyAzNSAyNUMzNSAxOS40NzcgMzAuNTIzIDE1IDI1IDE1Wk0yNSAzMkMyMS4xMzQgMzIgMTggMjguODY2IDE4IDI1QzE4IDIxLjEzNCAyMS4xMzQgMTggMjUgMThDMjguODY2IDE4IDMyIDIxLjEzNCAzMiAyNUMzMiAyOC44NjYgMjguODY2IDMyIDI1IDMyWiIgZmlsbD0iIzk5YTNhNCIvPgo8cGF0aCBkPSJNMjUgMjNDMjQuNDQ4IDIzIDI0IDIzLjQ0OCAyNCAyNEMyNCAyNC41NTIgMjQuNDQ4IDI1IDI1IDI1QzI1LjU1MiAyNSAyNiAyNC41NTIgMjYgMjRDMjYgMjMuNDQ4IDI1LjU1MiAyMyAyNSAyM1oiIGZpbGw9IiM5OWEzYTQiLz4KPHN2Zz4K';"
+                                     onclick="toggleProductCheckbox(${index})"
+                                     title="Click to select for bulk edit"
+                                     loading="lazy">
+                                <a href="${product.link || product.url || '#'}" target="_blank" class="product-title-link" title="${product.title}">
+                                    ${titleShort}
+                                </a>
+                            </div>
+                        </td>
+                        <td>${product.retailer}</td>
+                        <td>${price}</td>
+                        <td><span class="status-badge ${statusClass}">${status}</span></td>
+                        <td>
+                            <div style="display: flex; gap: 8px; align-items: center;">
+                                <button class="edit-btn" onclick="editProduct(${index})">
+                                    ${status === 'Missing' ? 'Add Specs' : 'Edit Specs'}
+                                </button>
+                                ${status !== 'Missing' ? `
+                                    <button class="delete-btn" onclick="deleteProductSpecs(${index})" title="Reset specs">
+                                        🗑️ Reset
+                                    </button>
+                                ` : ''}
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            html += `
+                    </tbody>
+                </table>
+            `;
+            
+            document.getElementById('productList').innerHTML = html;
+        }
+        
+        // Edit a specific product in modal
+        function editProduct(index) {
+            console.log('🔧 Opening edit modal for product:', index);
+            const product = currentProducts[index];
+            const template = specTemplates[currentComponentType] || [];
+            const specs = product.compatibility_specs || {};
+            
+            // Check if modal exists
+            const modal = document.getElementById('editModal');
+            if (!modal) {
+                console.error('❌ Modal element not found!');
+                alert('Error: Modal not found. Please refresh the page.');
+                return;
+            }
+            
+            let modalContent = `
+                <div style="display: flex; justify-content: between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #e9ecef; padding-bottom: 15px;">
+                    <h2 style="margin: 0; color: #2c3e50;">Edit Compatibility Specs</h2>
+                    <button onclick="closeModal()" style="background: #e74c3c; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; font-size: 16px;">✕ Close</button>
+                </div>
+                
+                <div style="margin-bottom: 20px;">
+                    <h3 style="color: #3498db; margin-bottom: 10px; cursor: pointer; transition: all 0.3s ease; padding: 8px; border-radius: 6px;" 
+                        onmouseover="this.style.background='linear-gradient(135deg, #3498db, #2980b9)'; this.style.color='white'; this.style.transform='translateY(-1px)'"
+                        onmouseout="this.style.background='none'; this.style.color='#3498db'; this.style.transform='translateY(0px)'"
+                        onclick="window.open('${product.link || product.url || '#'}', '_blank')" 
+                        title="Click to view product page">
+                        ${product.title} 🔍
+                    </h3>
+                    <div style="display: flex; gap: 15px; font-size: 0.9em; color: #7f8c8d;">
+                        <span>Store: ${product.retailer}</span>
+                        <span>Price: ${product.price ? product.price.toLocaleString() + ' IQD' : 'N/A'}</span>
+                        <span>Component: ${currentComponentType}</span>
+                    </div>
+                </div>
+                
+                <div class="spec-field" style="margin-bottom: 20px; background: #4a4a4a; padding: 15px; border-radius: 8px; border: 2px solid #007bff;">
+                    <label for="productCategory" style="display: block; margin-bottom: 8px; font-weight: bold; color: #007bff;">📁 Change Category</label>
+                    <select id="productCategory" style="width: 100%; padding: 10px; border: 2px solid #007bff; border-radius: 6px; background: #4a4a4a; color: #e0e0e0; font-size: 14px;">
+                        ${pcBuilderCategories.map(cat => 
+                            `<option value="${cat}" ${product.category === cat ? 'selected' : ''}>${cat}</option>`
+                        ).join('')}
+                    </select>
+                    <small style="color: #666; margin-top: 5px; display: block;">Select a different category to reassign this product</small>
+                </div>
+                
+                <div style="display: flex; flex-direction: column; gap: 20px;">
+                    ${template.map(field => {
+                        const value = specs[field.name] || '';
+                        const hasValue = value !== '' && value !== null && value !== undefined;
+                        const classes = hasValue ? 'has-specs' : 'missing-spec';
+                        
+                        if (field.type === 'select') {
+                            return `
+                                <div class="spec-field">
+                                    <label for="modal_${field.name}">${field.label}</label>
+                                    <select id="modal_${field.name}" class="${classes}">
+                                        <option value="">Select...</option>
+                                        ${field.options.map(option => 
+                                            `<option value="${option}" ${value == option ? 'selected' : ''}>${option}</option>`
+                                        ).join('')}
+                                    </select>
+                                </div>
+                            `;
+                        } else if (field.type === 'checkbox') {
+                            const selectedValues = value ? value.split(',') : [];
+                            return `
+                                <div class="spec-field">
+                                    <label>${field.label}</label>
+                                    <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 5px;">
+                                        ${field.options.map(option => `
+                                            <label style="display: flex; align-items: center; gap: 8px; font-weight: normal; cursor: pointer;">
+                                                <input type="checkbox" name="modal_${field.name}" value="${option}" 
+                                                       ${selectedValues.includes(option) ? 'checked' : ''}
+                                                       style="margin: 0; cursor: pointer;">
+                                                <span>${option}</span>
+                                            </label>
+                                        `).join('')}
+                                    </div>
+                                </div>
+                            `;
+                        } else if (field.type === 'radio') {
+                            return `
+                                <div class="spec-field">
+                                    <label>${field.label}</label>
+                                    <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 5px;">
+                                        ${field.options.map(option => `
+                                            <label style="display: flex; align-items: center; gap: 8px; font-weight: normal; cursor: pointer;">
+                                                <input type="radio" name="modal_${field.name}" value="${option}" 
+                                                       ${value == option ? 'checked' : ''}
+                                                       style="margin: 0; cursor: pointer;">
+                                                <span>${option}</span>
+                                            </label>
+                                        `).join('')}
+                                    </div>
+                                </div>
+                            `;
+                        } else if (field.type === 'number') {
+                            return `
+                                <div class="spec-field">
+                                    <label for="modal_${field.name}">${field.label}</label>
+                                    <input type="number" id="modal_${field.name}" class="${classes}" 
+                                           value="${value}" min="${field.min || 0}" max="${field.max || 9999}"
+                                           placeholder="Enter ${field.label.toLowerCase()}">
+                                </div>
+                            `;
+                        }
+                    }).join('')}
+                </div>
+                
+                <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 30px; padding-top: 20px; border-top: 1px solid #e9ecef;">
+                    <button onclick="closeModal()" style="background: #95a5a6; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer;">
+                        Cancel
+                    </button>
+                    <button onclick="saveModalProduct(${index})" style="background: #27ae60; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer;">
+                        💾 Save Specs
+                    </button>
+                </div>
+            `;
+            
+            try {
+                document.getElementById('modalContent').innerHTML = modalContent;
+                
+                // Add event listener for cooler type changes to show/hide fields
+                const coolerTypeSelect = document.getElementById('modal_cooler_type');
+                if (coolerTypeSelect) {
+                    coolerTypeSelect.addEventListener('change', function() {
+                        toggleCoolerFields(this.value);
+                    });
+                    // Initial toggle based on current value
+                    toggleCoolerFields(coolerTypeSelect.value);
+                }
+                
+                document.getElementById('editModal').style.display = 'block';
+                console.log('✅ Modal opened successfully');
+            } catch (error) {
+                console.error('❌ Error opening modal:', error);
+                alert('Error opening modal: ' + error.message);
+            }
+        }
+        
+        // Close modal
+        function closeModal() {
+            document.getElementById('editModal').style.display = 'none';
+        }
+        
+        // Toggle cooler fields based on type selection
+        function toggleCoolerFields(coolerType) {
+            const socketField = document.getElementById('modal_socket_compatibility');
+            const heightField = document.getElementById('modal_height');
+            
+            if (socketField && heightField) {
+                const socketContainer = socketField.closest('.spec-field');
+                const heightContainer = heightField.closest('.spec-field');
+                
+                if (coolerType === 'Fans') {
+                    // Hide socket and height fields for fans
+                    socketContainer.style.display = 'none';
+                    heightContainer.style.display = 'none';
+                } else {
+                    // Show socket and height fields for actual coolers
+                    socketContainer.style.display = 'block';
+                    heightContainer.style.display = 'block';
+                }
+            }
+        }
+        
+        // Save product from modal
+        async function saveModalProduct(index) {
+            const product = currentProducts[index];
+            const template = specTemplates[currentComponentType] || [];
+            const updatedSpecs = {};
+            
+            // Check if category was changed
+            const newCategory = document.getElementById('productCategory').value;
+            const categoryChanged = newCategory !== product.category;
+            
+            template.forEach(field => {
+                if (field.type === 'checkbox') {
+                    const checkboxes = document.querySelectorAll(`input[name="modal_${field.name}"]:checked`);
+                    const selectedValues = Array.from(checkboxes).map(cb => cb.value);
+                    if (selectedValues.length > 0) {
+                        updatedSpecs[field.name] = selectedValues.join(',');
+                        console.log(`✅ Checkbox field ${field.name}:`, selectedValues);
+                    } else {
+                        console.log(`⚠️ No checkboxes selected for ${field.name}`);
+                    }
+                } else if (field.type === 'radio') {
+                    const radio = document.querySelector(`input[name="modal_${field.name}"]:checked`);
+                    if (radio && radio.value) {
+                        updatedSpecs[field.name] = radio.value;
+                        console.log(`✅ Radio field ${field.name}:`, radio.value);
+                    } else {
+                        console.log(`⚠️ No radio button selected for ${field.name}`);
+                    }
+                } else {
+                    const element = document.getElementById(`modal_${field.name}`);
+                    if (element) {
+                        // Check if field is hidden (for fans)
+                        const isHidden = element.closest('.spec-field').style.display === 'none';
+                        
+                        if (field.type === 'multiselect') {
+                            const selectedValues = Array.from(element.selectedOptions).map(option => option.value);
+                            if (selectedValues.length > 0) {
+                                updatedSpecs[field.name] = selectedValues.join(',');
+                            }
+                        } else if (element.value && !isHidden) {
+                            // Only save value if field is visible
+                            let value = element.value;
+                            if (field.type === 'number') {
+                                value = parseInt(value);
+                            } else if (field.name === 'integrated_graphics') {
+                                value = value === 'true';
+                            }
+                            updatedSpecs[field.name] = value;
+                        }
+                    }
+                }
+            });
+            
+            // Handle category change
+            if (categoryChanged) {
+                console.log(`🔄 Category changed from "${product.category}" to "${newCategory}"`);
+                
+                // Store original category for persistence system
+                if (!product.original_category) {
+                    product.original_category = product.category;
+                }
+                product.manual_category = newCategory;
+                product.category = newCategory;
+            }
+            
+            // Update the product in memory
+            product.compatibility_specs = updatedSpecs;
+            
+            // Update in allCategoryProducts as well
+            const originalProduct = allCategoryProducts.find(p => p.id === product.id);
+            if (originalProduct) {
+                originalProduct.compatibility_specs = updatedSpecs;
+                if (categoryChanged) {
+                    originalProduct.category = newCategory;
+                    originalProduct.manual_category = newCategory;
+                    if (!originalProduct.original_category) {
+                        originalProduct.original_category = product.original_category;
+                    }
+                }
+                console.log('✅ Updated product in allCategoryProducts:', originalProduct.title);
+            }
+            
+            try {
+                let saveSuccess = false;
+                
+                if (categoryChanged && Object.keys(updatedSpecs).length === 0) {
+                    // Only category change, no specs - preserve existing specs
+                    const categoryData = {
+                        product_id: product.id,
+                        site_name: product.originalSite,
+                        category: newCategory,
+                        manual_category: newCategory,
+                        original_category: product.original_category,
+                        compatibility_specs: product.compatibility_specs || {}  // Preserve existing specs
+                    };
+                    
+                    saveSuccess = await saveSingleProductSpecWithCategory(categoryData);
+                } else if (categoryChanged || Object.keys(updatedSpecs).length > 0) {
+                    // Category change with specs, or specs only
+                    let saveData = {
+                        product_id: product.id,
+                        site_name: product.originalSite
+                    };
+                    
+                    if (Object.keys(updatedSpecs).length > 0) {
+                        saveData.compatibility_specs = updatedSpecs;
+                    }
+                    
+                    if (categoryChanged) {
+                        saveData.category = newCategory;
+                        saveData.manual_category = newCategory;
+                        saveData.original_category = product.original_category;
+                    }
+                    
+                    saveSuccess = await saveSingleProductSpecWithCategory(saveData);
+                } else {
+                    console.log('⚠️ No changes to save');
+                    closeModal();
+                    return;
+                }
+                
+                if (saveSuccess) {
+                    closeModal();
+                    
+                    // Refresh ALL data and displays
+                    updateStats();
+                    updateCategoryButtonCounts();
+                    applyStatusFilter();
+                    displayProductList();
+                    
+                    // Show success message briefly
+                    const successMsg = document.getElementById('successMessage');
+                    if (categoryChanged && Object.keys(updatedSpecs).length > 0) {
+                        successMsg.textContent = `✅ Category and specs updated for ${product.title}`;
+                    } else if (categoryChanged) {
+                        successMsg.textContent = `✅ Product moved to ${newCategory} category: ${product.title}`;
+                    } else {
+                        successMsg.textContent = `✅ Specs saved for ${product.title}`;
+                    }
+                    successMsg.style.display = 'block';
+                    setTimeout(() => successMsg.style.display = 'none', 3000);
+                } else {
+                    alert('Failed to save specs. Please try again.');
+                }
+                
+            } catch (error) {
+                alert('Error saving specs: ' + error.message);
+            }
+        }
+        
+        // Event listeners
+        document.getElementById('categorySelect').addEventListener('change', loadProductsForComponent);
+        document.getElementById('storeSelect').addEventListener('change', loadProductsForComponent);
+        document.getElementById('searchInput').addEventListener('input', () => {
+            applyStatusFilter();
+            displayProductList();
+        });
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', async () => {
+            console.log('🚀 Initializing compatibility editor...');
+            const loaded = await loadMainProductsData();
+            if (loaded) {
+                console.log('✅ Products data loaded successfully');
+                document.getElementById('loadingState').style.display = 'none';
+                
+                // Show initial empty state
+                displayProductList();
+            } else {
+                console.error('❌ Failed to load products data');
+                document.getElementById('loadingState').innerHTML = `
+                    <div style="color: #e74c3c; text-align: center; padding: 60px;">
+                        <h3>⚠️ Failed to load products database</h3>
+                        <p>Please make sure the backend server is running</p>
+                    </div>
+                `;
+            }
+        });
+    </script>
+</body>
+</html>
