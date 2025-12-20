@@ -67,16 +67,7 @@ export const CategoryNav: React.FC<CategoryNavProps> = ({
   const categories = [
     { id: null, label: 'All', count: Object.values(productCounts).reduce((a: number, b: number) => a + b, 0) },
     { id: 'GPU', label: 'GPUs', count: productCounts['GPU'] || 0 },
-    {
-      id: 'RAM',
-      label: 'RAM',
-      count: (productCounts['RAM'] || 0) + (productCounts['Laptop RAM'] || 0),
-      isDropdown: true,
-      children: [
-        { id: 'RAM', label: 'Desktop RAM', count: productCounts['RAM'] || 0 },
-        { id: 'Laptop RAM', label: 'Laptop RAM', count: productCounts['Laptop RAM'] || 0 }
-      ]
-    },
+    { id: 'RAM', label: 'RAM', count: productCounts['RAM'] || 0 },
     { id: 'CPU', label: 'CPUs', count: productCounts['CPU'] || 0 },
     { id: 'Motherboards', label: 'Motherboards', count: productCounts['Motherboards'] || 0 },
     { id: 'Power Supply', label: 'PSUs', count: productCounts['Power Supply'] || 0 },
@@ -88,9 +79,10 @@ export const CategoryNav: React.FC<CategoryNavProps> = ({
     {
       id: 'Accessories',
       label: 'More',
-      count: (productCounts['Mouse'] || 0) + (productCounts['Keyboard'] || 0) + (productCounts['Headset'] || 0) + (productCounts['Fans'] || 0) + (productCounts['Thermals'] || 0),
+      count: (productCounts['Laptop RAM'] || 0) + (productCounts['Mouse'] || 0) + (productCounts['Keyboard'] || 0) + (productCounts['Headset'] || 0) + (productCounts['Fans'] || 0) + (productCounts['Thermals'] || 0),
       isDropdown: true,
       children: [
+        { id: 'Laptop RAM', label: 'Laptop RAM', count: productCounts['Laptop RAM'] || 0 },
         { id: 'Fans', label: 'Fans', count: productCounts['Fans'] || 0 },
         { id: 'Thermals', label: 'Thermals', count: productCounts['Thermals'] || 0 },
         { id: 'Mouse', label: 'Mouse', count: productCounts['Mouse'] || 0 },
