@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { SpeedInsights } from '@vercel/speed-insights/react';
 import { Navbar } from './components/Navbar';
 import { Sidebar } from './components/Sidebar';
 import { ProductCard } from './components/ProductCard';
@@ -476,6 +477,8 @@ const App: React.FC = () => {
         />
       )}
 
+      {/* Vercel Speed Insights */}
+      <SpeedInsights />
     </div>
   );
 };
