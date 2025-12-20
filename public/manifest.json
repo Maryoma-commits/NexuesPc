@@ -1,0 +1,44 @@
+{
+  "name": "NexusPC - Iraqi PC Components Price Aggregator",
+  "short_name": "NexusPC",
+  "description": "Compare PC component prices from multiple Iraqi retailers",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#4facfe",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshot1.png",
+      "sizes": "540x720",
+      "type": "image/png"
+    }
+  ],
+  "categories": ["shopping", "technology"],
+  "shortcuts": [
+    {
+      "name": "Browse GPUs",
+      "url": "/?category=GPU",
+      "description": "View all Graphics Cards"
+    },
+    {
+      "name": "PC Builder",
+      "url": "/?builder=true",
+      "description": "Build your PC"
+    }
+  ]
+}
