@@ -51,7 +51,14 @@
                 
                 const title = imgEl.alt.trim();
                 const link = linkEl.href;
-                const image = imgEl.src;
+                
+                // Use image proxy to bypass hotlink protection
+                let image = imgEl.src;
+                if (image.includes('galaxy-iq.com')) {
+                    // Remove protocol and use weserv.nl proxy
+                    const imageUrl = image.replace('https://', '').replace('http://', '');
+                    image = `https://images.weserv.nl/?url=${imageUrl}`;
+                }
                 
                 // Get price
                 const priceDiv = div.querySelector('.product_price');
