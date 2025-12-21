@@ -4,8 +4,6 @@ import { SlidersHorizontal, TrendingUp, ArrowDownWideNarrow, ArrowUpNarrowWide, 
 import { SortOption } from '../types';
 
 interface SidebarProps {
-  sortOption: SortOption;
-  onSortChange: (option: SortOption) => void;
   resultCount: number;
   retailers: { name: string; count: number }[];
   selectedRetailer: string;
@@ -17,8 +15,6 @@ interface SidebarProps {
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ 
-  sortOption, 
-  onSortChange, 
   resultCount,
   retailers,
   selectedRetailer,
@@ -81,7 +77,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <span className="text-xs font-bold text-gray-300 uppercase tracking-wide">Show Products</span>
         </div>
         
-        <div className="flex items-center justify-between p-2 rounded-lg bg-white/5 border border-transparent">
+        <div className="flex items-center justify-between p-2 rounded-lg bg-white/5 border border-transparent overflow-hidden">
           <span className="text-sm font-medium text-gray-400">
             In Stock Only
           </span>
@@ -130,7 +126,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
         
         {/* Discount Toggle */}
-        <div className="flex items-center justify-between p-2 rounded-lg bg-white/5 border border-transparent mt-2">
+        <div className="flex items-center justify-between p-2 rounded-lg bg-white/5 border border-transparent mt-2 overflow-hidden">
           <span className="text-sm font-medium text-gray-400">
             On Discount Only
           </span>
@@ -179,38 +175,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
       </div>
 
-      {/* Sort */}
-      <div>
-        <div className="flex items-center gap-2 mb-2 px-2">
-            <SlidersHorizontal size={14} className="text-nexus-secondary" />
-            <h3 className="text-xs font-bold text-gray-300 uppercase tracking-wide">Sort By</h3>
-        </div>
-        <div className="space-y-2">
-            {[
-                { id: 'best-selling', label: 'Best Selling', icon: TrendingUp },
-                { id: 'price-asc', label: 'Price: Low to High', icon: ArrowDownWideNarrow },
-                { id: 'price-desc', label: 'Price: High to Low', icon: ArrowUpNarrowWide },
-            ].map((option) => {
-                const isActive = sortOption === option.id;
-                const Icon = option.icon;
-                return (
-                    <button
-                        key={option.id}
-                        onClick={() => onSortChange(option.id as SortOption)}
-                        className={`group w-full flex items-center gap-3 p-2 rounded-lg border transition-all duration-300 ${
-                            isActive 
-                            ? 'bg-nexus-secondary/10 border-nexus-secondary/50 text-white shadow-[0_0_15px_rgba(99,102,241,0.15)]' 
-                            : 'bg-white/5 border-transparent text-gray-400 hover:bg-white/10 hover:border-white/10'
-                        }`}
-                    >
-                        <Icon size={16} className={`${isActive ? 'text-nexus-secondary' : 'text-gray-500 group-hover:text-gray-300'}`} />
-                        <span className="text-sm font-medium flex-1 text-left">{option.label}</span>
-                        {isActive && <CheckCircle2 size={16} className="text-nexus-secondary" />}
-                    </button>
-                )
-            })}
-        </div>
-      </div>
     </div>
   );
 };

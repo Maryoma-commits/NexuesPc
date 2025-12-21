@@ -1,7 +1,12 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Product } from '../types';
 import { PCBuild, BuildComponent, CompatibilityCheck } from '../types-builder';
-import { Cpu, Monitor, CircuitBoard, HardDrive, Zap, Fan, Box, AlertTriangle, CheckCircle, Plus, X, Loader2, ExternalLink } from 'lucide-react';
+import { Cpu, Monitor, CircuitBoard, HardDrive, Zap, Fan, Box, AlertTriangle, CheckCircle, Plus, X, Loader2, ExternalLink, Save, FolderOpen, Share2, RotateCcw, MemoryStick, Gpu } from 'lucide-react';
+import SaveBuildModal from './SaveBuildModal';
+import LoadBuildsModal from './LoadBuildsModal';
+import ShareBuildModal from './ShareBuildModal';
+import { saveBuild, autoSaveBuild, SavedBuild, updateBuild } from '../utils/buildStorage';
+import { parseBuildFromURL, matchComponentsWithProducts } from '../utils/buildEncoder';
 
 interface PCBuilderProps {
   products: Product[];
@@ -43,12 +48,21 @@ export const PCBuilder: React.FC<PCBuilderProps> = ({ products, onClose }) => {
   const observerTarget = useRef<HTMLDivElement>(null);
   const productsPanelRef = useRef<HTMLDivElement>(null);
 
+  // Save/Load/Share modals state
+  const [showSaveModal, setShowSaveModal] = useState(false);
+  const [showLoadModal, setShowLoadModal] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [buildName, setBuildName] = useState('My PC Build');
+  const [currentBuildId, setCurrentBuildId] = useState<string | null>(null);
+  const [buildTags, setBuildTags] = useState<string[]>([]);
+  const [buildNotes, setBuildNotes] = useState('');
+
   // Component icons mapping
   const componentIcons = {
     CPU: Cpu,
-    GPU: Monitor,
+    GPU: Gpu,
     Motherboards: CircuitBoard,
-    RAM: CircuitBoard,
+    RAM: MemoryStick,
     Storage: HardDrive,
     'Power Supply': Zap,
     Cooler: Fan,
@@ -436,9 +450,12 @@ export const PCBuilder: React.FC<PCBuilderProps> = ({ products, onClose }) => {
       updated: new Date()
     }));
 
-    // Keep category open and clear search
+    // Auto-navigate back to components view
+    setSelectedCategory(null);
     setSearchQuery('');
-    // Don't close category - user can manually close or select another
+    setSocketFilter('');
+    setRamTypeFilter('');
+    setPriceSort('');
   };
 
   const handleComponentRemove = (componentKey: keyof typeof currentBuild.components) => {
@@ -455,20 +472,214 @@ export const PCBuilder: React.FC<PCBuilderProps> = ({ products, onClose }) => {
     }));
   };
 
+  // Save/Load/Share handlers
+  const handleSaveBuild = (name: string, saveAsNew: boolean = false, tags?: string[], notes?: string) => {
+    const componentsForSave: any = {};
+    Object.entries(currentBuild.components).forEach(([key, comp]) => {
+      if (comp.product) {
+        componentsForSave[key] = comp.product;
+      }
+    });
+
+    // Update existing build or save new one
+    if (currentBuildId && !saveAsNew) {
+      // Update existing build
+      const success = updateBuild(currentBuildId, name, componentsForSave, buildStats.totalPrice, tags, notes);
+      if (success) {
+        console.log('✅ Build updated successfully!');
+      }
+    } else {
+      // Save as new build
+      const newBuild = saveBuild(name, componentsForSave, buildStats.totalPrice, tags, notes);
+      setCurrentBuildId(newBuild.id);
+      console.log('✅ Build saved successfully!');
+    }
+    
+    setBuildName(name);
+    setBuildTags(tags || []);
+    setBuildNotes(notes || '');
+    setShowSaveModal(false);
+  };
+
+  const handleLoadBuild = (build: SavedBuild) => {
+    setBuildName(build.name);
+    setCurrentBuildId(build.id);
+    setBuildTags(build.tags || []);
+    setBuildNotes(build.notes || '');
+    
+    // Load components into current build
+    const newComponents = { ...currentBuild.components };
+    Object.entries(build.components).forEach(([key, product]) => {
+      if (product && newComponents[key as keyof typeof newComponents]) {
+        newComponents[key as keyof typeof newComponents] = {
+          ...newComponents[key as keyof typeof newComponents],
+          product: product as Product
+        };
+      }
+    });
+
+    setCurrentBuild(prev => ({
+      ...prev,
+      components: newComponents,
+      updated: new Date()
+    }));
+
+    setShowLoadModal(false);
+    console.log('✅ Build loaded successfully!');
+  };
+
+
+  const handleShareBuild = () => {
+    setShowShareModal(true);
+  };
+
+  const handleResetBuild = () => {
+    // Clear all components
+    setCurrentBuild({
+      id: `build_${Date.now()}`,
+      name: 'My PC Build',
+      components: {
+        cpu: { category: 'CPU', product: null, required: true },
+        motherboard: { category: 'Motherboards', product: null, required: true },
+        ram: { category: 'RAM', product: null, required: true },
+        gpu: { category: 'GPU', product: null, required: false },
+        storage: { category: 'Storage', product: null, required: true },
+        psu: { category: 'Power Supply', product: null, required: true },
+        cooler: { category: 'Cooler', product: null, required: false },
+        case: { category: 'Case', product: null, required: false },
+      },
+      totalPrice: 0,
+      compatibilityStatus: 'compatible',
+      powerRequirement: 0,
+      created: new Date(),
+      updated: new Date()
+    });
+    
+    // Reset build tracking
+    setBuildName('My PC Build');
+    setCurrentBuildId(null);
+    
+    // Go back to components view if in product selection
+    setSelectedCategory(null);
+    
+    console.log('✅ Build reset successfully!');
+  };
+
+  // Load shared build from URL on mount
+  useEffect(() => {
+    const encodedBuild = parseBuildFromURL();
+    if (encodedBuild && products.length > 0) {
+      const matchedComponents = matchComponentsWithProducts(encodedBuild, products);
+      
+      if (Object.keys(matchedComponents).length > 0) {
+        const newComponents = { ...currentBuild.components };
+        Object.entries(matchedComponents).forEach(([key, product]) => {
+          if (newComponents[key as keyof typeof newComponents]) {
+            newComponents[key as keyof typeof newComponents] = {
+              ...newComponents[key as keyof typeof newComponents],
+              product: product as Product
+            };
+          }
+        });
+
+        setCurrentBuild(prev => ({
+          ...prev,
+          components: newComponents,
+          updated: new Date()
+        }));
+
+        // Use build name from URL if available, otherwise default to 'Shared Build'
+        const sharedBuildName = encodedBuild.name || 'Shared Build';
+        setBuildName(sharedBuildName);
+        console.log('✅ Shared build loaded successfully!', { name: sharedBuildName });
+        
+        // Clean URL after loading
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+    }
+  }, [products]);
+
+  // Auto-save on component change
+  useEffect(() => {
+    const componentsForSave: any = {};
+    Object.entries(currentBuild.components).forEach(([key, comp]) => {
+      if (comp.product) {
+        componentsForSave[key] = comp.product;
+      }
+    });
+
+    if (Object.keys(componentsForSave).length > 0) {
+      autoSaveBuild(componentsForSave, buildStats.totalPrice);
+    }
+  }, [currentBuild.components, buildStats.totalPrice]);
+
   return (
     <div className="fixed inset-0 bg-nexus-900 z-50 overflow-hidden">
         {/* Header */}
         <div className="p-4 border-b border-white/10 flex items-center justify-between">
           <div>
-            <h2 className="text-xl font-bold text-white">PC Builder</h2>
+            <h2 className="text-xl font-bold text-white flex items-center gap-2">
+              PC Builder
+              {buildName && buildName !== 'My PC Build' && (
+                <span className="text-sm font-normal text-nexus-accent">
+                  • {buildName}
+                </span>
+              )}
+            </h2>
             <p className="text-gray-400 text-xs">Build your perfect PC with compatibility checking</p>
           </div>
-          <button
-            onClick={onClose}
-            className="px-3 py-1.5 bg-white/5 hover:bg-white/10 rounded-lg border border-white/10 transition-colors text-sm"
-          >
-            Close
-          </button>
+          
+          {/* Action Buttons */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowSaveModal(true)}
+              className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg 
+                       transition-colors text-sm flex items-center gap-2"
+              title="Save Build"
+            >
+              <Save className="w-4 h-4" />
+              <span className="hidden sm:inline">Save</span>
+            </button>
+            
+            <button
+              onClick={() => setShowLoadModal(true)}
+              className="px-3 py-1.5 bg-white/5 hover:bg-white/10 rounded-lg border border-white/10 
+                       transition-colors text-sm flex items-center gap-2"
+              title="Load Build"
+            >
+              <FolderOpen className="w-4 h-4" />
+              <span className="hidden sm:inline">Load</span>
+            </button>
+            
+            <button
+              onClick={handleShareBuild}
+              className="px-3 py-1.5 bg-white/5 hover:bg-white/10 rounded-lg border border-white/10 
+                       transition-colors text-sm flex items-center gap-2"
+              title="Share Build"
+            >
+              <Share2 className="w-4 h-4" />
+              <span className="hidden sm:inline">Share</span>
+            </button>
+            
+            <button
+              onClick={handleResetBuild}
+              className="px-3 py-1.5 bg-red-600/20 hover:bg-red-600/30 text-red-400 rounded-lg 
+                       border border-red-600/30 hover:border-red-600/50 transition-colors text-sm 
+                       flex items-center gap-2"
+              title="Reset Build"
+            >
+              <RotateCcw className="w-4 h-4" />
+              <span className="hidden sm:inline">Reset</span>
+            </button>
+            
+            <button
+              onClick={onClose}
+              className="px-3 py-1.5 bg-white/5 hover:bg-white/10 rounded-lg border border-white/10 
+                       transition-colors text-sm"
+            >
+              Close
+            </button>
+          </div>
         </div>
 
         {/* Combined Stats Bar + Compatibility Status */}
@@ -492,40 +703,42 @@ export const PCBuilder: React.FC<PCBuilderProps> = ({ products, onClose }) => {
           </div>
         </div>
 
-        <div className="flex h-[calc(100vh-140px)]">
-          {/* Left Panel - Component Grid */}
-          <div className="w-1/3 p-4 border-r border-white/10">
-            <div className="mb-3">
-              <h3 className="text-md font-semibold text-white mb-2">Components</h3>
+        <div className="h-[calc(100vh-140px)] overflow-hidden">
+          {!selectedCategory ? (
+            /* Components View - Full Width */
+            <div className="w-full h-full p-6 overflow-y-auto">
+              <div className="mb-6">
+                <h3 className="text-2xl font-bold text-white mb-2">Select Components</h3>
+                <p className="text-gray-400 text-sm mb-4">Click on a component category to browse and select products</p>
+                
+                {/* Global Store Filter */}
+                <select
+                  value={storeFilter}
+                  onChange={(e) => setStoreFilter(e.target.value)}
+                  className="w-full max-w-xs px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white text-sm focus:outline-none focus:border-nexus-accent/50"
+                  style={{ 
+                    backgroundColor: '#1f2937',
+                    color: 'white',
+                    border: '1px solid #4b5563'
+                  }}
+                >
+                  <option value="" style={{ backgroundColor: '#1f2937', color: 'white' }}>🌐 All Stores</option>
+                  {availableStores.map(store => (
+                    <option key={store} value={store} style={{ backgroundColor: '#1f2937', color: 'white' }}>
+                      {store}
+                    </option>
+                  ))}
+                </select>
+              </div>
               
-              {/* Global Store Filter */}
-              <select
-                value={storeFilter}
-                onChange={(e) => setStoreFilter(e.target.value)}
-                className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white text-sm focus:outline-none focus:border-nexus-accent/50"
-                style={{ 
-                  backgroundColor: '#1f2937',
-                  color: 'white',
-                  border: '1px solid #4b5563'
-                }}
-              >
-                <option value="" style={{ backgroundColor: '#1f2937', color: 'white' }}>🌐 All Stores</option>
-                {availableStores.map(store => (
-                  <option key={store} value={store} style={{ backgroundColor: '#1f2937', color: 'white' }}>
-                    {store}
-                  </option>
-                ))}
-              </select>
-            </div>
-            
-            {/* Single Column Layout */}
-            <div className="space-y-3 h-full overflow-y-auto pr-2 mr-2 ml-2 pl-2">
+              {/* Grid Layout - 4 columns, compact cards */}
+              <div className="grid grid-cols-4 gap-4">
               {Object.entries(currentBuild.components).map(([key, component]) => {
                 const Icon = componentIcons[component.category];
                 return (
                   <div
                     key={key}
-                    className={`p-3 rounded-lg border transition-all duration-200 cursor-pointer transform hover:scale-[1.02] active:scale-[0.98] ${
+                    className={`p-4 rounded-xl border transition-all duration-200 cursor-pointer transform hover:scale-[1.03] active:scale-[0.97] ${
                       component.product
                         ? 'bg-nexus-accent/10 border-nexus-accent/30 hover:bg-nexus-accent/15 active:bg-nexus-accent/20'
                         : component.required
@@ -542,57 +755,55 @@ export const PCBuilder: React.FC<PCBuilderProps> = ({ products, onClose }) => {
                       setSearchQuery('');
                     }}
                   >
-                    <div className="flex gap-3 h-full">
-                      {/* Component Icon/Image - Left */}
-                      <div className="flex-shrink-0">
+                    <div className="flex flex-col items-center text-center">
+                      {/* Component Info - Top (Category + Remove Button) */}
+                      <div className="w-full mb-3">
+                        <div className="flex items-center justify-between">
+                          <span className="font-semibold text-white text-sm">{component.category}</span>
+                          {component.product && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleComponentRemove(key as keyof typeof currentBuild.components);
+                              }}
+                              className="p-1.5 rounded-lg bg-red-500/20 hover:bg-red-500/30 border border-red-500/30 transition-colors"
+                              title="Remove component"
+                            >
+                              <X className="w-3.5 h-3.5 text-red-400" />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                      
+                      {/* Component Icon/Image - Middle */}
+                      <div className="mb-3 w-full flex items-center justify-center">
                         {component.product?.imageUrl ? (
                           <img 
                             src={component.product.imageUrl} 
                             alt={component.product.title}
-                            className="w-12 h-12 object-cover rounded-lg"
+                            className="w-24 h-24 object-contain rounded-lg"
                           />
                         ) : (
-                          <div className="w-12 h-12 bg-white/10 rounded-lg flex items-center justify-center">
-                            <Icon className="w-6 h-6 text-nexus-accent" />
+                          <div className="w-24 h-24 bg-white/10 rounded-lg flex items-center justify-center">
+                            <Icon className="w-12 h-12 text-nexus-accent" />
                           </div>
                         )}
                       </div>
                       
-                      {/* Component Info - Right */}
-                      <div className="flex-1 min-w-0 flex flex-col justify-between">
-                        <div>
-                          <div className="flex items-center justify-between mb-1">
-                            <span className="font-medium text-white text-sm">{component.category}</span>
-                            {component.product && (
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleComponentRemove(key as keyof typeof currentBuild.components);
-                                }}
-                                className="p-1 rounded bg-red-500/20 hover:bg-red-500/30 border border-red-500/30 transition-colors ml-2"
-                                title="Remove component"
-                              >
-                                <X className="w-3 h-3 text-red-400" />
-                              </button>
-                            )}
-                          </div>
-                          
-                          {component.product ? (
-                            <div className="text-xs text-gray-300 truncate mb-1">
+                      {/* Product Info - Bottom */}
+                      <div className="w-full">
+                        {component.product ? (
+                          <>
+                            <div className="text-xs text-gray-300 line-clamp-2 mb-2 h-8 leading-tight">
                               {component.product.title}
                             </div>
-                          ) : (
-                            <div className="text-xs text-gray-500">
-                              Click to select component
-                            </div>
-                          )}
-                        </div>
-                        
-                        {component.product && (
-                          <div className="mt-auto">
-                            <div className="text-sm font-semibold text-nexus-accent">
+                            <div className="text-base font-bold text-nexus-accent">
                               {component.product.price.toLocaleString()} IQD
                             </div>
+                          </>
+                        ) : (
+                          <div className="text-xs text-gray-500 h-8 flex items-center justify-center">
+                            Click to select
                           </div>
                         )}
                       </div>
@@ -600,15 +811,14 @@ export const PCBuilder: React.FC<PCBuilderProps> = ({ products, onClose }) => {
                   </div>
                 );
               })}
+              </div>
             </div>
-          </div>
-
-          {/* Right Panel - Product Selection (2/3 width, 2 columns) */}
-          <div className="w-2/3 p-4 overflow-y-auto" ref={productsPanelRef}>
-            {selectedCategory ? (
+          ) : (
+            /* Product Selection View - Full Width */
+            <div className="w-full h-full overflow-y-auto p-6" ref={productsPanelRef}>
               <div>
                 {/* Header */}
-                <div className="mb-4">
+                <div className="mb-6">
                   <div className="flex items-center justify-between mb-3">
                     <h3 className="text-lg font-semibold text-white">
                       Select {selectedCategory}
@@ -695,8 +905,8 @@ export const PCBuilder: React.FC<PCBuilderProps> = ({ products, onClose }) => {
                   )}
                 </div>
 
-                {/* Products Grid - 2 Columns */}
-                <div className="grid grid-cols-2 gap-4">
+                {/* Products Grid - 3 Columns */}
+                <div className="grid grid-cols-3 gap-4">
                   {visibleProducts.map((product) => {
                     // Check if this product is currently selected in any component
                     const isSelected = Object.values(currentBuild.components).some(
@@ -803,15 +1013,38 @@ export const PCBuilder: React.FC<PCBuilderProps> = ({ products, onClose }) => {
                   </div>
                 )}
               </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center h-full text-center">
-                <CircuitBoard className="w-16 h-16 text-gray-500 mb-4" />
-                <h3 className="text-xl font-semibold text-gray-300 mb-2">Select a Component</h3>
-                <p className="text-gray-500">Choose a component category from the left panel to browse available products</p>
-              </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
+
+        {/* Modals */}
+        <SaveBuildModal
+          isOpen={showSaveModal}
+          onClose={() => setShowSaveModal(false)}
+          onSave={handleSaveBuild}
+          defaultName={buildName}
+          isEditMode={currentBuildId !== null}
+          existingTags={buildTags}
+          existingNotes={buildNotes}
+        />
+
+        <LoadBuildsModal
+          isOpen={showLoadModal}
+          onClose={() => setShowLoadModal(false)}
+          onLoadBuild={handleLoadBuild}
+        />
+
+        <ShareBuildModal
+          isOpen={showShareModal}
+          onClose={() => setShowShareModal(false)}
+          components={Object.fromEntries(
+            Object.entries(currentBuild.components)
+              .filter(([_, comp]) => comp.product)
+              .map(([key, comp]) => [key, comp.product])
+          )}
+          totalPrice={buildStats.totalPrice}
+          buildName={buildName}
+        />
     </div>
   );
 };

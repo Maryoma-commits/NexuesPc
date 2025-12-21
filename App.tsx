@@ -12,6 +12,7 @@ import { CategoryNav } from './components/CategoryNav';
 import { loadProductsFromFile } from './services/dataService';
 import { Product, SortOption } from './types';
 import { AlertTriangle, Ghost, Loader2, Sparkles } from 'lucide-react';
+import { parseBuildFromURL } from './utils/buildEncoder';
 
 const PAGE_SIZE = 24;
 
@@ -103,6 +104,30 @@ const App: React.FC = () => {
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  // Check for shared build in URL
+  useEffect(() => {
+    const buildData = parseBuildFromURL();
+    if (buildData && allProducts.length > 0) {
+      // Automatically open PC Builder when shared build is detected
+      setIsPCBuilderOpen(true);
+      console.log('✅ Shared build detected! Opening PC Builder...');
+    }
+  }, [allProducts]);
+
+  // Disable body scroll when PC Builder is open
+  useEffect(() => {
+    if (isPCBuilderOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+
+    // Cleanup on unmount
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isPCBuilderOpen]);
 
   const smartSearch = useCallback((searchQuery: string, productText: string): boolean => {
     if (!searchQuery.trim()) return true;
@@ -336,8 +361,6 @@ const App: React.FC = () => {
             {/* Sidebar Desktop */}
             <div className="hidden lg:block">
               <Sidebar
-                sortOption={sortOption}
-                onSortChange={setSortOption}
                 resultCount={processedProducts.length}
                 retailers={retailers}
                 selectedRetailer={selectedRetailer}
@@ -391,14 +414,28 @@ const App: React.FC = () => {
                     "Featured Components"
                   )}
                 </h2>
-                {query && (
-                  <button
-                    onClick={() => handleSearch('')}
-                    className="text-xs font-medium text-gray-400 hover:text-white transition-colors self-start sm:self-auto border-b border-gray-600 hover:border-white pb-0.5"
+                
+                <div className="flex items-center gap-3">
+                  {/* Sort Dropdown */}
+                  <select
+                    className="bg-black/40 border border-white/10 text-white text-sm rounded-lg focus:ring-nexus-accent focus:border-nexus-accent block p-2.5"
+                    value={sortOption}
+                    onChange={(e) => setSortOption(e.target.value as SortOption)}
                   >
-                    Clear Search
-                  </button>
-                )}
+                    <option value="best-selling">Best Selling</option>
+                    <option value="price-asc">Price: Low to High</option>
+                    <option value="price-desc">Price: High to Low</option>
+                  </select>
+                  
+                  {query && (
+                    <button
+                      onClick={() => handleSearch('')}
+                      className="text-xs font-medium text-gray-400 hover:text-white transition-colors border-b border-gray-600 hover:border-white pb-0.5"
+                    >
+                      Clear Search
+                    </button>
+                  )}
+                </div>
               </div>
 
               {/* Error */}
