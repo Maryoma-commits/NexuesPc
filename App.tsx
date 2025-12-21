@@ -28,7 +28,11 @@ const App: React.FC = () => {
 
   const [showOutOfStock, setShowOutOfStock] = useState(true);
   const [showOnDiscountOnly, setShowOnDiscountOnly] = useState(false);
-  const [isDarkMode, setIsDarkMode] = useState(true);
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    // Load theme from localStorage, default to true (dark mode)
+    const savedTheme = localStorage.getItem('theme');
+    return savedTheme ? savedTheme === 'dark' : true;
+  });
 
   // Favorites State
   const [favorites, setFavorites] = useState<string[]>(() => {
@@ -47,14 +51,16 @@ const App: React.FC = () => {
 
   const observerTarget = useRef(null);
 
-  // Theme toggle effect
+  // Theme toggle effect and save to localStorage
   useEffect(() => {
     if (isDarkMode) {
       document.body.classList.remove('light-theme');
       document.documentElement.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
     } else {
       document.body.classList.add('light-theme');
       document.documentElement.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
     }
   }, [isDarkMode]);
 
@@ -111,7 +117,6 @@ const App: React.FC = () => {
     if (buildData && allProducts.length > 0) {
       // Automatically open PC Builder when shared build is detected
       setIsPCBuilderOpen(true);
-      console.log('✅ Shared build detected! Opening PC Builder...');
     }
   }, [allProducts]);
 
@@ -418,7 +423,7 @@ const App: React.FC = () => {
                 <div className="flex items-center gap-3">
                   {/* Sort Dropdown */}
                   <select
-                    className="bg-black/40 border border-white/10 text-white text-sm rounded-lg focus:ring-nexus-accent focus:border-nexus-accent block p-2.5"
+                    className="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white text-sm rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none p-2.5"
                     value={sortOption}
                     onChange={(e) => setSortOption(e.target.value as SortOption)}
                   >

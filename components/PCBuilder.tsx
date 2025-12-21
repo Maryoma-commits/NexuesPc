@@ -110,12 +110,6 @@ export const PCBuilder: React.FC<PCBuilderProps> = ({ products, onClose }) => {
         
         if (motherboardSocket && cpuSocket) {
           const socketMatch = motherboardSocket.toLowerCase() === cpuSocket.toLowerCase();
-          console.log('🔌 Socket Compatibility Check (MB→CPU):', {
-            motherboardSocket,
-            cpuSocket,
-            productTitle: p.title,
-            compatible: socketMatch
-          });
           return socketMatch;
         }
         // If no socket specs available, hide the product when compatibility filtering is active
@@ -129,12 +123,6 @@ export const PCBuilder: React.FC<PCBuilderProps> = ({ products, onClose }) => {
         
         if (cpuSocket && motherboardSocket) {
           const socketMatch = cpuSocket.toLowerCase() === motherboardSocket.toLowerCase();
-          console.log('🔌 Socket Compatibility Check (CPU→MB):', {
-            cpuSocket,
-            motherboardSocket,
-            productTitle: p.title,
-            compatible: socketMatch
-          });
           return socketMatch;
         }
         // If no socket specs available, hide the product when compatibility filtering is active
@@ -148,17 +136,10 @@ export const PCBuilder: React.FC<PCBuilderProps> = ({ products, onClose }) => {
         
         if (motherboardRamType && ramType) {
           const ramMatch = motherboardRamType.toLowerCase() === ramType.toLowerCase();
-          console.log('🧠 RAM Compatibility Check (MB→RAM):', {
-            motherboardRamType,
-            ramType,
-            productTitle: p.title,
-            compatible: ramMatch
-          });
           return ramMatch;
         }
         // Hide products without compatibility specs when filtering is needed
         if (motherboardRamType && !ramType) {
-          console.log('🚫 Hiding RAM without memory_type spec:', p.title);
           return false;
         }
         // If no RAM specs available when motherboard is selected, hide the product
@@ -173,17 +154,10 @@ export const PCBuilder: React.FC<PCBuilderProps> = ({ products, onClose }) => {
         
         if (ramType && motherboardRamType) {
           const ramMatch = ramType.toLowerCase() === motherboardRamType.toLowerCase();
-          console.log('🧠 RAM Compatibility Check (RAM→MB):', {
-            ramType,
-            motherboardRamType,
-            productTitle: p.title,
-            compatible: ramMatch
-          });
           return ramMatch;
         }
         // Hide motherboards without compatibility specs when filtering is needed
         if (ramType && !motherboardRamType) {
-          console.log('🚫 Hiding Motherboard without ram_type spec:', p.title);
           return false;
         }
         // If no specs available when RAM is selected, hide the product
@@ -279,7 +253,7 @@ export const PCBuilder: React.FC<PCBuilderProps> = ({ products, onClose }) => {
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting && hasMoreProducts) {
-          console.log('📥 Loading more products...', visibleCount, '->', visibleCount + PAGE_SIZE);
+          // Loading more products
           setVisibleCount((prev) => prev + PAGE_SIZE);
         }
       },
@@ -484,15 +458,11 @@ export const PCBuilder: React.FC<PCBuilderProps> = ({ products, onClose }) => {
     // Update existing build or save new one
     if (currentBuildId && !saveAsNew) {
       // Update existing build
-      const success = updateBuild(currentBuildId, name, componentsForSave, buildStats.totalPrice, tags, notes);
-      if (success) {
-        console.log('✅ Build updated successfully!');
-      }
+      updateBuild(currentBuildId, name, componentsForSave, buildStats.totalPrice, tags, notes);
     } else {
       // Save as new build
       const newBuild = saveBuild(name, componentsForSave, buildStats.totalPrice, tags, notes);
       setCurrentBuildId(newBuild.id);
-      console.log('✅ Build saved successfully!');
     }
     
     setBuildName(name);
@@ -525,7 +495,6 @@ export const PCBuilder: React.FC<PCBuilderProps> = ({ products, onClose }) => {
     }));
 
     setShowLoadModal(false);
-    console.log('✅ Build loaded successfully!');
   };
 
 
@@ -561,8 +530,6 @@ export const PCBuilder: React.FC<PCBuilderProps> = ({ products, onClose }) => {
     
     // Go back to components view if in product selection
     setSelectedCategory(null);
-    
-    console.log('✅ Build reset successfully!');
   };
 
   // Load auto-saved or shared build on mount
@@ -594,7 +561,6 @@ export const PCBuilder: React.FC<PCBuilderProps> = ({ products, onClose }) => {
         // Use build name from URL if available, otherwise default to 'Shared Build'
         const sharedBuildName = encodedBuild.name || 'Shared Build';
         setBuildName(sharedBuildName);
-        console.log('✅ Shared build loaded successfully!', { name: sharedBuildName });
         
         // Clean URL after loading
         window.history.replaceState({}, document.title, window.location.pathname);
@@ -618,8 +584,6 @@ export const PCBuilder: React.FC<PCBuilderProps> = ({ products, onClose }) => {
           components: newComponents,
           updated: new Date()
         }));
-
-        console.log('✅ Auto-saved build restored!');
       }
     }
   }, [products]);
@@ -650,18 +614,18 @@ export const PCBuilder: React.FC<PCBuilderProps> = ({ products, onClose }) => {
                 </span>
               )}
             </h2>
-            <p className="text-gray-400 text-xs">Build your perfect PC with compatibility checking</p>
+            <p className="text-gray-400 text-xs">Build your PC</p>
           </div>
           
           {/* Action Buttons */}
           <div className="flex items-center gap-2">
             <button
               onClick={() => setShowSaveModal(true)}
-              className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg 
+              className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 !text-white rounded-lg 
                        transition-colors text-sm flex items-center gap-2"
               title="Save Build"
             >
-              <Save className="w-4 h-4" />
+              <Save className="w-4 h-4 !text-white" />
               <span className="hidden sm:inline">Save</span>
             </button>
             
@@ -739,16 +703,11 @@ export const PCBuilder: React.FC<PCBuilderProps> = ({ products, onClose }) => {
                 <select
                   value={storeFilter}
                   onChange={(e) => setStoreFilter(e.target.value)}
-                  className="w-full max-w-xs px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white text-sm focus:outline-none focus:border-nexus-accent/50"
-                  style={{ 
-                    backgroundColor: '#1f2937',
-                    color: 'white',
-                    border: '1px solid #4b5563'
-                  }}
+                  className="w-full max-w-xs px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  <option value="" style={{ backgroundColor: '#1f2937', color: 'white' }}>🌐 All Stores</option>
+                  <option value="">🌐 All Stores</option>
                   {availableStores.map(store => (
-                    <option key={store} value={store} style={{ backgroundColor: '#1f2937', color: 'white' }}>
+                    <option key={store} value={store}>
                       {store}
                     </option>
                   ))}
@@ -873,16 +832,11 @@ export const PCBuilder: React.FC<PCBuilderProps> = ({ products, onClose }) => {
                         <select
                           value={socketFilter}
                           onChange={(e) => setSocketFilter(e.target.value)}
-                          className="px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-nexus-accent/50"
-                          style={{ 
-                            backgroundColor: '#1f2937',
-                            color: 'white',
-                            border: '1px solid #4b5563'
-                          }}
+                          className="px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                         >
-                          <option value="" style={{ backgroundColor: '#1f2937', color: 'white' }}>All Sockets</option>
+                          <option value="">All Sockets</option>
                           {availableSockets.map(socket => (
-                            <option key={socket} value={socket} style={{ backgroundColor: '#1f2937', color: 'white' }}>
+                            <option key={socket} value={socket}>
                               {socket}
                             </option>
                           ))}
@@ -894,16 +848,11 @@ export const PCBuilder: React.FC<PCBuilderProps> = ({ products, onClose }) => {
                         <select
                           value={ramTypeFilter}
                           onChange={(e) => setRamTypeFilter(e.target.value)}
-                          className="px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-nexus-accent/50"
-                          style={{ 
-                            backgroundColor: '#1f2937',
-                            color: 'white',
-                            border: '1px solid #4b5563'
-                          }}
+                          className="px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                         >
-                          <option value="" style={{ backgroundColor: '#1f2937', color: 'white' }}>All RAM Types</option>
+                          <option value="">All RAM Types</option>
                           {availableRamTypes.map(ramType => (
-                            <option key={ramType} value={ramType} style={{ backgroundColor: '#1f2937', color: 'white' }}>
+                            <option key={ramType} value={ramType}>
                               {ramType}
                             </option>
                           ))}
@@ -914,16 +863,11 @@ export const PCBuilder: React.FC<PCBuilderProps> = ({ products, onClose }) => {
                       <select
                         value={priceSort}
                         onChange={(e) => setPriceSort(e.target.value)}
-                        className="px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-nexus-accent/50"
-                        style={{ 
-                          backgroundColor: '#1f2937',
-                          color: 'white',
-                          border: '1px solid #4b5563'
-                        }}
+                        className="px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                       >
-                        <option value="" style={{ backgroundColor: '#1f2937', color: 'white' }}>Sort by Price</option>
-                        <option value="price-low-high" style={{ backgroundColor: '#1f2937', color: 'white' }}>Price: Low to High</option>
-                        <option value="price-high-low" style={{ backgroundColor: '#1f2937', color: 'white' }}>Price: High to Low</option>
+                        <option value="">Sort by Price</option>
+                        <option value="price-low-high">Price: Low to High</option>
+                        <option value="price-high-low">Price: High to Low</option>
                       </select>
                     </div>
                   )}

@@ -43,12 +43,6 @@ export const loadProductsFromFile = async (): Promise<Product[]> => {
       allProducts.push(...siteProducts);
     }
     
-    console.log(`📦 Loaded ${allProducts.length} products from JSON file`);
-    console.log(`📅 Last updated: ${data.last_updated}`);
-    
-    // Debug: Check if images are being mapped correctly
-    const productsWithImages = allProducts.filter(p => p.imageUrl);
-    console.log(`🖼️ Products with images: ${productsWithImages.length}/${allProducts.length}`);
     
     return allProducts;
     
