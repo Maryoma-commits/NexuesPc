@@ -1854,9 +1854,8 @@
             let successCount = 0;
             const totalCount = selectedProductsArray.length;
             
-            // Show progress
-            const progressMsg = `Updating ${totalCount} products...`;
-            console.log(progressMsg);
+            // Show loading overlay
+            showLoadingOverlay(`Updating ${totalCount} products...`);
             
             // Apply specs to each selected product
             for (const product of selectedProductsArray) {
@@ -1885,8 +1884,10 @@
                 }
             }
             
-            // Show results
-            alert(`Successfully updated ${successCount} of ${totalCount} products!`);
+            // Hide loading overlay
+            hideLoadingOverlay();
+            
+            console.log(`✅ Successfully updated ${successCount} of ${totalCount} products!`);
             
             // Refresh display and close modal
             applyFilters();
@@ -1979,7 +1980,8 @@
             let successCount = 0;
             const totalCount = selectedProductsArray.length;
             
-            console.log(`Changing category to ${newCategory} for ${totalCount} products...`);
+            // Show loading overlay
+            showLoadingOverlay(`Changing category for ${totalCount} products...`);
             
             // Apply category change to each selected product
             for (const product of selectedProductsArray) {
@@ -2010,8 +2012,10 @@
                 }
             }
             
-            // Show results
-            alert(`Successfully changed category for ${successCount} of ${totalCount} products to ${newCategory}!`);
+            // Hide loading overlay
+            hideLoadingOverlay();
+            
+            console.log(`✅ Successfully changed category for ${successCount} of ${totalCount} products to ${newCategory}!`);
             
             // Refresh the category products since category changed
             if (successCount > 0) {
@@ -2060,6 +2064,70 @@
         
         function downloadLogs() {
             alert('Log download will be implemented in the next version');
+        }
+        
+        // Loading Overlay Functions
+        function showLoadingOverlay(message = 'Loading...') {
+            // Remove existing overlay if any
+            hideLoadingOverlay();
+            
+            const overlay = document.createElement('div');
+            overlay.id = 'loadingOverlay';
+            overlay.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.7);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 10000;
+            `;
+            
+            overlay.innerHTML = `
+                <div style="
+                    background: #1e293b;
+                    padding: 30px 50px;
+                    border-radius: 10px;
+                    text-align: center;
+                    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+                ">
+                    <div style="
+                        border: 4px solid #f3f3f3;
+                        border-top: 4px solid #3b82f6;
+                        border-radius: 50%;
+                        width: 50px;
+                        height: 50px;
+                        animation: spin 1s linear infinite;
+                        margin: 0 auto 20px;
+                    "></div>
+                    <div style="color: #fff; font-size: 16px;">${message}</div>
+                </div>
+            `;
+            
+            // Add spinner animation
+            if (!document.getElementById('spinner-style')) {
+                const style = document.createElement('style');
+                style.id = 'spinner-style';
+                style.textContent = `
+                    @keyframes spin {
+                        0% { transform: rotate(0deg); }
+                        100% { transform: rotate(360deg); }
+                    }
+                `;
+                document.head.appendChild(style);
+            }
+            
+            document.body.appendChild(overlay);
+        }
+        
+        function hideLoadingOverlay() {
+            const overlay = document.getElementById('loadingOverlay');
+            if (overlay) {
+                overlay.remove();
+            }
         }
     </script>
 </body>
