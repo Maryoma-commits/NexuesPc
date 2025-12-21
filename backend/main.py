@@ -238,6 +238,16 @@ def save_all_products_to_frontend(all_sites_data: Dict[str, List[Dict[str, Any]]
         # Load existing data and merge
         existing_data = load_frontend_data()
         
+        # Manual-only retailers that should be preserved (not auto-scraped)
+        manual_retailers = ["galaxyiq"]  # Add any other manual retailers here
+        
+        # Preserve manual retailers by adding them to the scrape data
+        for manual_retailer in manual_retailers:
+            if manual_retailer not in all_sites_data and manual_retailer in existing_data.get("sites", {}):
+                print(f"💾 Preserving manual retailer: {manual_retailer}")
+                # Add existing manual retailer data to all_sites_data so it gets saved
+                all_sites_data[manual_retailer] = existing_data["sites"][manual_retailer].get("products", [])
+        
         # Update only the sites that were scraped
         for site_name, products in all_sites_data.items():
             # SAFETY CHECK: Don't overwrite existing products if scraper returned 0
@@ -453,8 +463,8 @@ def scrape_and_save_all_sites():
     end_time = time.time()
     total_duration = round(end_time - start_time, 2)
     
-    # Save all data to frontend JSON file (replace mode)
-    save_all_products_to_frontend(all_sites_data, merge=False)
+    # Save all data to frontend JSON file (merge mode to preserve manual retailers)
+    save_all_products_to_frontend(all_sites_data, merge=True)
     print(f"✅ Parallel scraping completed in {total_duration}s")
     
     # Show summary

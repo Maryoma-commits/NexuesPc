@@ -13,7 +13,6 @@ BASE_URL_KOLSHZIN = "https://kolshzin.com"
 BASE_URL_3DIRAQ = "https://3d-iraq.com"
 BASE_URL_JOKERCENTER = "https://www.jokercenter.net"
 BASE_URL_SPNIQ = "https://api.spniq.com"
-BASE_URL_GALAXYIQ = "https://galaxy-iq.com"
 BASE_URL_ALMANJAM = "https://www.almanjam.com"
 BASE_URL_ALTAJIT = "https://store.altajit.com"
 HEADERS = {
@@ -1353,8 +1352,8 @@ def parse_spniq_product(item: Dict, is_gpu: bool = False, is_ram: bool = False, 
     """Parse a single product from spniq API response"""
     try:
         # Extract product data from spniq API format
-        product_id = f"kolshzin-{abs(hash(str(item.get('name', '')) + str(item.get('price', '')) + str(item.get('image', ''))))}"
-        title = item.get("title", "Unknown Product")
+        product_id = item.get('_id', '')
+        title = item.get('title', 'Untitled Product')
         description = item.get("short_description", "")
         vendor = item.get("vendor", "")
         stock = item.get("stock", 0)
@@ -1407,14 +1406,14 @@ def parse_spniq_product(item: Dict, is_gpu: bool = False, is_ram: bool = False, 
         product_data = {
             "id": f"spniq-{product_id}",
             "title": title,
-            "price": price,
+            "price": price_data['numeric_value'],
             "old_price": None,
-            "raw_price": price_text,
+            "raw_price": str(raw_price),
             "raw_old_price": None,
             "detected_currency": price_data.get('currency') or 'IQD',
             "discount": 0,
             "image": image_url,
-            "link": f"https://spniq.com/product/{product_id}",
+            "link": f"https://spniq.com/product/{title.lower().replace(' ', '_').replace('™', '').replace('®', '')}_{product_id}",
             "store": "spniq",
             "in_stock": stock > 0 and price_data['numeric_value'] > 0,
             "total_sales": 0,
@@ -2152,8 +2151,6 @@ def get_spniq_category_products(category_name: str, **category_flags) -> List[Di
 
 def get_products_from_spniq() -> List[Dict]:
     
-    # Galaxy IQ
-    all_products.extend(get_products_from_galaxyiq())
     """Main function to get all products from spniq"""
     products = []
     
@@ -3733,8 +3730,6 @@ def scrape_site_individually(site_name: str) -> List[Dict]:
         return get_products_from_altajit()
     elif site_name.lower() == "spniq":
         return get_products_from_spniq()
-    elif site_name.lower() == "galaxyiq":
-        return get_products_from_galaxyiq()
     else:
         return []
 
