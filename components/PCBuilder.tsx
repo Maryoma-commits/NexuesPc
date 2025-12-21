@@ -5,7 +5,7 @@ import { Cpu, Monitor, CircuitBoard, HardDrive, Zap, Fan, Box, AlertTriangle, Ch
 import SaveBuildModal from './SaveBuildModal';
 import LoadBuildsModal from './LoadBuildsModal';
 import ShareBuildModal from './ShareBuildModal';
-import { saveBuild, autoSaveBuild, SavedBuild, updateBuild } from '../utils/buildStorage';
+import { saveBuild, autoSaveBuild, SavedBuild, updateBuild, getAutoSavedBuild } from '../utils/buildStorage';
 import { parseBuildFromURL, matchComponentsWithProducts } from '../utils/buildEncoder';
 
 interface PCBuilderProps {
@@ -565,10 +565,13 @@ export const PCBuilder: React.FC<PCBuilderProps> = ({ products, onClose }) => {
     console.log('✅ Build reset successfully!');
   };
 
-  // Load shared build from URL on mount
+  // Load auto-saved or shared build on mount
   useEffect(() => {
+    if (products.length === 0) return;
+    
+    // First check for shared build in URL
     const encodedBuild = parseBuildFromURL();
-    if (encodedBuild && products.length > 0) {
+    if (encodedBuild) {
       const matchedComponents = matchComponentsWithProducts(encodedBuild, products);
       
       if (Object.keys(matchedComponents).length > 0) {
@@ -596,10 +599,32 @@ export const PCBuilder: React.FC<PCBuilderProps> = ({ products, onClose }) => {
         // Clean URL after loading
         window.history.replaceState({}, document.title, window.location.pathname);
       }
+    } else {
+      // No shared build - check for auto-save
+      const autoSaved = getAutoSavedBuild();
+      if (autoSaved && autoSaved.components) {
+        const newComponents = { ...currentBuild.components };
+        Object.entries(autoSaved.components).forEach(([key, product]) => {
+          if (product && newComponents[key as keyof typeof newComponents]) {
+            newComponents[key as keyof typeof newComponents] = {
+              ...newComponents[key as keyof typeof newComponents],
+              product: product as Product
+            };
+          }
+        });
+
+        setCurrentBuild(prev => ({
+          ...prev,
+          components: newComponents,
+          updated: new Date()
+        }));
+
+        console.log('✅ Auto-saved build restored!');
+      }
     }
   }, [products]);
 
-  // Auto-save on component change
+  // Auto-save on component change (including removals and reset)
   useEffect(() => {
     const componentsForSave: any = {};
     Object.entries(currentBuild.components).forEach(([key, comp]) => {
@@ -608,9 +633,8 @@ export const PCBuilder: React.FC<PCBuilderProps> = ({ products, onClose }) => {
       }
     });
 
-    if (Object.keys(componentsForSave).length > 0) {
-      autoSaveBuild(componentsForSave, buildStats.totalPrice);
-    }
+    // Always auto-save, even if empty (to reflect removals/reset)
+    autoSaveBuild(componentsForSave, buildStats.totalPrice);
   }, [currentBuild.components, buildStats.totalPrice]);
 
   return (
