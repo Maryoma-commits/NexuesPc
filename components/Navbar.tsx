@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { Search, Cpu, Heart, Wrench } from 'lucide-react';
 import { ThemeToggle } from './ui';
+import UserMenu from './auth/UserMenu';
 
 interface NavbarProps {
   onSearch: (query: string) => void;
@@ -125,6 +126,9 @@ export const Navbar: React.FC<NavbarProps> = ({
               isDarkMode={isDarkMode}
               onToggle={onToggleTheme}
             />
+
+            {/* User Menu */}
+            <UserMenu />
           </div>
 
         </div>

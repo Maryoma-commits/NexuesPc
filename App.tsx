@@ -1,7 +1,9 @@
 
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { SpeedInsights } from '@vercel/speed-insights/react';
-import { Analytics } from '@vercel/analytics/react';
+import { SpeedInsights } from "@vercel/speed-insights/react";
+import { Analytics } from "@vercel/analytics/react";
+import { AuthProvider } from './contexts/AuthContext';
+import ChatBubble from './components/chat/ChatBubble';
 import { Navbar } from './components/Navbar';
 import { Sidebar } from './components/Sidebar';
 import { ProductCard } from './components/ProductCard';
@@ -325,7 +327,8 @@ const App: React.FC = () => {
   }, [hasMore, loading]);
 
   return (
-    <div className="min-h-screen bg-nexus-950 text-gray-100 flex flex-col font-sans selection:bg-nexus-accent selection:text-nexus-950 relative overflow-x-hidden">
+    <AuthProvider>
+      <div className="min-h-screen bg-nexus-950 text-gray-100 flex flex-col font-sans selection:bg-nexus-accent selection:text-nexus-950 relative overflow-x-hidden">
 
       {/* Ambient Background Effects */}
       <div className="fixed inset-0 pointer-events-none z-0">
@@ -353,7 +356,7 @@ const App: React.FC = () => {
           onRemoveFavorite={removeFavorite}
         />
 
-        <main className="flex-grow max-w-8xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="flex-grow max-w-8xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Category Navigation */}
           <CategoryNav
             selectedCategory={selectedCategory}
@@ -525,7 +528,11 @@ const App: React.FC = () => {
       
       {/* Vercel Web Analytics */}
       <Analytics />
-    </div>
+      
+      {/* Chat Bubble */}
+      <ChatBubble />
+      </div>
+    </AuthProvider>
   );
 };
 

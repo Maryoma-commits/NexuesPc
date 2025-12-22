@@ -302,7 +302,147 @@ git push
 
 ---
 
-**Last Updated:** 2025-12-21 06:30  
+**Last Updated:** 2025-12-22 04:28  
 **Status:** Production ✅  
-**Recent Session:** Implemented complete Save/Share system, enhanced Load Modal, major UI/UX improvements, light/dark mode polish  
+**Recent Session:** Implemented Firebase real-time chat system with authentication, profile caching, and email verification  
 **Agent:** Rovo Dev
+
+---
+
+## 💬 Community Chat System (NEW - 2025-12-22)
+
+### Overview
+Full-featured real-time chat system with Firebase integration, allowing users to communicate globally and privately.
+
+### Architecture
+
+**Authentication (Firebase Auth):**
+- Google Sign-In (instant access)
+- Email/Password with mandatory email verification
+- Global AuthContext for site-wide authentication state
+- User profiles stored in Firebase Realtime Database
+
+**Chat System (Firebase Realtime Database):**
+- Global chat room (all users)
+- Direct messages (private 1-on-1 conversations)
+- Real-time message synchronization
+- Profile caching for performance
+
+**Database Structure:**
+```
+firebase/
+├── users/{userId}/
+│   ├── displayName, email, photoURL, bio
+│   ├── createdAt, lastOnline, isOnline
+│   └── (profiles fetched dynamically)
+├── globalChat/messages/{messageId}/
+│   ├── text, senderId, timestamp, type
+│   └── (NO senderName/Photo - fetched from users/)
+├── directMessages/{user1_user2}/messages/{messageId}/
+│   ├── text, senderId, recipientId, timestamp
+│   └── (profiles fetched dynamically)
+└── conversations/{user1_user2}/
+    ├── participants[], lastMessage, lastMessageTime
+    └── unreadCount{userId: count}
+```
+
+### Key Features
+
+**1. Authentication & Security:**
+- Email verification required (anti-spam)
+- Resend verification email option
+- Loading states prevent auth flashing
+- Portal-based modals (proper z-index layering)
+
+**2. Profile System:**
+- Dynamic profile caching (Option 2 hybrid approach)
+- Profile changes reflect everywhere instantly
+- Edit profile from navbar dropdown
+- Auto-generated avatars for users without photos
+
+**3. Global Chat:**
+- Real-time messaging with 10-second timestamp updates
+- Emoji picker (400px height, 280px width)
+- Clickable user avatars → dropdown menu
+- "Send Message" to open DM with user
+- Delete own messages + Report system
+- Message context menu (positioned to prevent cutoff)
+
+**4. Direct Messages:**
+- Private 1-on-1 conversations
+- Conversation list with unread badges
+- Auto-fetch profiles for participants
+- Click avatar in Global Chat → Auto-open DM
+- No search UI (start DM from Global Chat avatars)
+
+**5. UI/UX:**
+- Floating chat bubble (bottom-right)
+- No minimize button (open/close only)
+- Emoji picker stays open (multi-emoji selection)
+- Context menu positioned to avoid screen edges
+- Loading states for messages (no flash of empty state)
+- Dark/Light mode support
+
+### Important Technical Decisions
+
+**Profile Caching Strategy:**
+- Messages store ONLY `senderId` (not name/photo)
+- Profiles fetched once per chat session and cached in component state
+- Benefits: Profile updates reflect everywhere, no duplicate data, smaller messages
+- Trade-off: 1-2 extra database reads per unique user (negligible)
+
+**Authentication Flow:**
+- Sign up → Email sent → User signed out → Must verify → Can sign in
+- Google users bypass verification (already trusted)
+- Auth state managed globally via AuthContext
+- Loading skeleton prevents "Sign In" button flash
+
+**Chat Window:**
+- No Edit Profile/Logout in chat (only in navbar)
+- No minimize functionality (simplified UX)
+- Auto-switch to DMs when clicking "Send Message" on avatar
+
+### Components
+
+**Chat:**
+- `components/chat/ChatBubble.tsx` - Floating button with unread badges
+- `components/chat/ChatWindow.tsx` - Main container with tabs
+- `components/chat/GlobalChat.tsx` - Global chat room
+- `components/chat/DirectMessages.tsx` - DM interface
+- `components/chat/UserProfileMenu.tsx` - Avatar click dropdown
+
+**Auth:**
+- `components/auth/AuthModal.tsx` - Sign in/up (portal-based)
+- `components/auth/UserProfile.tsx` - Profile editor (portal-based)
+- `components/auth/UserMenu.tsx` - Navbar dropdown
+- `contexts/AuthContext.tsx` - Global auth state
+
+**Services:**
+- `services/authService.ts` - Firebase auth functions
+- `services/chatService.ts` - Message CRUD operations
+- `firebase.config.ts` - Firebase initialization
+
+### Firebase Configuration
+- **Project:** nexuspc-a9df6
+- **Region:** europe-west1 (Belgium)
+- **Auth Methods:** Google, Email/Password
+- **Database URL:** https://nexuspc-a9df6-default-rtdb.europe-west1.firebasedatabase.app
+
+### Known Behaviors
+
+**Expected:**
+- Timestamp updates every 10 seconds
+- Emoji picker stays open after selection
+- Old messages show updated user names after profile change (cached profiles refetch)
+- "Loading messages..." shown briefly when switching tabs
+- Context menus position to left on right side of screen
+
+**Future Enhancements:**
+- [ ] Typing indicators
+- [ ] Read receipts  
+- [ ] Image/file sharing
+- [ ] Message reactions
+- [ ] User online/offline status indicators
+- [ ] Push notifications
+
+---
