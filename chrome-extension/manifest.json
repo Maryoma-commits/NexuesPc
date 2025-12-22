@@ -1,0 +1,39 @@
+{
+  "manifest_version": 3,
+  "name": "Galaxy IQ Scraper",
+  "version": "1.0.0",
+  "description": "Scrape Galaxy IQ products with one click",
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "notifications",
+    "tabs",
+    "downloads"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "host_permissions": [
+    "https://*/*"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icon16.svg",
+      "48": "icon48.svg",
+      "128": "icon128.svg"
+    }
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://*/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "icons": {
+    "16": "icon16.svg",
+    "48": "icon48.svg",
+    "128": "icon128.svg"
+  }
+}

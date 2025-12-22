@@ -185,7 +185,45 @@ git push
 
 ## 📝 Recent Major Changes
 
-### 2025-12-21
+### 2025-12-21 (Part 2 - Save/Share System & UI/UX Overhaul)
+**Major Features:**
+- Save & Share PC Builds: Complete system with localStorage, URL sharing, auto-restore (24h)
+- Enhanced Load Modal: Grid/list views, sort by date/price, component count badges, category tags, build notes, component icons (green=selected, gray=missing)
+- Edit Builds: Update existing or save as new with two-button modal
+- Reset Build: Clear all components button
+- Single-view PC Builder: Auto-back navigation after component selection, compact 4-column component cards
+
+**UI/UX Improvements:**
+- Moved sort dropdown to product header (removed from sidebar - no more scrollbar)
+- Fixed body scroll when PC Builder is open (overflow: hidden)
+- Fixed toggle button particle overflow causing scrollbars
+- Updated component icons: RAM (MemoryStick), GPU (Gpu) - distinct from Monitor/Motherboard
+- Changed PC Builder subtitle to "Build your PC" (shorter)
+- Admin panel: Loading overlay instead of alert popups
+
+**Light/Dark Mode Polish:**
+- Theme persistence: Saves to localStorage, persists across page refreshes
+- Fixed all dropdowns (PC Builder + main page) for light/dark mode
+- Fixed ShareBuildModal button colors (white text/icons forced)
+- Fixed Save button in PC Builder (white text in both modes)
+- Consistent styling across all modals and inputs
+
+**Bug Fixes:**
+- Fixed share URL encoding (retailer field: site → retailer)
+- Fixed text export showing undefined retailer
+- Fixed build names in shared URLs
+- Fixed auto-restore not clearing on component removal/reset
+- Fixed 404 errors: Removed /code/style.css, added favicon.svg
+- Removed all console.log statements (production-ready)
+
+**Technical Changes:**
+- Created utils/buildStorage.ts (localStorage save/load/delete/auto-save)
+- Created utils/buildEncoder.ts (URL encoding/decoding with base64)
+- Created LoadBuildsModal.tsx, SaveBuildModal.tsx, ShareBuildModal.tsx
+- Updated SavedBuild interface: Added tags and notes fields
+- Component icons now consistent across PC Builder and Load Modal
+
+### 2025-12-21 (Part 1)
 - JokerCenter SSL issue resolved (fixed by JokerCenter itself)
 
 ### 2025-12-19
@@ -217,8 +255,8 @@ git push
 
 ---
 
-## 🔢 Current Stats (Last Updated: 2025-12-21 03:44 AM)
-- **Total Products:** 6,632
+## 🔢 Current Stats (Last Updated: 2025-12-21 06:30 AM)
+- **Total Products:** 6,640
 - **Retailers:** 9 (8 automated + 1 manual)
 - **Categories:** 14 main (GPU, CPU, RAM, Motherboards, Storage, PSU, Cooler, Case, Monitor, Laptop, Mouse, Keyboard, Headset, Other) + subcategories (Fans, Thermals, Laptop RAM, Monitors, Laptops, Headsets)
 - **Deployments:** Auto-deploy via Vercel on git push
@@ -264,6 +302,7 @@ git push
 
 ---
 
-**Last Updated:** 2025-12-21 04:02  
+**Last Updated:** 2025-12-21 06:30  
 **Status:** Production ✅  
+**Recent Session:** Implemented complete Save/Share system, enhanced Load Modal, major UI/UX improvements, light/dark mode polish  
 **Agent:** Rovo Dev
