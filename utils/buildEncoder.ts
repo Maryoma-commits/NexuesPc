@@ -38,20 +38,14 @@ export function encodeBuild(components: any, buildName?: string): string {
           id: product.id,
           site: product.retailer,
         };
-        console.log(`🔗 Encoding ${category}:`, { id: product.id, retailer: product.retailer, title: product.title });
-      } else if (product) {
-        console.warn(`⚠️ Cannot encode ${category} - missing id or retailer:`, product);
       }
     });
     
     const json = JSON.stringify(encoded);
     const base64 = btoa(unescape(encodeURIComponent(json)));
     
-    console.log(`✅ Encoded build:`, { name: encoded.name, componentsCount: Object.keys(encoded).length - (encoded.name ? 1 : 0), base64Length: base64.length });
-    
     return base64;
   } catch (error) {
-    console.error('Error encoding build:', error);
     return '';
   }
 }
@@ -64,7 +58,6 @@ export function decodeBuild(encodedString: string): EncodedBuild | null {
     
     return decoded;
   } catch (error) {
-    console.error('Error decoding build:', error);
     return null;
   }
 }
@@ -88,7 +81,6 @@ export function parseBuildFromURL(): EncodedBuild | null {
     
     return decodeBuild(buildData);
   } catch (error) {
-    console.error('Error parsing build from URL:', error);
     return null;
   }
 }
@@ -109,13 +101,8 @@ export function matchComponentsWithProducts(
     
     if (product) {
       matchedComponents[category] = product;
-      console.log(`✅ Matched ${category}:`, product.title);
-    } else {
-      console.warn(`⚠️ Could not find product for ${category}:`, encoded);
     }
   });
-  
-  console.log(`📦 Matched ${Object.keys(matchedComponents).length} components`);
   
   return matchedComponents;
 }

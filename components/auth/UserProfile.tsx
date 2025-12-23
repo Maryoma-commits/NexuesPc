@@ -1,8 +1,8 @@
 // User Profile Component
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { User, Camera, Save, X } from 'lucide-react';
-import { getUserProfile, updateUserProfile, UserProfile as UserProfileType } from '../../services/authService';
+import { User, Camera, Save, X, Upload } from 'lucide-react';
+import { getUserProfile, updateUserProfile, uploadProfilePicture, UserProfile as UserProfileType } from '../../services/authService';
 import { auth } from '../../firebase.config';
 
 interface UserProfileProps {
@@ -16,7 +16,9 @@ export default function UserProfile({ isOpen, onClose }: UserProfileProps) {
   const [bio, setBio] = useState('');
   const [photoURL, setPhotoURL] = useState('');
   const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (isOpen && auth.currentUser) {
@@ -37,6 +39,23 @@ export default function UserProfile({ isOpen, onClose }: UserProfileProps) {
       }
     } catch (err: any) {
       setError('Failed to load profile');
+    }
+  };
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    setError('');
+
+    try {
+      const downloadURL = await uploadProfilePicture(file);
+      setPhotoURL(downloadURL);
+    } catch (err: any) {
+      setError(err.message || 'Failed to upload image');
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -93,12 +112,33 @@ export default function UserProfile({ isOpen, onClose }: UserProfileProps) {
               alt={displayName}
               className="w-24 h-24 rounded-full object-cover border-4 border-gray-200 dark:border-gray-700"
             />
-            <button className="absolute bottom-0 right-0 bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-full shadow-lg">
-              <Camera size={16} />
+            <button 
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
+              className="absolute bottom-0 right-0 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white p-2 rounded-full shadow-lg transition-colors"
+            >
+              {uploading ? (
+                <div className="animate-spin">
+                  <Upload size={16} />
+                </div>
+              ) : (
+                <Camera size={16} />
+              )}
             </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/gif,image/webp"
+              onChange={handleFileSelect}
+              className="hidden"
+            />
           </div>
           <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-            Click to change photo
+            {uploading ? 'Uploading...' : 'Click camera to upload photo'}
+          </p>
+          <p className="text-xs text-gray-400 dark:text-gray-500">
+            Max 5MB • JPEG, PNG, GIF, WebP
           </p>
         </div>
 
@@ -145,9 +185,12 @@ export default function UserProfile({ isOpen, onClose }: UserProfileProps) {
               type="url"
               value={photoURL}
               onChange={(e) => setPhotoURL(e.target.value)}
-              placeholder="https://example.com/photo.jpg"
+              placeholder="Or paste image URL here"
               className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
             />
+            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              You can upload a file or paste a URL
+            </p>
           </div>
 
           {/* Save button */}

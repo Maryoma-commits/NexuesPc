@@ -176,3 +176,68 @@ export const resendVerificationEmail = async () => {
 export const isEmailVerified = (): boolean => {
   return auth.currentUser?.emailVerified || false;
 };
+
+// Upload profile picture to ImgBB
+export const uploadProfilePicture = async (file: File): Promise<string> => {
+  if (!auth.currentUser) {
+    throw new Error('No user signed in');
+  }
+
+  // Validate file
+  const maxSize = 5 * 1024 * 1024; // 5MB
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+  
+  if (file.size > maxSize) {
+    throw new Error('Image must be less than 5MB');
+  }
+  
+  if (!allowedTypes.includes(file.type)) {
+    throw new Error('Only JPEG, PNG, GIF, and WebP images are allowed');
+  }
+
+  try {
+    // Get ImgBB API key from environment
+    const apiKey = import.meta.env.VITE_IMGBB_API_KEY;
+    if (!apiKey) {
+      throw new Error('ImgBB API key not configured');
+    }
+
+    // Convert file to base64
+    const base64 = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = reader.result as string;
+        // Remove data URL prefix (e.g., "data:image/png;base64,")
+        const base64String = result.split(',')[1];
+        resolve(base64String);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+
+    // Upload to ImgBB
+    const formData = new FormData();
+    formData.append('image', base64);
+    formData.append('name', `${auth.currentUser.uid}_${Date.now()}`);
+
+    const response = await fetch(`https://api.imgbb.com/1/upload?key=${apiKey}`, {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to upload to ImgBB');
+    }
+
+    const data = await response.json();
+    
+    if (!data.success) {
+      throw new Error(data.error?.message || 'Upload failed');
+    }
+
+    // Return the permanent URL
+    return data.data.url;
+  } catch (error: any) {
+    throw new Error(error.message || 'Failed to upload image');
+  }
+};

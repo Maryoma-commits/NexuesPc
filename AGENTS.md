@@ -302,9 +302,9 @@ git push
 
 ---
 
-**Last Updated:** 2025-12-22 04:28  
+**Last Updated:** 2025-12-23 02:15  
 **Status:** Production ✅  
-**Recent Session:** Implemented Firebase real-time chat system with authentication, profile caching, and email verification  
+**Recent Session:** Complete Facebook-style reaction system, emoji integration, RTL/LTR auto-detection, and critical bug fixes  
 **Agent:** Rovo Dev
 
 ---
@@ -438,11 +438,398 @@ firebase/
 - Context menus position to left on right side of screen
 
 **Future Enhancements:**
-- [ ] Typing indicators
+- [x] Typing indicators (DONE - 2025-12-22)
+- [x] Message replies (DONE - 2025-12-22)
+- [x] Message pagination/infinite scroll (DONE - 2025-12-22)
+- [x] Profile picture uploads (DONE - 2025-12-22)
+- [x] Instagram-style conversation deletion (DONE - 2025-12-22)
+- [x] Message reactions with Facebook emojis (DONE - 2025-12-23)
+- [x] RTL/LTR auto-detection (DONE - 2025-12-23)
 - [ ] Read receipts  
 - [ ] Image/file sharing
-- [ ] Message reactions
 - [ ] User online/offline status indicators
 - [ ] Push notifications
+- [ ] Full emoji picker (+ button functionality)
+
+---
+
+## 🐛 Critical Bug Fixes (2025-12-23)
+
+### Unread Badge Bug (MAJOR FIX)
+**Problem:** Unread badges appeared after page refresh even when viewing the conversation.
+
+**Root Cause:**
+- `markConversationAsRead()` only called when opening conversation
+- Not called when receiving messages while viewing
+- Page refresh showed stale unread count
+
+**Solution (3-part fix):**
+1. Added `lastReadTimestamp` to conversations (stores WHEN you read)
+2. Modified `getUserConversations()` to recalculate unread based on timestamps
+3. **KEY FIX:** Call `markConversationAsRead()` when receiving messages while viewing (not just on open)
+
+**Files Changed:**
+- `services/chatService.ts` - 3 functions updated
+- `components/chat/DirectMessages.tsx` - Mark as read on message receive
+
+### Reply Indicator Width
+**Problem:** Long reply messages extended beyond message bubble width.
+
+**Solution:**
+- Changed `truncate` to `line-clamp-2 break-words`
+- Reply indicator now shows up to 2 lines with proper wrapping
+- Respects same `max-w-sm` (384px) as message bubbles
+
+**Files Changed:**
+- `components/chat/DirectMessages.tsx`
+- `components/chat/GlobalChat.tsx`
+
+### GlobalChat Auto-Scroll
+**Problem:** When someone sent a message while you were at bottom, it didn't auto-scroll.
+
+**Solution:**
+- Added smart scroll position check (within 200px of bottom)
+- Auto-scrolls instantly if you're at the bottom
+- Doesn't scroll if you're reading older messages
+- Same behavior as DirectMessages
+
+**Files Changed:**
+- `components/chat/GlobalChat.tsx`
+
+### Multiple Typing Users Avatar Display
+**Problem:** When 2+ people typed, showed only 1 avatar but multiple names.
+
+**Solution:**
+- Changed to show multiple overlapping avatars (up to 3)
+- Facebook/Messenger style with `-space-x-2`
+- Each avatar has border to separate visually
+
+**Files Changed:**
+- `components/chat/GlobalChat.tsx`
+
+### Code Cleanup
+**Removed:**
+- 10+ debug `console.log` statements
+- Unused imports: `Search`, `query`, `orderByChild`, `equalTo`, `getUserProfile`, `hasUserReacted`
+- Unused packages: `@emoji-mart/data`, `@emoji-mart/react`
+
+**Result:** Production-ready, clean codebase
+
+---
+
+## 🌍 RTL/LTR Auto-Detection (2025-12-23)
+
+### Auto Text Direction
+**Feature:** Input field automatically switches between LTR and RTL based on content.
+
+**Implementation:**
+```typescript
+detectTextDirection(text) {
+  // Checks for Arabic (\u0600-\u06FF) or Hebrew (\u0590-\u05FF)
+  return hasRTLCharacters ? 'rtl' : 'ltr';
+}
+```
+
+**Behavior:**
+- Type English → `dir="ltr"` (cursor on right)
+- Type Arabic → `dir="rtl"` (cursor on left)
+- Real-time switching as you type
+- Updates on every keystroke
+
+**Files Changed:**
+- `components/chat/GlobalChat.tsx` - Added direction state & detection
+- `components/chat/DirectMessages.tsx` - Added direction state & detection
+
+**Result:**
+- Natural typing experience for multilingual users
+- Proper cursor positioning
+- Text flows in correct direction
+
+---
+
+## 💬 Message Reactions System (2025-12-23)
+
+### Complete Facebook-Style Reaction System
+**Provider:** Facebook Emoji CDN (emoji-datasource-facebook@15.0.1)
+
+**Features Implemented:**
+- ✅ Quick reaction picker (❤️ 😂 😮 😢 😡 👍 ➕)
+- ✅ Instagram-style positioning (overlaps message bubble corner)
+- ✅ Facebook emoji images (consistent across all platforms)
+- ✅ One reaction per user (auto-replaces when switching)
+- ✅ Reaction modal (view who reacted, remove your reaction)
+- ✅ Real-time updates via Firebase
+
+### Quick Reaction Picker
+**Trigger:** Click Smile button (😊) on message hover
+**Appears:** Above action buttons in dark pill
+**Emojis:** 6 quick reactions + plus button
+**Behavior:**
+- Click emoji → React instantly
+- Picker closes automatically
+- Portal rendering (no clipping)
+- Centered above Smile button
+
+### Reaction Display
+**Location:** Bottom-left corner of message bubble (overlapping)
+**Format:** 
+- Single reaction: Just emoji (no count)
+- Multiple reactions: All emojis + total count
+- Example: `❤️😊 5` means 5 total reactions with 2 emoji types
+
+**Styling:**
+- Facebook emoji images (16px on bubbles, 32px in modal)
+- Gray rounded pill background
+- Hover scale effect
+- Clickable to open reaction modal
+
+### Reaction Modal
+**Opened by:** Clicking reaction bubble on message
+**Features:**
+- Header: "Message reactions" with X button
+- Tabs: "All" + individual emoji tabs with counts
+- User list: Avatar, name, emoji on right
+- Remove reaction: "Click to remove" (only your reactions)
+- Real-time updates: Firebase listener tracks changes
+- Auto-close: When all reactions removed
+
+**Database Structure:**
+```
+globalChat/messages/{messageId}/reactions/
+  "❤️": ["uid1", "uid2", "uid3"]
+  "😊": ["uid4"]
+
+directMessages/{convId}/messages/{messageId}/reactions/
+  "❤️": ["uid1", "uid2"]
+  "👍": ["uid1"]
+```
+
+### Single Reaction Per User Logic
+**Rules:**
+1. User clicks ❤️ → Adds ❤️
+2. User clicks 😂 → Removes ❤️, adds 😂 (auto-switch)
+3. User clicks 😂 again → Removes 😂 (toggle off)
+
+**Implementation:**
+- `toggleReaction()` in chatService.ts
+- Checks if user already has emoji BEFORE removing
+- Removes all user's reactions first
+- Adds new emoji if different from previous
+- Empty emoji arrays auto-deleted
+
+### Facebook Emoji Integration
+**Component:** `components/ui/Emoji.tsx`
+**Function:** Converts native emoji to Facebook images
+```typescript
+<Emoji emoji="❤️" size={32} />
+// Renders: <img src="cdn.jsdelivr.net/.../2764-fe0f.png" />
+```
+
+**Conversion:**
+- Native emoji → Unicode codepoints
+- Example: "❤️" → "2764-fe0f"
+- CDN URL: `emoji-datasource-facebook@15.0.1/img/facebook/64/{unified}.png`
+- Fallback: Native emoji on image load error
+
+**Applied Everywhere:**
+- Quick reaction picker (32px)
+- Reaction bubbles (16px)
+- Reaction modal tabs (20px)
+- Reaction modal user list (32px)
+- Emoji picker in input field (emojiStyle="facebook")
+
+### Plus Button
+**Design:** Dark gray circle with white + symbol
+**Size:** 32px (w-8 h-8)
+**Styling:** `bg-gray-600 rounded-full`
+**Function:** Placeholder for full emoji picker (future)
+
+### Files Created/Modified
+**New Files:**
+- `components/ui/Emoji.tsx` - Facebook emoji renderer
+- `components/chat/ReactionModal.tsx` - Reaction viewer/remover
+
+**Modified Files:**
+- `components/chat/GlobalChat.tsx` - Reaction picker + display
+- `components/chat/DirectMessages.tsx` - Reaction picker + display
+- `services/chatService.ts` - toggleReaction(), helper functions
+
+---
+
+## 🎨 Chat System Enhancements (2025-12-22)
+
+### Profile Picture Upload System
+**Provider:** ImgBB API (Free, unlimited storage)
+- Upload from device (click camera icon in Edit Profile)
+- Max 5MB, supports JPEG/PNG/GIF/WebP
+- URL paste still supported as fallback
+- API Key stored in `.env` (VITE_IMGBB_API_KEY)
+- No Firebase Storage needed (billing issues)
+
+### Smart Profile Caching (Option 1 - Real-time)
+**Architecture:**
+- Global cache in `AuthContext` with real-time Firebase listeners
+- Profiles cached on first fetch, never re-fetched
+- Real-time updates via Firebase `onValue` listeners
+- Shared between GlobalChat and DirectMessages
+- Zero staleness - updates propagate instantly
+
+**Benefits:**
+- Instant chat loading (no refetch on reopen)
+- Profile changes reflect everywhere immediately
+- Minimal Firebase reads (once per user per session)
+- Listeners stay active throughout session
+
+### Message Pagination & Infinite Scroll
+**Implementation:**
+- Loads last 50 messages initially (not all)
+- Scroll to top → Auto-loads 50 older messages
+- Uses Firebase `endBefore()` + `limitToLast()` queries
+- Preserves scroll position when loading older messages
+- Shows "Loading older messages..." spinner
+- Shows "• Beginning of conversation •" when no more
+
+**Firebase Indexes Required:**
+```json
+"globalChat/messages": { ".indexOn": ["timestamp"] }
+"directMessages/$conversationId/messages": { ".indexOn": ["timestamp"] }
+```
+
+### Typing Indicators (Facebook/Messenger Style)
+**Features:**
+- Real-time typing status via Firebase
+- Appears as message bubble with animated dots (●●●)
+- Shows user avatar and name in Global Chat
+- Shows "User is typing..." for single user
+- Shows "User1 and User2 are typing..." for multiple
+- Auto-clears after 2 seconds of inactivity
+- Debounced updates (reduces Firebase writes)
+- Only visible when scrolled to bottom
+
+**Database Structure:**
+```
+globalChat/typing/{userId}: { userId, displayName, timestamp }
+directMessages/{convId}/typing/{userId}: { userId, displayName, timestamp }
+```
+
+### Message Replies (Facebook/Messenger Style)
+**Features:**
+- Hover on message → Action bar appears (❤️, 😊, ↩️, ⋮)
+- Click Reply → Reply bar shows above input
+- Cancel reply with X button
+- Reply indicator in messages shows quoted text
+- Works in both Global Chat and Direct Messages
+
+**Message Structure:**
+```javascript
+{
+  text: "message",
+  senderId: "uid",
+  timestamp: 123456,
+  replyTo: {
+    messageId: "msgId",
+    text: "original message",
+    senderId: "originalUserId",
+    senderName: "User Name"
+  }
+}
+```
+
+**UI Design:**
+- Messenger-style dark rounded pill for action buttons
+- White icons on semi-transparent dark background (90% opacity)
+- Backdrop blur effect
+- Positioned next to message bubble
+- Your messages: Buttons to the left
+- Their messages: Buttons to the right
+
+### Instagram/Facebook-Style Conversation Deletion
+**How it works:**
+- Delete conversation → Stores deletion timestamp
+- Only removes from YOUR view (other user unaffected)
+- Old messages hidden for you (not deleted from database)
+- Send new message → Conversation reappears with fresh start
+- Only shows messages sent AFTER deletion timestamp
+- If both users delete → Both see fresh start (using latest deletion time)
+
+**Implementation:**
+```
+users/{userId}/deletedConversations/{convId}: timestamp
+```
+
+**Filter Logic:**
+- `listenToDirectMessages` checks both users' deletion timestamps
+- Uses `Math.max(myTime, theirTime)` for effective deletion time
+- Only shows messages where `msg.timestamp > effectiveDeletionTime`
+- Deletion timestamps never removed (permanent filter)
+
+**UI:**
+- Hover on conversation → Trash icon appears (replaces timestamp)
+- Click → Professional modal confirmation (not browser alert)
+- Modal rendered via React Portal
+- Real-time list updates (no refresh needed)
+
+### Unread Message Badges
+**Features:**
+- Red circular badges on chat tabs
+- Global Chat tab → Shows unread global messages when on DM tab
+- DM tab → Shows total unread DMs when on Global tab
+- Main chat bubble → Shows total unread when chat closed
+- Auto-resets when switching to that tab
+
+**Tracking:**
+- Uses existing Firebase `unreadCount` in conversation metadata
+- Sums across all conversations for DM badge
+- Detects new messages from others only (not your own)
+
+### RTL (Right-to-Left) Support
+**Arabic Text Handling:**
+- `direction: 'rtl'` on message bubbles
+- `textAlign: 'right'` for proper alignment
+- Instagram-style font stack for better Arabic rendering
+- `fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif'`
+- Natural text wrapping at word boundaries
+- `max-w-sm` (384px) for comfortable reading width
+- `leading-relaxed` for better line spacing
+
+### Smart Auto-Scroll Behavior
+**Rules:**
+1. **Initial load** → Instant scroll to bottom ✅
+2. **You send message** → Instant scroll to bottom ✅
+3. **You scroll up** → Stay where you are (no auto-scroll) ✅
+4. **Someone sends message while you're at bottom** → Instant scroll (debounced 300ms) ✅
+5. **Someone sends message while you're scrolled up** → No scroll ✅
+6. **Typing indicator while at bottom** → Instant scroll ✅
+7. **Typing indicator while scrolled up** → No scroll ✅
+8. **Load older messages** → Preserve scroll position ✅
+
+**Implementation:**
+- Real-time scroll position check (not state-based)
+- Reads directly from `messagesContainerRef.current`
+- Checks `scrollHeight - scrollTop - clientHeight < 200px`
+- 300ms debounce to prevent multiple rapid scrolls
+- Uses `behavior: 'instant'` for snappy feel (no smooth animation)
+
+### Known Behaviors
+**Expected:**
+- Action buttons positioned next to messages (transparent, no background)
+- Typing indicator appears as message bubble inside chat
+- Profile updates reflect everywhere within 1 second
+- Messages load in batches of 50 (pagination)
+- Scroll to top triggers "Load older messages"
+- Delete conversation modal via portal (always visible)
+- Badges update in real-time across tabs
+- Reactions show Facebook-style emojis (CDN-based)
+- Text direction auto-detects (RTL for Arabic, LTR for English)
+
+**Technical Decisions:**
+- ImgBB for image uploads (no Firebase Storage billing)
+- Profile cache in AuthContext (session-scoped, real-time listeners)
+- Message pagination via Firebase queries (not client-side filtering)
+- Deletion via timestamps (preserves data, filters views)
+- Instant scroll for all auto-scrolls (no smooth animations)
+- Facebook emoji CDN (emoji-datasource-facebook@15.0.1)
+- One reaction per user per message (switches on different emoji)
+- Unread badges track lastReadTimestamp (survives page refresh)
 
 ---
