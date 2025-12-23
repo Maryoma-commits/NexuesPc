@@ -705,7 +705,7 @@ export default function DirectMessages({ onNewMessage, preselectedUserId, onClea
                   </div>
 
                   <div className="relative group inline-block">
-                    <div className="relative inline-block">
+                    <div className="relative overflow-visible">
                       <div
                         className={`
                           px-4 py-2 rounded-2xl max-w-sm break-words leading-relaxed
@@ -750,17 +750,22 @@ export default function DirectMessages({ onNewMessage, preselectedUserId, onClea
                                 setReactionModalOpen({ messageId: msg.id, reactions: msg.reactions });
                               }
                             }}
-                            className="absolute left-2 -bottom-3 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-xs font-medium transition-all hover:scale-105 bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 hover:bg-gray-200 dark:hover:bg-gray-600"
+                            className="absolute left-2 -bottom-3 flex items-center gap-1.5 pl-1.5 pr-3 py-0.5 rounded-full text-xs font-medium transition-all hover:scale-105 bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 hover:bg-gray-200 dark:hover:bg-gray-600 whitespace-nowrap"
+                            style={{ minWidth: 'fit-content' }}
                             title={`${totalReactions} ${totalReactions === 1 ? 'reaction' : 'reactions'}`}
                           >
-                            {/* Show all unique emojis */}
-                            {uniqueEmojis.map(emoji => (
-                              <Emoji key={emoji} emoji={emoji} size={16} />
-                            ))}
+                            {/* Show all unique emojis - slightly overlapping */}
+                            <div className="flex items-center gap-1 flex-shrink-0">
+                              {uniqueEmojis.map(emoji => (
+                                <div key={emoji} className="flex-shrink-0">
+                                  <Emoji emoji={emoji} size={16} />
+                                </div>
+                              ))}
+                            </div>
                             
                             {/* Show count only if more than 1 total reaction */}
                             {totalReactions > 1 && (
-                              <span className="text-gray-600 dark:text-gray-400 ml-1">
+                              <span className="text-gray-600 dark:text-gray-400 font-semibold flex-shrink-0">
                                 {totalReactions}
                               </span>
                             )}

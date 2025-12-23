@@ -39,7 +39,7 @@ export default function Emoji({ emoji, size = 20, className = '' }: EmojiProps) 
         width={size}
         height={size}
         className={className}
-        style={{ display: 'inline-block', verticalAlign: 'middle' }}
+        style={{ display: 'block' }}
         onError={(e) => {
           // Fallback to native emoji on image load error
           const target = e.target as HTMLImageElement;
