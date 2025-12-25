@@ -27,6 +27,7 @@ export interface UserProfile {
   createdAt: number;
   lastOnline: number;
   provider?: 'google' | 'email'; // Sign-in provider
+  lastNameChange?: number; // Server timestamp of last name change (for 7-day cooldown)
 }
 
 // Sign in with email/password
@@ -132,8 +133,35 @@ const createUserProfile = async (user: User, customDisplayName?: string, provide
 };
 
 // Update user profile
-export const updateUserProfile = async (uid: string, updates: Partial<UserProfile>) => {
+export const updateUserProfile = async (uid: string, updates: Partial<UserProfile>, skipCooldown = false) => {
   try {
+    // Import admin config
+    const { ADMIN_UIDS } = await import('../constants/adminConfig');
+    const isAdmin = ADMIN_UIDS.includes(uid);
+    
+    // If name is being changed, enforce 7-day cooldown (unless skipped for onboarding or user is admin)
+    if (updates.displayName && !skipCooldown && !isAdmin) {
+      const userRef = ref(database, `users/${uid}`);
+      const snapshot = await get(userRef);
+      
+      if (snapshot.exists()) {
+        const profile = snapshot.val() as UserProfile;
+        const lastChange = profile.lastNameChange || 0;
+        const now = Date.now();
+        const cooldownPeriod = 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds
+        const timeSinceLastChange = now - lastChange;
+        
+        if (timeSinceLastChange < cooldownPeriod) {
+          const timeRemaining = cooldownPeriod - timeSinceLastChange;
+          const daysRemaining = Math.ceil(timeRemaining / (24 * 60 * 60 * 1000));
+          throw new Error(`You can change your name again in ${daysRemaining} day${daysRemaining > 1 ? 's' : ''}`);
+        }
+      }
+      
+      // Add server timestamp for name change
+      updates.lastNameChange = Date.now();
+    }
+    
     // Update in Realtime Database
     await update(ref(database, `users/${uid}`), updates);
     

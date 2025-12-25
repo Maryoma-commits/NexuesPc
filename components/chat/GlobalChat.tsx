@@ -12,7 +12,10 @@ import UserProfileMenu from './UserProfileMenu';
 import ReactionModal from './ReactionModal';
 import BuildShareModal from './BuildShareModal';
 import BuildPreviewCard from './BuildPreviewCard';
+import SeenByModal from './SeenByModal';
 import Emoji from '../ui/Emoji';
+import { ADMIN_UIDS } from '../../constants/adminConfig';
+import { Crown } from 'lucide-react';
 
 interface GlobalChatProps {
   onNewMessage: () => void;
@@ -47,11 +50,29 @@ export default function GlobalChat({ onNewMessage, onOpenDM, onLoadBuild, isOpen
   const [uploadingImage, setUploadingImage] = useState(false);
   const [imageLightbox, setImageLightbox] = useState<string | null>(null);
   const [showBuildModal, setShowBuildModal] = useState(false);
+  const [seenByModalMessage, setSeenByModalMessage] = useState<Message | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Check if current user is admin
+  const isAdmin = auth.currentUser && ADMIN_UIDS.includes(auth.currentUser.uid);
+  
+  // Check if a user is admin
+  const isUserAdmin = (userId: string): boolean => {
+    return ADMIN_UIDS.includes(userId);
+  };
+
+  // Check if user is online (within 90 seconds)
+  const isUserOnline = (userId: string): boolean => {
+    const profile = profileCache[userId];
+    if (!profile || !profile.lastOnline) return false;
+    const now = Date.now();
+    const seconds = Math.floor((now - profile.lastOnline) / 1000);
+    return profile.isOnline && seconds < 90;
+  };
 
   useEffect(() => {
     if (!auth.currentUser) return;
@@ -534,16 +555,41 @@ export default function GlobalChat({ onNewMessage, onOpenDM, onLoadBuild, isOpen
                 id={`msg-${msg.id}`}
                 className={`flex gap-3 transition-all duration-500 ${isOwnMessage ? 'flex-row-reverse' : ''} ${msg.reactions && Object.keys(msg.reactions).length > 0 ? 'mb-4' : 'mb-1'} ${isHighlighted ? 'bg-blue-500/20 rounded-lg p-2 ring-2 ring-blue-500 ring-opacity-50 scale-[1.02]' : ''}`}
               >
-                <img
-                  src={senderPhoto}
-                  alt={senderName}
-                  onClick={(e) => handleAvatarClick(e, msg.senderId, senderName, senderPhoto)}
-                  className={`w-8 h-8 rounded-full object-cover flex-shrink-0 ${!isOwnMessage ? 'cursor-pointer hover:ring-2 hover:ring-blue-500' : ''}`}
-                  title={!isOwnMessage ? 'Click for options' : ''}
-                />
+                <div className="flex-shrink-0">
+                  <div className="relative">
+                    <img
+                      src={senderPhoto}
+                      alt={senderName}
+                      onClick={(e) => handleAvatarClick(e, msg.senderId, senderName, senderPhoto)}
+                      className={`w-8 h-8 rounded-full object-cover ${isUserAdmin(msg.senderId) ? 'ring-2 ring-yellow-500' : ''} ${!isOwnMessage ? 'cursor-pointer hover:ring-2 hover:ring-blue-500' : ''}`}
+                      title={!isOwnMessage ? 'Click for options' : ''}
+                    />
+                    {isUserOnline(msg.senderId) && (
+                      <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border-2 border-white dark:border-gray-800 rounded-full" title="Online"></div>
+                    )}
+                  </div>
+                </div>
                 <div className={`${isOwnMessage ? 'flex-1 min-w-0 flex flex-col items-end' : 'flex-1 min-w-0 flex flex-col items-start'}`}>
                   <div className={`flex items-center gap-2 mb-1 ${isOwnMessage ? 'flex-row-reverse' : ''}`}>
-                    <span className="text-sm font-medium text-gray-900 dark:text-white">{isOwnMessage ? 'You' : senderName}</span>
+                    <div className={`flex items-center gap-1 ${isOwnMessage ? 'flex-row-reverse' : ''}`}>
+                      {isUserAdmin(msg.senderId) && !isOwnMessage && (
+                        <Crown size={12} className="text-yellow-500" title="Admin" />
+                      )}
+                      <span 
+                        className={`text-sm font-medium ${isUserAdmin(msg.senderId) && !isOwnMessage ? '' : 'text-gray-900 dark:text-white'}`}
+                        style={isUserAdmin(msg.senderId) && !isOwnMessage ? {
+                          background: 'linear-gradient(90deg, #7835F7, #A855F7, #EAB308, #FCD34D, #EAB308, #A855F7, #7835F7)',
+                          backgroundSize: '200% auto',
+                          WebkitBackgroundClip: 'text',
+                          WebkitTextFillColor: 'transparent',
+                          backgroundClip: 'text',
+                          animation: 'gradientShift 4s ease-in-out infinite',
+                          fontWeight: 600
+                        } : {}}
+                      >
+                        {senderName}
+                      </span>
+                    </div>
                     <span className="text-xs text-gray-500 dark:text-gray-400">{formatTime(msg.timestamp)}</span>
                   </div>
                   {msg.replyTo && (
@@ -569,8 +615,15 @@ export default function GlobalChat({ onNewMessage, onOpenDM, onLoadBuild, isOpen
                       {msg.text && (
                         <div className={`${msg.imageUrl ? 'mb-2' : ''} ${isOwnMessage ? 'flex justify-end' : ''}`}>
                           <div
-                            className={`px-4 py-2 max-w-[200px] break-words leading-relaxed shadow-md relative z-10 rounded-[18px] inline-block ${isOwnMessage ? 'bg-[#7835F7] text-white' : 'bg-gray-200 dark:bg-[#3E4042] text-gray-900 dark:text-white'}`}
-                            style={{ wordBreak: 'break-word', overflowWrap: 'break-word', direction: detectTextDirection(msg.text), textAlign: detectTextDirection(msg.text) === 'rtl' ? 'right' : 'left', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif' }}
+                            className={`px-3 py-2 max-w-[212px] break-words leading-relaxed shadow-md relative z-10 rounded-[18px] inline-block ${isOwnMessage ? 'bg-[#7835F7] text-white' : isUserAdmin(msg.senderId) ? 'bg-yellow-50 dark:bg-yellow-900/20 text-gray-900 dark:text-white border border-yellow-500' : 'bg-gray-200 dark:bg-[#3E4042] text-gray-900 dark:text-white'}`}
+                            style={{ 
+                              wordBreak: 'break-word', 
+                              overflowWrap: 'break-word', 
+                              direction: detectTextDirection(msg.text), 
+                              textAlign: detectTextDirection(msg.text) === 'rtl' ? 'right' : 'left', 
+                              fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+                              ...(isUserAdmin(msg.senderId) && !isOwnMessage ? { boxShadow: '0 0 10px rgba(234, 179, 8, 0.3)' } : {})
+                            }}
                           >
                             {msg.text}
                           </div>
@@ -619,14 +672,25 @@ export default function GlobalChat({ onNewMessage, onOpenDM, onLoadBuild, isOpen
                         <button onClick={(e) => { e.stopPropagation(); setContextMenu({ messageId: msg.id!, x: e.clientX, y: e.clientY }); }} className="p-1.5 hover:bg-gray-700/50 rounded-full transition-colors" title="More"><MoreVertical size={16} className="text-white" /></button>
                       </div>
                     </div>
-                    
-                    {/* Seen by count - only on last message */}
-                    {index === 0 && getSeenCount(msg) > 0 && (
-                      <div className={`text-[11px] text-gray-500 dark:text-gray-400 mt-1 ${isOwnMessage ? 'text-right mr-1' : 'text-left ml-1'}`}>
-                        Seen by {getSeenCount(msg)}
-                      </div>
-                    )}
                   </div>
+                  
+                  {/* Seen by count - only on last message (outside relative container) */}
+                  {index === 0 && getSeenCount(msg) > 0 && (
+                    <div className={`text-[11px] mt-2 ${isOwnMessage ? 'text-right mr-1' : 'text-left ml-1'}`}>
+                      {isAdmin ? (
+                        <button
+                          onClick={() => setSeenByModalMessage(msg)}
+                          className="text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
+                        >
+                          Seen by {getSeenCount(msg)}
+                        </button>
+                      ) : (
+                        <span className="text-gray-500 dark:text-gray-400">
+                          Seen by {getSeenCount(msg)}
+                        </span>
+                      )}
+                    </div>
+                  )}
                   {msg.status === 'pending' && msg.tempId && isOwnMessage && (
                     <div className="mt-1 flex items-center justify-end">
                       <span className="text-xs text-gray-500 dark:text-gray-400 italic">Sending...</span>
@@ -864,7 +928,7 @@ export default function GlobalChat({ onNewMessage, onOpenDM, onLoadBuild, isOpen
       {reactionPickerOpen && reactionPickerPosition && createPortal(
         <>
           <div className="fixed inset-0 z-[100]" onClick={() => { setReactionPickerOpen(null); setReactionPickerPosition(null); }} />
-          <div className="fixed z-[999] bg-gray-800/95 dark:bg-gray-900/95 backdrop-blur-sm rounded-full px-3 py-2 shadow-lg flex gap-2 items-center min-w-max" style={{ left: `${reactionPickerPosition.x}px`, top: `${reactionPickerPosition.y - 50}px`, transform: 'translateX(-50%)' }} onClick={(e) => e.stopPropagation()}>
+          <div className="fixed z-[999] bg-gray-800/95 dark:bg-gray-900/95 backdrop-blur-sm rounded-full px-3 py-2 shadow-lg flex gap-2 items-center min-w-max" style={{ left: `${reactionPickerPosition.x}px`, top: `${reactionPickerPosition.y - 50}px`, transform: 'translateX(-60%)' }} onClick={(e) => e.stopPropagation()}>
             {['❤️', '😂', '😮', '😢', '😡', '👍'].map(emoji => (
               <button key={emoji} onClick={() => { if (auth.currentUser && reactionPickerOpen) { toggleReaction(reactionPickerOpen, emoji, auth.currentUser.uid, true); setReactionPickerOpen(null); setReactionPickerPosition(null); } }} className="hover:scale-125 transition-transform" title={`React with ${emoji}`}><Emoji emoji={emoji} size={32} /></button>
             ))}
@@ -879,6 +943,14 @@ export default function GlobalChat({ onNewMessage, onOpenDM, onLoadBuild, isOpen
         <BuildShareModal
           onClose={() => setShowBuildModal(false)}
           onSelectBuild={handleShareBuild}
+        />
+      )}
+
+      {/* Seen By Modal (Admin Only) */}
+      {seenByModalMessage && (
+        <SeenByModal
+          message={seenByModalMessage}
+          onClose={() => setSeenByModalMessage(null)}
         />
       )}
     </div>

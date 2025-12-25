@@ -65,11 +65,11 @@ export default function OnboardingModal({ isOpen, onComplete }: OnboardingModalP
         photoURL = await uploadProfilePicture(profilePicture);
       }
 
-      // Update profile
+      // Update profile with skipCooldown=true for first-time setup
       await updateUserProfile(user.uid, {
         displayName,
         photoURL
-      });
+      }, true); // Skip cooldown for onboarding
 
       toast.success('Profile setup complete!');
       

@@ -4,6 +4,8 @@ import { User } from 'firebase/auth';
 import { ref, onValue, off } from 'firebase/database';
 import { auth, database } from '../firebase.config';
 import { onAuthChange, UserProfile, getUserProfile, initializePresenceSystem, cleanupPresenceSystem } from '../services/authService';
+import { trackUserIP, isIPBanned } from '../services/ipTrackingService';
+import toast from 'react-hot-toast';
 
 interface AuthContextType {
   user: User | null;
@@ -68,6 +70,21 @@ export function AuthProvider({ children }: AuthProviderProps) {
             setUserProfile(profile);
             // Also cache current user's profile
             setProfileCache(prev => ({ ...prev, [currentUser.uid]: profile }));
+            
+            // Track IP address and check if banned
+            const userIP = await trackUserIP(currentUser.uid, 'signin');
+            if (userIP) {
+              const banned = await isIPBanned(userIP);
+              if (banned) {
+                // Sign out immediately if IP is banned
+                await auth.signOut();
+                toast.error('Access denied: Your IP address has been banned from this service.');
+                setUserProfile(null);
+                setProfileCache({});
+                setLoading(false);
+                return;
+              }
+            }
             
             // Initialize Firebase presence system for real-time online/offline detection
             initializePresenceSystem(currentUser.uid);

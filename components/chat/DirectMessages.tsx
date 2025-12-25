@@ -1,7 +1,7 @@
-// Direct Messages Component
+﻿// Direct Messages Component
 import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { Send, Smile, ArrowLeft, MoreVertical, Flag, Trash2, Loader2, Reply, X, Heart, Trash, Check, Image as ImageIcon, Monitor, ThumbsUp } from 'lucide-react';
+import { Send, Smile, ArrowLeft, MoreVertical, Flag, Trash2, Loader2, Reply, X, Heart, Trash, Check, Image as ImageIcon, Monitor, ThumbsUp, Crown } from 'lucide-react';
 import EmojiPicker, { EmojiClickData } from 'emoji-picker-react';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../contexts/AuthContext';
@@ -32,6 +32,7 @@ import BuildShareModal from './BuildShareModal';
 import BuildPreviewCard from './BuildPreviewCard';
 import Emoji from '../ui/Emoji';
 import { BuildData } from '../../services/chatService';
+import { ADMIN_UIDS } from '../../constants/adminConfig';
 
 interface DirectMessagesProps {
   onNewMessage: () => void;
@@ -85,6 +86,30 @@ export default function DirectMessages({ onNewMessage, preselectedUserId, onClea
   const messageCache = useRef<{ [conversationId: string]: Message[] }>({});
   const activeListeners = useRef<{ [conversationId: string]: () => void }>({});
   const selectedConversationRef = useRef<string | null>(null);
+
+  // Check if user is online (within 90 seconds)
+  const isUserOnline = (userId: string): boolean => {
+    const profile = profileCache[userId];
+    if (!profile || !profile.lastOnline) return false;
+    const now = Date.now();
+    const seconds = Math.floor((now - profile.lastOnline) / 1000);
+    return profile.isOnline && seconds < 90;
+  };
+
+  // Check if a user is admin
+  const isUserAdmin = (userId: string): boolean => {
+    return ADMIN_UIDS.includes(userId);
+  };
+
+  // Format last active time
+  const timeAgo = (timestamp: number): string => {
+    const seconds = Math.floor((Date.now() - timestamp) / 1000);
+    if (seconds < 60) return 'Active just now';
+    if (seconds < 3600) return `Active ${Math.floor(seconds / 60)}m ago`;
+    if (seconds < 86400) return `Active ${Math.floor(seconds / 3600)}h ago`;
+    if (seconds < 604800) return `Active ${Math.floor(seconds / 86400)}d ago`;
+    return `Active ${Math.floor(seconds / 604800)}w ago`;
+  };
 
   useEffect(() => {
     if (!auth.currentUser) return;
@@ -475,7 +500,7 @@ export default function DirectMessages({ onNewMessage, preselectedUserId, onClea
       const otherUserId = selectedConversation.split('_').find(id => id !== auth.currentUser?.uid);
       if (!otherUserId) return;
       
-      const messageText = '👍';
+      const messageText = 'ðŸ‘';
       const replyData = replyingTo ? {
         messageId: replyingTo.id!,
         text: replyingTo.text,
@@ -692,12 +717,61 @@ export default function DirectMessages({ onNewMessage, preselectedUserId, onClea
         <div className="p-4 border-b border-gray-200 dark:border-gray-700"><h3 className="text-lg font-semibold text-gray-900 dark:text-white">Messages</h3></div>
         <div className="flex-1 overflow-y-auto overflow-x-hidden overscroll-contain">
           <div className="p-2">
-            {conversations.length === 0 ? (<div className="text-center text-gray-500 dark:text-gray-400 py-8"><p className="text-lg mb-2">💬 No conversations yet</p><p className="text-sm">Start a chat from Global Chat!</p></div>) : (
+            {conversations.length === 0 ? (<div className="text-center text-gray-500 dark:text-gray-400 py-8"><p className="text-lg mb-2">ðŸ’¬ No conversations yet</p><p className="text-sm">Start a chat from Global Chat!</p></div>) : (
               conversations.map((conv) => {
                 const ou = getOtherUser(conv);
                 const unreadCount = conv.unreadCount[auth.currentUser?.uid || ''] || 0;
                 return (
-                  <div key={conv.id} className="relative group"><button onClick={() => setSelectedConversation(conv.id)} className="w-full flex items-center gap-3 p-3 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"><div className="relative"><img src={ou.photo} alt={ou.name} className="w-12 h-12 rounded-full object-cover" />{unreadCount > 0 && (<span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center">{unreadCount > 9 ? '9+' : unreadCount}</span>)}</div><div className="flex-1 text-left"><p className="font-medium text-gray-900 dark:text-white">{ou.name}</p><p className="text-sm text-gray-500 dark:text-gray-400 truncate">{conv.lastMessage}</p></div><span className="text-xs text-gray-400 group-hover:opacity-0 transition-opacity">{formatTime(conv.lastMessageTime)}</span></button><button onClick={(e) => handleDeleteConversation(conv.id, e)} className="absolute right-3 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 p-1.5 hover:bg-red-500 bg-gray-200 dark:bg-gray-600 rounded-full transition-all" title="Delete conversation"><Trash size={16} className="text-gray-700 dark:text-white hover:text-white" /></button></div>
+                  <div key={conv.id} className="relative group">
+                    <button 
+                      onClick={() => setSelectedConversation(conv.id)} 
+                      className={`w-full flex items-center gap-3 p-3 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors ${isUserAdmin(ou.id) ? 'border-l-4 border-yellow-500 bg-yellow-50/30 dark:bg-yellow-900/10' : ''}`}
+                    >
+                      <div className="relative">
+                        <img src={ou.photo} alt={ou.name} className="w-12 h-12 rounded-full object-cover" />
+                        {isUserOnline(ou.id) && (
+                          <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white dark:border-gray-800 rounded-full" title="Online"></div>
+                        )}
+                        {unreadCount > 0 && (
+                          <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center">
+                            {unreadCount > 9 ? '9+' : unreadCount}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex-1 text-left">
+                        <div className="flex items-center gap-1">
+                          {isUserAdmin(ou.id) && (
+                            <Crown size={10} className="text-yellow-500" title="Admin" />
+                          )}
+                          <span 
+                            className={`font-medium ${isUserAdmin(ou.id) ? '' : 'text-gray-900 dark:text-white'}`}
+                            style={isUserAdmin(ou.id) ? {
+                              background: 'linear-gradient(90deg, #7835F7, #A855F7, #EAB308, #FCD34D, #EAB308, #A855F7, #7835F7)',
+                              backgroundSize: '200% auto',
+                              WebkitBackgroundClip: 'text',
+                              WebkitTextFillColor: 'transparent',
+                              backgroundClip: 'text',
+                              animation: 'gradientShift 4s ease-in-out infinite',
+                              fontWeight: 600
+                            } : {}}
+                          >
+                            {ou.name}
+                          </span>
+                        </div>
+                        <p className="text-sm text-gray-500 dark:text-gray-400 truncate">{conv.lastMessage}</p>
+                      </div>
+                      <span className="text-xs text-gray-400 group-hover:opacity-0 transition-opacity">
+                        {formatTime(conv.lastMessageTime)}
+                      </span>
+                    </button>
+                    <button 
+                      onClick={(e) => handleDeleteConversation(conv.id, e)} 
+                      className="absolute right-3 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 p-1.5 hover:bg-red-500 bg-gray-200 dark:bg-gray-600 rounded-full transition-all" 
+                      title="Delete conversation"
+                    >
+                      <Trash size={16} className="text-gray-700 dark:text-white hover:text-white" />
+                    </button>
+                  </div>
                 );
               })
             )}
@@ -713,7 +787,40 @@ export default function DirectMessages({ onNewMessage, preselectedUserId, onClea
     <div className="flex flex-col h-full overflow-hidden">
       <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center gap-3">
         <button onClick={() => { if (selectedConversation && auth.currentUser) markConversationAsRead(selectedConversation, auth.currentUser.uid); setSelectedConversation(null); }} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"><ArrowLeft size={20} /></button>
-        {otherUser && (<><img src={otherUser.photo} alt={otherUser.name} className="w-10 h-10 rounded-full object-cover" /><div className="flex-1"><p className="font-medium text-gray-900 dark:text-white">{otherUser.name}</p></div></>)}
+        {otherUser && (
+          <>
+            <div className="relative flex-shrink-0">
+              <img src={otherUser.photo} alt={otherUser.name} className="w-10 h-10 rounded-full object-cover" />
+              {isUserOnline(otherUser.id) && (
+                <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 border-2 border-white dark:border-gray-800 rounded-full z-10" title="Online"></div>
+              )}
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center gap-1">
+                {isUserAdmin(otherUser.id) && (
+                  <Crown size={14} className="text-yellow-500" title="Admin" />
+                )}
+                <span 
+                  className={`font-medium ${isUserAdmin(otherUser.id) ? '' : 'text-gray-900 dark:text-white'}`}
+                  style={isUserAdmin(otherUser.id) ? {
+                    background: 'linear-gradient(90deg, #7835F7, #A855F7, #EAB308, #FCD34D, #EAB308, #A855F7, #7835F7)',
+                    backgroundSize: '200% auto',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    backgroundClip: 'text',
+                    animation: 'gradientShift 4s ease-in-out infinite',
+                    fontWeight: 600
+                  } : {}}
+                >
+                  {otherUser.name}
+                </span>
+              </div>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                {isUserOnline(otherUser.id) ? 'Online now' : timeAgo(profileCache[otherUser.id]?.lastOnline || Date.now())}
+              </p>
+            </div>
+          </>
+        )}
       </div>
 
       <div ref={messagesContainerRef} onScroll={handleScroll} className="flex-1 overflow-y-auto overflow-x-hidden overscroll-contain p-4 space-y-4 space-y-reverse flex flex-col-reverse">
@@ -741,15 +848,39 @@ export default function DirectMessages({ onNewMessage, preselectedUserId, onClea
             const isHighlighted = highlightedMessageId === msg.id;
             return (
               <div key={msg.id} id={`msg-${msg.id}`} className={`flex gap-3 transition-all duration-500 ${isOwn ? 'flex-row-reverse' : ''} ${msg.reactions && Object.keys(msg.reactions).length > 0 ? 'mb-4' : 'mb-1'} ${isHighlighted ? 'bg-blue-500/20 rounded-lg p-2 ring-2 ring-blue-500 ring-opacity-50 scale-[1.02]' : ''}`}>
-                <img src={sph} alt={sn} className="w-8 h-8 rounded-full object-cover flex-shrink-0" />
+                <div className="flex-shrink-0">
+                  <div className="relative">
+                    <img src={sph} alt={sn} className={`w-8 h-8 rounded-full object-cover ${isUserAdmin(msg.senderId) ? 'ring-2 ring-yellow-500' : ''}`} />
+                    {isUserOnline(msg.senderId) && (
+                      <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border-2 border-white dark:border-gray-800 rounded-full" title="Online"></div>
+                    )}
+                  </div>
+                </div>
                 <div className={`${isOwn ? 'flex-1 min-w-0 flex flex-col items-end' : 'flex-1 min-w-0 flex flex-col items-start'}`}>
-                  <div className={`flex items-center gap-2 mb-1 ${isOwn ? 'flex-row-reverse' : ''}`}><span className="text-xs text-gray-500 dark:text-gray-400">{formatTime(msg.timestamp)}</span></div>
+                  <div className={`flex items-center gap-2 mb-1 ${isOwn ? 'flex-row-reverse' : ''}`}>
+                    {!isOwn && isUserAdmin(msg.senderId) && (
+                      <Crown size={12} className="text-yellow-500" title="Admin" />
+                    )}
+                    <span className="text-xs text-gray-500 dark:text-gray-400">{formatTime(msg.timestamp)}</span>
+                  </div>
                   <div className="relative group inline-block">
                     <div className="relative overflow-visible flex flex-col">
                       {msg.replyTo && (<button onClick={() => scrollToMessage(msg.replyTo!.messageId)} className={`px-3 pt-2 pb-3 text-[13px] line-clamp-1 max-w-sm bg-[#3E4042] text-gray-300 hover:bg-[#4E5052] transition-colors rounded-[18px] mb-[-10px] relative z-0 opacity-80 cursor-pointer`} style={{ direction: detectTextDirection(msg.replyTo.text), textAlign: detectTextDirection(msg.replyTo.text) === 'rtl' ? 'right' : 'left' }}>{msg.replyTo.text}</button>)}
                       {msg.text && (
                         <div className={`${msg.imageUrl ? 'mb-2' : ''} ${isOwn ? 'flex justify-end' : ''}`}>
-                          <div className={`px-4 py-2 max-w-[200px] break-words leading-relaxed shadow-md relative z-10 rounded-[18px] inline-block ${isOwn ? 'bg-[#7835F7] text-white' : 'bg-gray-200 dark:bg-[#3E4042] text-gray-900 dark:text-white'}`} style={{ wordBreak: 'break-word', overflowWrap: 'break-word', direction: detectTextDirection(msg.text), textAlign: detectTextDirection(msg.text) === 'rtl' ? 'right' : 'left', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif' }}>{msg.text}</div>
+                          <div 
+                            className={`px-3 py-2 max-w-[212px] break-words leading-relaxed shadow-md relative z-10 rounded-[18px] inline-block ${isOwn ? 'bg-[#7835F7] text-white' : isUserAdmin(msg.senderId) ? 'bg-yellow-50 dark:bg-yellow-900/20 text-gray-900 dark:text-white border border-yellow-500' : 'bg-gray-200 dark:bg-[#3E4042] text-gray-900 dark:text-white'}`} 
+                            style={{ 
+                              wordBreak: 'break-word', 
+                              overflowWrap: 'break-word', 
+                              direction: detectTextDirection(msg.text), 
+                              textAlign: detectTextDirection(msg.text) === 'rtl' ? 'right' : 'left', 
+                              fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+                              ...(isUserAdmin(msg.senderId) && !isOwn ? { boxShadow: '0 0 10px rgba(234, 179, 8, 0.3)' } : {})
+                            }}
+                          >
+                            {msg.text}
+                          </div>
                         </div>
                       )}
                       {msg.imageUrl && (
@@ -802,7 +933,7 @@ export default function DirectMessages({ onNewMessage, preselectedUserId, onClea
             );
           })}
 
-        {messages.length === 0 && (<div className="text-center text-gray-500 dark:text-gray-400 mt-8"><p className="text-lg mb-2">👋 Start a conversation!</p><p className="text-sm">Send your first message</p></div>)}
+        {messages.length === 0 && (<div className="text-center text-gray-500 dark:text-gray-400 mt-8"><p className="text-lg mb-2">ðŸ‘‹ Start a conversation!</p><p className="text-sm">Send your first message</p></div>)}
       </div>
 
       <form onSubmit={handleSendMessage} className="p-4 border-t border-gray-200 dark:border-gray-700">
@@ -949,7 +1080,7 @@ export default function DirectMessages({ onNewMessage, preselectedUserId, onClea
         />
       )}
       {fullEmojiPickerOpen && createPortal(<><div className="fixed inset-0 z-[100]" onClick={() => setFullEmojiPickerOpen(null)} /><div className="fixed z-[101]" style={{ left: `${fullEmojiPickerOpen.position.x}px`, top: `${fullEmojiPickerOpen.position.y - 450}px`, transform: 'translateX(-50%)' }} onClick={(e) => e.stopPropagation()}><EmojiPicker onEmojiClick={(ed) => { if (auth.currentUser && fullEmojiPickerOpen.messageId && selectedConversation) { toggleReaction(fullEmojiPickerOpen.messageId, ed.emoji, auth.currentUser.uid, false, selectedConversation); setFullEmojiPickerOpen(null); } }} theme={document.documentElement.classList.contains('dark') ? 'dark' : 'light'} height={400} width={350} emojiStyle="facebook" searchPlaceHolder="Search emoji..." previewConfig={{ showPreview: false }} /></div></>, document.body)}
-      {reactionPickerOpen && reactionPickerPosition && createPortal(<><div className="fixed inset-0 z-[100]" onClick={() => { setReactionPickerOpen(null); setReactionPickerPosition(null); }} /><div className="fixed z-[999] bg-gray-800/95 dark:bg-gray-900/95 backdrop-blur-sm rounded-full px-3 py-2 shadow-lg flex gap-2 items-center min-w-max" style={{ left: `${reactionPickerPosition.x}px`, top: `${reactionPickerPosition.y - 50}px`, transform: 'translateX(-50%)' }} onClick={(e) => e.stopPropagation()}>{['❤️', '😂', '😮', '😢', '😡', '👍'].map(e => (<button key={e} onClick={() => { if (auth.currentUser && reactionPickerOpen && selectedConversation) { toggleReaction(reactionPickerOpen, e, auth.currentUser.uid, false, selectedConversation); setReactionPickerOpen(null); setReactionPickerPosition(null); } }} className="hover:scale-125 transition-transform" title={`React with ${e}`}><Emoji emoji={e} size={32} /></button>))}<button onClick={(e) => { if (reactionPickerOpen && reactionPickerPosition) { setFullEmojiPickerOpen({ messageId: reactionPickerOpen, position: reactionPickerPosition }); setReactionPickerOpen(null); setReactionPickerPosition(null); } }} className="w-8 h-8 rounded-full bg-gray-600 dark:bg-gray-700 flex items-center justify-center hover:bg-gray-500 dark:hover:bg-gray-600 transition-all hover:scale-110 flex-shrink-0" title="More reactions"><span className="text-white text-2xl font-normal leading-none">+</span></button></div></>, document.body)}
+      {reactionPickerOpen && reactionPickerPosition && createPortal(<><div className="fixed inset-0 z-[100]" onClick={() => { setReactionPickerOpen(null); setReactionPickerPosition(null); }} /><div className="fixed z-[999] bg-gray-800/95 dark:bg-gray-900/95 backdrop-blur-sm rounded-full px-3 py-2 shadow-lg flex gap-2 items-center min-w-max" style={{ left: `${reactionPickerPosition.x}px`, top: `${reactionPickerPosition.y - 50}px`, transform: 'translateX(-50%)' }} onClick={(e) => e.stopPropagation()}>{['â¤ï¸', 'ðŸ˜‚', 'ðŸ˜®', 'ðŸ˜¢', 'ðŸ˜¡', 'ðŸ‘'].map(e => (<button key={e} onClick={() => { if (auth.currentUser && reactionPickerOpen && selectedConversation) { toggleReaction(reactionPickerOpen, e, auth.currentUser.uid, false, selectedConversation); setReactionPickerOpen(null); setReactionPickerPosition(null); } }} className="hover:scale-125 transition-transform" title={`React with ${e}`}><Emoji emoji={e} size={32} /></button>))}<button onClick={(e) => { if (reactionPickerOpen && reactionPickerPosition) { setFullEmojiPickerOpen({ messageId: reactionPickerOpen, position: reactionPickerPosition }); setReactionPickerOpen(null); setReactionPickerPosition(null); } }} className="w-8 h-8 rounded-full bg-gray-600 dark:bg-gray-700 flex items-center justify-center hover:bg-gray-500 dark:hover:bg-gray-600 transition-all hover:scale-110 flex-shrink-0" title="More reactions"><span className="text-white text-2xl font-normal leading-none">+</span></button></div></>, document.body)}
     </div>
   );
 }

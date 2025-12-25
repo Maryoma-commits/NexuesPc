@@ -2,13 +2,14 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { isAdmin } from '../../constants/adminConfig';
-import { Users, BarChart3, Shield, Activity, ArrowLeft, MessageSquare } from 'lucide-react';
+import { Users, BarChart3, Shield, Activity, ArrowLeft, MessageSquare, Globe } from 'lucide-react';
 import UserManagement from './UserManagement';
 import Statistics from './Statistics';
 import MessageModeration from './MessageModeration';
+import IPTracking from './IPTracking';
 import toast from 'react-hot-toast';
 
-type TabType = 'users' | 'stats' | 'banned' | 'messages';
+type TabType = 'users' | 'stats' | 'banned' | 'messages' | 'ip';
 
 export default function AdminDashboard() {
   const { currentUser, loading: authLoading } = useAuth();
@@ -161,6 +162,17 @@ export default function AdminDashboard() {
               <MessageSquare size={20} />
               Message Moderation
             </button>
+            <button
+              onClick={() => setActiveTab('ip')}
+              className={`flex items-center gap-2 py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                activeTab === 'ip'
+                  ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
+              }`}
+            >
+              <Globe size={20} />
+              IP Tracking
+            </button>
           </nav>
         </div>
       </div>
@@ -171,6 +183,7 @@ export default function AdminDashboard() {
         {activeTab === 'stats' && <Statistics />}
         {activeTab === 'banned' && <UserManagement showBanned={true} />}
         {activeTab === 'messages' && <MessageModeration />}
+        {activeTab === 'ip' && <IPTracking />}
       </div>
     </div>
   );

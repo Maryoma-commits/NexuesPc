@@ -207,6 +207,18 @@ export const unbanUser = async (uid: string): Promise<void> => {
   }
 };
 
+// Reset name change cooldown (admin only)
+export const resetNameChangeCooldown = async (uid: string): Promise<void> => {
+  try {
+    const userRef = ref(database, `users/${uid}`);
+    await update(userRef, {
+      lastNameChange: null // Remove timestamp to allow immediate name change
+    });
+  } catch (error: any) {
+    throw new Error(error.message);
+  }
+};
+
 // Check if user is banned
 export const checkBanStatus = async (uid: string): Promise<BanInfo | null> => {
   try {

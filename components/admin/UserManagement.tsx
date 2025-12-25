@@ -1,7 +1,7 @@
 // User Management Component for Admin Dashboard
 import { useState, useEffect } from 'react';
-import { Search, Filter, UserX, Ban, Trash2, Eye, Clock, Mail, Calendar, RefreshCw } from 'lucide-react';
-import { getAllUsers, getAllBannedUsers, getUserStats, BanInfo } from '../../services/adminService';
+import { Search, Filter, UserX, Ban, Trash2, Eye, Clock, Mail, Calendar, RefreshCw, RotateCcw } from 'lucide-react';
+import { getAllUsers, getAllBannedUsers, getUserStats, BanInfo, resetNameChangeCooldown } from '../../services/adminService';
 import { UserProfile } from '../../services/authService';
 import toast from 'react-hot-toast';
 import UserDetailsModal from './UserDetailsModal';
@@ -28,6 +28,7 @@ export default function UserManagement({ showBanned }: UserManagementProps) {
   const [selectedUser, setSelectedUser] = useState<UserWithStats | null>(null);
   const [deleteModalUser, setDeleteModalUser] = useState<UserWithStats | null>(null);
   const [banModalUser, setBanModalUser] = useState<UserWithStats | null>(null);
+  const [resetCooldownUser, setResetCooldownUser] = useState<UserWithStats | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const usersPerPage = 20;
 
@@ -304,6 +305,13 @@ export default function UserManagement({ showBanned }: UserManagementProps) {
                     >
                       <Eye size={18} />
                     </button>
+                    <button
+                      onClick={() => setResetCooldownUser(user)}
+                      className="text-purple-600 hover:text-purple-900 dark:text-purple-400 dark:hover:text-purple-300"
+                      title="Reset Name Change Cooldown"
+                    >
+                      <RotateCcw size={18} />
+                    </button>
                     {!user.banInfo ? (
                       <button
                         onClick={() => setBanModalUser(user)}
@@ -391,6 +399,43 @@ export default function UserManagement({ showBanned }: UserManagementProps) {
           onClose={() => setBanModalUser(null)}
           onSuccess={loadUsers}
         />
+      )}
+
+      {/* Reset Name Cooldown Confirmation */}
+      {resetCooldownUser && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-6">
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
+              Reset Name Change Cooldown?
+            </h3>
+            <p className="text-gray-600 dark:text-gray-400 mb-6">
+              This will allow <strong>{resetCooldownUser.displayName}</strong> to change their name immediately, bypassing the 7-day cooldown.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setResetCooldownUser(null)}
+                className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  try {
+                    await resetNameChangeCooldown(resetCooldownUser.uid);
+                    toast.success('Name change cooldown reset successfully');
+                    setResetCooldownUser(null);
+                    loadUsers();
+                  } catch (error: any) {
+                    toast.error(error.message || 'Failed to reset cooldown');
+                  }
+                }}
+                className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+              >
+                Reset Cooldown
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

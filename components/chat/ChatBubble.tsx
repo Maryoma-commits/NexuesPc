@@ -68,7 +68,7 @@ export default function ChatBubble({ onLoadBuild }: ChatBubbleProps = {}) {
   return (
     <>
       {/* Floating Chat Bubble */}
-      <div className="fixed bottom-6 right-6 z-50">
+      <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
         {/* Chat Window */}
         {isOpen && user && (
           <div className="mb-4 animate-in slide-in-from-bottom-5 duration-300">
@@ -88,11 +88,11 @@ export default function ChatBubble({ onLoadBuild }: ChatBubbleProps = {}) {
         {/* Chat Bubble Button */}
         <button
           onClick={handleBubbleClick}
-          className={`
+          className="
             relative bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800
             text-white rounded-full shadow-2xl transition-all duration-300 hover:scale-110
-            ${isOpen ? 'w-14 h-14' : 'w-16 h-16'}
-          `}
+            w-16 h-16
+          "
           aria-label="Open chat"
         >
           {isOpen ? (
@@ -109,8 +109,8 @@ export default function ChatBubble({ onLoadBuild }: ChatBubbleProps = {}) {
           )}
         </button>
 
-        {/* Online indicator */}
-        {user && (
+        {/* Online indicator - only show when chat is closed */}
+        {user && !isOpen && (
           <div className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 border-2 border-white dark:border-gray-900 rounded-full"></div>
         )}
       </div>

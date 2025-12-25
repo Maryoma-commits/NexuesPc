@@ -18,6 +18,8 @@ export default function UserProfile({ isOpen, onClose }: UserProfileProps) {
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
+  const [nameChangeBlocked, setNameChangeBlocked] = useState(false);
+  const [cooldownMessage, setCooldownMessage] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -35,6 +37,23 @@ export default function UserProfile({ isOpen, onClose }: UserProfileProps) {
         setProfile(userProfile);
         setDisplayName(userProfile.displayName);
         setPhotoURL(userProfile.photoURL);
+        
+        // Check name change cooldown
+        if (userProfile.lastNameChange) {
+          const now = Date.now();
+          const cooldownPeriod = 7 * 24 * 60 * 60 * 1000; // 7 days
+          const timeSinceLastChange = now - userProfile.lastNameChange;
+          
+          if (timeSinceLastChange < cooldownPeriod) {
+            setNameChangeBlocked(true);
+            const timeRemaining = cooldownPeriod - timeSinceLastChange;
+            const daysRemaining = Math.ceil(timeRemaining / (24 * 60 * 60 * 1000));
+            setCooldownMessage(`You can change your name again in ${daysRemaining} day${daysRemaining > 1 ? 's' : ''}`);
+          } else {
+            setNameChangeBlocked(false);
+            setCooldownMessage('');
+          }
+        }
       }
     } catch (err: any) {
       setError('Failed to load profile');
@@ -67,15 +86,38 @@ export default function UserProfile({ isOpen, onClose }: UserProfileProps) {
     setError('');
 
     try {
-      await updateUserProfile(auth.currentUser.uid, {
-        displayName,
-        photoURL
-      });
+      // Build updates object - only include changed fields
+      const updates: any = {};
+      
+      // Only include displayName if it changed (to trigger cooldown check)
+      if (displayName !== profile?.displayName) {
+        updates.displayName = displayName;
+      }
+      
+      // Always allow photo changes
+      if (photoURL !== profile?.photoURL) {
+        updates.photoURL = photoURL;
+      }
+      
+      // If no changes, just close
+      if (Object.keys(updates).length === 0) {
+        toast.success('No changes to save');
+        onClose();
+        return;
+      }
+      
+      await updateUserProfile(auth.currentUser.uid, updates);
       toast.success('Profile updated successfully');
-      onClose();
+      
+      // Reload page if name was changed (to update everywhere)
+      if (updates.displayName) {
+        setTimeout(() => window.location.reload(), 500);
+      } else {
+        onClose();
+      }
     } catch (err: any) {
       setError(err.message || 'Failed to update profile');
-      toast.error('Failed to update profile');
+      toast.error(err.message || 'Failed to update profile');
     } finally {
       setLoading(false);
     }
@@ -157,9 +199,15 @@ export default function UserProfile({ isOpen, onClose }: UserProfileProps) {
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
                 placeholder="Your name"
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                disabled={nameChangeBlocked}
+                className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed"
               />
             </div>
+            {nameChangeBlocked && (
+              <p className="mt-2 text-sm text-amber-600 dark:text-amber-400 flex items-center gap-1">
+                🔒 {cooldownMessage}
+              </p>
+            )}
           </div>
 
           {/* Save button */}

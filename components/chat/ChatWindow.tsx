@@ -1,11 +1,13 @@
 // Main Chat Window Component
 import { useState, useEffect } from 'react';
-import { X, MessageSquare, Users } from 'lucide-react';
+import { X, MessageSquare, Users, UserPlus } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { auth } from '../../firebase.config';
 import { getUserConversations, BuildData } from '../../services/chatService';
+import { listenToFriendRequests } from '../../services/friendsService';
 import GlobalChat from './GlobalChat';
 import DirectMessages from './DirectMessages';
+import Friends from './Friends';
 
 interface ChatWindowProps {
   onClose: () => void;
@@ -16,11 +18,12 @@ interface ChatWindowProps {
 
 export default function ChatWindow({ onClose, onNewMessage, onLoadBuild, isOpen }: ChatWindowProps) {
   const { loading } = useAuth();
-  const [activeTab, setActiveTab] = useState<'global' | 'dms'>('global');
+  const [activeTab, setActiveTab] = useState<'global' | 'dms' | 'friends'>('global');
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
   const [globalUnreadCount, setGlobalUnreadCount] = useState(0);
   const [dmUnreadCount, setDmUnreadCount] = useState(0);
+  const [friendRequestCount, setFriendRequestCount] = useState(0);
 
   // Lock body scroll when mouse is over the chat window
   useEffect(() => {
@@ -49,15 +52,26 @@ export default function ChatWindow({ onClose, onNewMessage, onLoadBuild, isOpen 
     onNewMessage(); // For ChatBubble
   };
 
-  const handleTabChange = (tab: 'global' | 'dms') => {
+  const handleTabChange = (tab: 'global' | 'dms' | 'friends') => {
     setActiveTab(tab);
     // Reset unread count when switching to tab
     if (tab === 'global') {
       setGlobalUnreadCount(0);
-    } else {
+    } else if (tab === 'dms') {
       setDmUnreadCount(0);
     }
   };
+
+  // Track friend requests count
+  useEffect(() => {
+    if (!auth.currentUser) return;
+
+    const unsubscribe = listenToFriendRequests(auth.currentUser.uid, (requests) => {
+      setFriendRequestCount(requests.length);
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   // Track total DM unread count
   useEffect(() => {
@@ -88,7 +102,7 @@ export default function ChatWindow({ onClose, onNewMessage, onLoadBuild, isOpen 
     <div 
       onMouseEnter={() => { document.body.style.overflow = 'hidden'; }}
       onMouseLeave={() => { document.body.style.overflow = 'unset'; }}
-      className="w-96 h-[600px] bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 flex flex-col overflow-hidden relative overscroll-contain"
+      className="w-96 h-[750px] bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 flex flex-col overflow-hidden relative overscroll-contain"
     >
       {/* Header */}
       <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-4 flex items-center justify-between">
@@ -143,10 +157,28 @@ export default function ChatWindow({ onClose, onNewMessage, onLoadBuild, isOpen 
               `}
             >
               <Users size={18} />
-              Direct Messages
+              Messages
               {dmUnreadCount > 0 && (
                 <span className="absolute top-1 right-2 bg-red-500 text-white text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center">
                   {dmUnreadCount > 9 ? '9+' : dmUnreadCount}
+                </span>
+              )}
+            </button>
+            <button
+              onClick={() => handleTabChange('friends')}
+              className={`
+                flex-1 flex items-center justify-center gap-2 py-3 font-medium transition-colors relative
+                ${activeTab === 'friends'
+                  ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400 bg-white dark:bg-gray-800'
+                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                }
+              `}
+            >
+              <UserPlus size={18} />
+              Friends
+              {friendRequestCount > 0 && (
+                <span className="absolute top-1 right-2 bg-red-500 text-white text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center">
+                  {friendRequestCount > 9 ? '9+' : friendRequestCount}
                 </span>
               )}
             </button>
@@ -171,6 +203,11 @@ export default function ChatWindow({ onClose, onNewMessage, onLoadBuild, isOpen 
                 onConversationChange={setSelectedConversationId}
                 onLoadBuild={onLoadBuild}
                 isOpen={activeTab === 'dms'}
+              />
+            </div>
+            <div className={`absolute inset-0 ${activeTab === 'friends' ? 'block' : 'hidden'}`}>
+              <Friends 
+                onOpenDM={handleOpenDM}
               />
             </div>
           </div>
