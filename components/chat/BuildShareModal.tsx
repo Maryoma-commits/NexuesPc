@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { X, Send } from 'lucide-react';
-import { getSavedBuilds, SavedBuild } from '../../utils/buildStorage';
+import { getSavedBuildsAsync, SavedBuild } from '../../utils/buildStorage';
 import { BuildData } from '../../services/chatService';
+import { auth } from '../../firebase.config';
 
 interface BuildShareModalProps {
   onClose: () => void;
@@ -14,19 +15,40 @@ export default function BuildShareModal({ onClose, onSelectBuild }: BuildShareMo
   const [caption, setCaption] = useState('');
 
   useEffect(() => {
-    const builds = getSavedBuilds();
-    setSavedBuilds(builds);
+    const loadBuilds = async () => {
+      if (!auth.currentUser) return;
+      
+      // Load builds from Firebase
+      const builds = await getSavedBuildsAsync();
+      setSavedBuilds(builds);
+    };
+    
+    loadBuilds();
   }, []);
 
   const handleSend = () => {
     if (!selectedBuild) return;
 
     // Convert SavedBuild to BuildData format
+    // Need to transform Product objects to simplified format
+    const transformedComponents: { [key: string]: any } = {};
+    
+    Object.entries(selectedBuild.components).forEach(([category, product]) => {
+      if (product) {
+        transformedComponents[category] = {
+          name: product.title,
+          price: product.price,
+          image: product.imageUrl || '',
+          retailer: product.retailer
+        };
+      }
+    });
+
     const buildData: BuildData = {
       name: selectedBuild.name,
-      components: selectedBuild.components,
+      components: transformedComponents,
       totalPrice: selectedBuild.totalPrice,
-      createdAt: selectedBuild.dateCreated // Fix: use dateCreated from SavedBuild
+      createdAt: selectedBuild.dateCreated
     };
 
     onSelectBuild(buildData, caption);
@@ -42,11 +64,11 @@ export default function BuildShareModal({ onClose, onSelectBuild }: BuildShareMo
   };
 
   const getCPU = (build: SavedBuild) => {
-    return build.components.cpu?.name || 'No CPU';
+    return build.components.cpu?.title || build.components.cpu?.name || 'No CPU';
   };
 
   const getGPU = (build: SavedBuild) => {
-    return build.components.gpu?.name || 'No GPU';
+    return build.components.gpu?.title || build.components.gpu?.name || 'No GPU';
   };
 
   const getComponentCount = (build: SavedBuild) => {
@@ -115,16 +137,9 @@ export default function BuildShareModal({ onClose, onSelectBuild }: BuildShareMo
           )}
         </div>
 
-        {/* Footer with caption input and send button */}
+        {/* Footer with send button */}
         {selectedBuild && (
-          <div className="p-4 border-t border-gray-200 dark:border-gray-700 space-y-3">
-            <input
-              type="text"
-              value={caption}
-              onChange={(e) => setCaption(e.target.value)}
-              placeholder="Add a caption (optional)"
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-            />
+          <div className="p-4 border-t border-gray-200 dark:border-gray-700">
             <button
               onClick={handleSend}
               className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"

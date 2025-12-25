@@ -3,6 +3,7 @@ import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { SpeedInsights } from "@vercel/speed-insights/react";
 import { Analytics } from "@vercel/analytics/react";
 import { Toaster } from 'react-hot-toast';
+import toast from 'react-hot-toast';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import ChatBubble from './components/chat/ChatBubble';
 import AdminDashboard from './components/admin/AdminDashboard';
@@ -90,6 +91,7 @@ const MainAppContent: React.FC = () => {
   
   // PC Builder State
   const [isPCBuilderOpen, setIsPCBuilderOpen] = useState(false);
+  const [initialBuildData, setInitialBuildData] = useState<any>(null);
 
   const observerTarget = useRef(null);
 
@@ -565,7 +567,11 @@ const MainAppContent: React.FC = () => {
       {isPCBuilderOpen && (
         <PCBuilder
           products={allProducts}
-          onClose={() => setIsPCBuilderOpen(false)}
+          onClose={() => {
+            setIsPCBuilderOpen(false);
+            setInitialBuildData(null);
+          }}
+          initialBuildData={initialBuildData}
         />
       )}
 
@@ -602,7 +608,13 @@ const MainAppContent: React.FC = () => {
       />
       
       {/* Chat Bubble */}
-      <ChatBubble />
+      <ChatBubble 
+        onLoadBuild={(buildData) => {
+          setInitialBuildData(buildData);
+          setIsPCBuilderOpen(true);
+          toast.success(`Loading "${buildData.name}" into PC Builder...`);
+        }}
+      />
       </div>
     </>
   );

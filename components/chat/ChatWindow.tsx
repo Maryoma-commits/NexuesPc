@@ -3,16 +3,18 @@ import { useState, useEffect } from 'react';
 import { X, MessageSquare, Users } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { auth } from '../../firebase.config';
-import { getUserConversations } from '../../services/chatService';
+import { getUserConversations, BuildData } from '../../services/chatService';
 import GlobalChat from './GlobalChat';
 import DirectMessages from './DirectMessages';
 
 interface ChatWindowProps {
   onClose: () => void;
   onNewMessage: () => void;
+  onLoadBuild?: (buildData: BuildData) => void;
+  isOpen: boolean;
 }
 
-export default function ChatWindow({ onClose, onNewMessage }: ChatWindowProps) {
+export default function ChatWindow({ onClose, onNewMessage, onLoadBuild, isOpen }: ChatWindowProps) {
   const { loading } = useAuth();
   const [activeTab, setActiveTab] = useState<'global' | 'dms'>('global');
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
@@ -157,6 +159,8 @@ export default function ChatWindow({ onClose, onNewMessage }: ChatWindowProps) {
               <GlobalChat 
                 onNewMessage={handleGlobalMessage} 
                 onOpenDM={handleOpenDM}
+                onLoadBuild={onLoadBuild}
+                isOpen={isOpen && activeTab === 'global'}
               />
             </div>
             <div className={`absolute inset-0 ${activeTab === 'dms' ? 'block' : 'hidden'}`}>
@@ -165,6 +169,8 @@ export default function ChatWindow({ onClose, onNewMessage }: ChatWindowProps) {
                 preselectedUserId={selectedUserId}
                 onClearPreselection={() => setSelectedUserId(null)}
                 onConversationChange={setSelectedConversationId}
+                onLoadBuild={onLoadBuild}
+                isOpen={activeTab === 'dms'}
               />
             </div>
           </div>

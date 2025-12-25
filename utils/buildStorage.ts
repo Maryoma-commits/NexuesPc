@@ -1,4 +1,7 @@
-// Build Storage Utility - Save/Load PC builds to localStorage
+// Build Storage Utility - Wrapper for Firebase build storage
+// Re-exports from Firebase service for backward compatibility
+import { auth } from '../firebase.config';
+import * as FirebaseStorage from '../services/buildStorageService';
 
 export interface SavedBuild {
   id: string;
@@ -21,31 +24,38 @@ export interface SavedBuild {
     headset?: any;
   };
   totalPrice: number;
-  tags?: string[]; // "Gaming", "Workstation", "Budget", etc.
-  notes?: string; // User notes/description
+  tags?: string[];
+  notes?: string;
 }
 
-const STORAGE_KEY = 'nexuspc_saved_builds';
-const AUTOSAVE_KEY = 'nexuspc_autosave';
+// Helper to get current user ID
+function getCurrentUserId(): string | null {
+  return auth.currentUser?.uid || null;
+}
 
-// Get all saved builds
+// Get all saved builds (async wrapper)
 export function getSavedBuilds(): SavedBuild[] {
-  try {
-    const data = localStorage.getItem(STORAGE_KEY);
-    return data ? JSON.parse(data) : [];
-  } catch (error) {
-    console.error('Error loading saved builds:', error);
-    return [];
-  }
+  // This function needs to be async but is called synchronously in components
+  // Return empty array and let components handle the async version
+  console.warn('getSavedBuilds() is deprecated. Use getSavedBuildsAsync() instead.');
+  return [];
 }
 
-// Save a new build
+// New async version
+export async function getSavedBuildsAsync(): Promise<SavedBuild[]> {
+  const userId = getCurrentUserId();
+  if (!userId) return [];
+  return FirebaseStorage.getSavedBuilds(userId);
+}
+
+// Save a new build (sync wrapper that returns immediately)
 export function saveBuild(name: string, components: SavedBuild['components'], totalPrice: number, tags?: string[], notes?: string): SavedBuild {
-  const builds = getSavedBuilds();
+  const userId = getCurrentUserId();
   const now = Date.now();
+  const buildId = `build_${now}`;
   
   const newBuild: SavedBuild = {
-    id: `build_${now}`,
+    id: buildId,
     name,
     dateCreated: now,
     dateModified: now,
@@ -55,51 +65,50 @@ export function saveBuild(name: string, components: SavedBuild['components'], to
     notes,
   };
   
-  builds.push(newBuild);
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(builds));
+  if (userId) {
+    // Fire and forget - save to Firebase
+    FirebaseStorage.saveBuild(userId, name, components, totalPrice, tags, notes).catch(console.error);
+  }
   
   return newBuild;
 }
 
 // Update existing build
 export function updateBuild(id: string, name: string, components: SavedBuild['components'], totalPrice: number, tags?: string[], notes?: string): boolean {
-  const builds = getSavedBuilds();
-  const index = builds.findIndex(b => b.id === id);
+  const userId = getCurrentUserId();
+  if (!userId) return false;
   
-  if (index === -1) return false;
-  
-  builds[index] = {
-    ...builds[index],
-    name,
-    components,
-    totalPrice,
-    tags,
-    notes,
-    dateModified: Date.now(),
-  };
-  
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(builds));
+  // Fire and forget
+  FirebaseStorage.updateBuild(userId, id, name, components, totalPrice, tags, notes).catch(console.error);
   return true;
 }
 
 // Delete a build
 export function deleteBuild(id: string): boolean {
-  const builds = getSavedBuilds();
-  const filtered = builds.filter(b => b.id !== id);
+  const userId = getCurrentUserId();
+  if (!userId) return false;
   
-  if (filtered.length === builds.length) return false;
-  
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered));
+  // Fire and forget
+  FirebaseStorage.deleteBuild(userId, id).catch(console.error);
   return true;
 }
 
 // Get a specific build
 export function getBuild(id: string): SavedBuild | null {
-  const builds = getSavedBuilds();
-  return builds.find(b => b.id === id) || null;
+  console.warn('getBuild() is deprecated. Use getBuildAsync() instead.');
+  return null;
 }
 
-// Auto-save current build (for recovery)
+// New async version
+export async function getBuildAsync(id: string): Promise<SavedBuild | null> {
+  const userId = getCurrentUserId();
+  if (!userId) return null;
+  return FirebaseStorage.getBuild(userId, id);
+}
+
+// Auto-save current build (for recovery) - localStorage only
+const AUTOSAVE_KEY = 'nexuspc_autosave';
+
 export function autoSaveBuild(components: SavedBuild['components'], totalPrice: number): void {
   try {
     const autoSave = {
@@ -113,7 +122,7 @@ export function autoSaveBuild(components: SavedBuild['components'], totalPrice: 
   }
 }
 
-// Get auto-saved build
+// Get auto-saved build - localStorage only
 export function getAutoSavedBuild(): { components: SavedBuild['components']; totalPrice: number } | null {
   try {
     const data = localStorage.getItem(AUTOSAVE_KEY);
@@ -138,7 +147,7 @@ export function getAutoSavedBuild(): { components: SavedBuild['components']; tot
   }
 }
 
-// Clear auto-save
+// Clear auto-save - localStorage only
 export function clearAutoSave(): void {
   localStorage.removeItem(AUTOSAVE_KEY);
 }

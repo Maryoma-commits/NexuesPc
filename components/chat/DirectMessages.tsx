@@ -1,7 +1,7 @@
 // Direct Messages Component
 import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { Send, Smile, ArrowLeft, MoreVertical, Flag, Trash2, Loader2, Reply, X, Heart, Trash, Check, Paperclip } from 'lucide-react';
+import { Send, Smile, ArrowLeft, MoreVertical, Flag, Trash2, Loader2, Reply, X, Heart, Trash, Check, Image as ImageIcon, Monitor, ThumbsUp } from 'lucide-react';
 import EmojiPicker, { EmojiClickData } from 'emoji-picker-react';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../contexts/AuthContext';
@@ -28,16 +28,21 @@ import {
 } from '../../services/chatService';
 import { UserProfile } from '../../services/authService';
 import ReactionModal from './ReactionModal';
+import BuildShareModal from './BuildShareModal';
+import BuildPreviewCard from './BuildPreviewCard';
 import Emoji from '../ui/Emoji';
+import { BuildData } from '../../services/chatService';
 
 interface DirectMessagesProps {
   onNewMessage: () => void;
   preselectedUserId?: string | null;
   onClearPreselection?: () => void;
   onConversationChange?: (conversationId: string | null) => void;
+  onLoadBuild?: (buildData: BuildData) => void;
+  isOpen?: boolean;
 }
 
-export default function DirectMessages({ onNewMessage, preselectedUserId, onClearPreselection, onConversationChange }: DirectMessagesProps) {
+export default function DirectMessages({ onNewMessage, preselectedUserId, onClearPreselection, onConversationChange, onLoadBuild, isOpen = true }: DirectMessagesProps) {
   const { userProfile: currentUserProfile, getCachedProfile, profileCache } = useAuth();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
@@ -68,6 +73,7 @@ export default function DirectMessages({ onNewMessage, preselectedUserId, onClea
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [imageLightbox, setImageLightbox] = useState<string | null>(null);
+  const [showBuildModal, setShowBuildModal] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -253,17 +259,30 @@ export default function DirectMessages({ onNewMessage, preselectedUserId, onClea
         [auth.currentUser.uid]: Date.now()
       }
     } : null);
-    // Then update Firebase in background
-    markConversationAsRead(selectedConversation, auth.currentUser.uid);
+    // Then update Firebase in background (only if chat is open)
+    if (isOpen) {
+      markConversationAsRead(selectedConversation, auth.currentUser.uid);
+    }
     
     const readInterval = setInterval(() => {
-      if (document.hasFocus() && selectedConversation && auth.currentUser) {
+      if (isOpen && !document.hidden && document.hasFocus() && selectedConversation && auth.currentUser) {
         markConversationAsRead(selectedConversation, auth.currentUser.uid);
       }
     }, 3000);
 
-    const onFocus = () => markConversationAsRead(selectedConversation, auth.currentUser!.uid);
+    const onFocus = () => {
+      if (isOpen && !document.hidden && selectedConversation && auth.currentUser) {
+        markConversationAsRead(selectedConversation, auth.currentUser.uid);
+      }
+    };
     window.addEventListener('focus', onFocus);
+    
+    const onVisibilityChange = () => {
+      if (!document.hidden && isOpen && selectedConversation && auth.currentUser) {
+        markConversationAsRead(selectedConversation, auth.currentUser.uid);
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
 
     const convUnsubscribe = listenToConversation(selectedConversation, (conv) => setCurrentConversationMetadata(conv));
     const typingUnsubscribe = listenToDMTyping(auth.currentUser.uid, otherUserId, (isTyping, displayName) => {
@@ -276,6 +295,7 @@ export default function DirectMessages({ onNewMessage, preselectedUserId, onClea
       typingUnsubscribe();
       clearInterval(readInterval);
       window.removeEventListener('focus', onFocus);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
     };
   }, [selectedConversation]);
 
@@ -448,7 +468,35 @@ export default function DirectMessages({ onNewMessage, preselectedUserId, onClea
       return;
     }
     
-    if (!newMessage.trim() || !auth.currentUser || !currentUserProfile || !selectedConversation || loading) return;
+    // If no text, send thumbs up emoji
+    if (!newMessage.trim()) {
+      if (!auth.currentUser || !selectedConversation || loading) return;
+      
+      const otherUserId = selectedConversation.split('_').find(id => id !== auth.currentUser?.uid);
+      if (!otherUserId) return;
+      
+      const messageText = '👍';
+      const replyData = replyingTo ? {
+        messageId: replyingTo.id!,
+        text: replyingTo.text,
+        senderId: replyingTo.senderId,
+        senderName: profileCache[replyingTo.senderId]?.displayName || 'User'
+      } : undefined;
+
+      try {
+        setLoading(true);
+        await sendDirectMessage(auth.currentUser.uid, otherUserId, messageText, replyData);
+        setReplyingTo(null);
+        onNewMessage();
+      } catch (error: any) {
+        toast.error(error.message || 'Failed to send message');
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+    
+    if (!auth.currentUser || !currentUserProfile || !selectedConversation || loading) return;
     
     const otherUserId = selectedConversation.split('_').find(id => id !== auth.currentUser?.uid);
     if (!otherUserId) return;
@@ -564,6 +612,37 @@ export default function DirectMessages({ onNewMessage, preselectedUserId, onClea
     }
   };
 
+  const handleShareBuild = async (buildData: BuildData, caption: string) => {
+    if (!auth.currentUser || !selectedConversation) return;
+    
+    try {
+      setLoading(true);
+      const otherUserId = selectedConversation.replace(auth.currentUser.uid, '').replace('_', '');
+      
+      await sendDirectMessage(
+        auth.currentUser.uid,
+        otherUserId,
+        caption,
+        replyingTo ? {
+          messageId: replyingTo.id!,
+          text: replyingTo.text,
+          senderId: replyingTo.senderId,
+          senderName: profileCache[replyingTo.senderId]?.displayName || 'User'
+        } : undefined,
+        undefined, // no imageUrl
+        buildData // pass build data
+      );
+      
+      setReplyingTo(null);
+      onNewMessage();
+      toast.success('PC Build shared!');
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to share build');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleBlockUser = async (userId: string) => {
     if (!auth.currentUser) return;
     if (!confirm('Are you sure you want to block this user?')) return;
@@ -668,8 +747,13 @@ export default function DirectMessages({ onNewMessage, preselectedUserId, onClea
                   <div className="relative group inline-block">
                     <div className="relative overflow-visible flex flex-col">
                       {msg.replyTo && (<button onClick={() => scrollToMessage(msg.replyTo!.messageId)} className={`px-3 pt-2 pb-3 text-[13px] line-clamp-1 max-w-sm bg-[#3E4042] text-gray-300 hover:bg-[#4E5052] transition-colors rounded-[18px] mb-[-10px] relative z-0 opacity-80 cursor-pointer`} style={{ direction: detectTextDirection(msg.replyTo.text), textAlign: detectTextDirection(msg.replyTo.text) === 'rtl' ? 'right' : 'left' }}>{msg.replyTo.text}</button>)}
+                      {msg.text && (
+                        <div className={`${msg.imageUrl ? 'mb-2' : ''} ${isOwn ? 'flex justify-end' : ''}`}>
+                          <div className={`px-4 py-2 max-w-[200px] break-words leading-relaxed shadow-md relative z-10 rounded-[18px] inline-block ${isOwn ? 'bg-[#7835F7] text-white' : 'bg-gray-200 dark:bg-[#3E4042] text-gray-900 dark:text-white'}`} style={{ wordBreak: 'break-word', overflowWrap: 'break-word', direction: detectTextDirection(msg.text), textAlign: detectTextDirection(msg.text) === 'rtl' ? 'right' : 'left', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif' }}>{msg.text}</div>
+                        </div>
+                      )}
                       {msg.imageUrl && (
-                        <div className={`relative max-w-sm overflow-hidden rounded-[18px] mb-2 ${isOwn ? 'ml-auto' : 'mr-auto'}`}>
+                        <div className={`relative max-w-[180px] overflow-hidden rounded-[18px] ${msg.buildData ? 'mb-2' : ''} ${isOwn ? 'ml-auto' : 'mr-auto'}`}>
                           <img 
                             src={msg.imageUrl} 
                             alt="Shared image"
@@ -678,8 +762,14 @@ export default function DirectMessages({ onNewMessage, preselectedUserId, onClea
                           />
                         </div>
                       )}
-                      {msg.text && (
-                        <div className={`px-4 py-2 max-w-sm break-words leading-relaxed shadow-md relative z-10 rounded-[18px] ${isOwn ? 'bg-[#7835F7] text-white' : 'bg-gray-200 dark:bg-[#3E4042] text-gray-900 dark:text-white'}`} style={{ wordBreak: 'break-word', overflowWrap: 'break-word', direction: detectTextDirection(msg.text), textAlign: detectTextDirection(msg.text) === 'rtl' ? 'right' : 'left', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif' }}>{msg.text}</div>
+                      {msg.buildData && (
+                        <div className="relative">
+                          <BuildPreviewCard 
+                            buildData={msg.buildData} 
+                            isSender={isOwn}
+                            onLoadBuild={onLoadBuild}
+                          />
+                        </div>
                       )}
                       {msg.reactions && Object.keys(msg.reactions).length > 0 && (() => {
                         const tr = Object.values(msg.reactions).reduce((sum, uids) => sum + uids.length, 0);
@@ -688,7 +778,13 @@ export default function DirectMessages({ onNewMessage, preselectedUserId, onClea
                           <button onClick={() => { if (msg.id && msg.reactions) setReactionModalOpen({ messageId: msg.id, reactions: msg.reactions }); }} className={`absolute ${isOwn ? 'right-0' : 'left-0'} -bottom-3 flex items-center gap-[5px] pl-1 pr-1.5 py-0.5 rounded-full transition-all hover:scale-110 bg-[#3E4043] shadow-md z-10 w-max`} title={`${tr} reactions`}><div className="flex items-center gap-0 flex-shrink-0">{ue.map(e => (<div key={e} className="flex-shrink-0"><Emoji emoji={e} size={16} /></div>))}</div>{tr > 1 && (<span className="text-white text-[12px] font-normal leading-none flex-shrink-0">{tr}</span>)}</button>
                         );
                       })()}
-                      <div className={`absolute ${isOwn ? 'right-full mr-2' : 'left-full ml-2'} bottom-0 ${(reactionPickerOpen === msg.id || fullEmojiPickerOpen?.messageId === msg.id) ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} pointer-events-none z-10`}><div className="flex gap-1 pointer-events-auto mt-1"><button onClick={(e) => { e.stopPropagation(); if (reactionPickerOpen === msg.id) { setReactionPickerOpen(null); setReactionPickerPosition(null); } else { const rect = e.currentTarget.getBoundingClientRect(); setReactionPickerPosition({ x: rect.left, y: rect.top }); setReactionPickerOpen(msg.id!); } }} className="p-1.5 hover:bg-gray-700/50 rounded-full transition-colors" title="React"><Smile size={16} className="text-white" /></button><button onClick={() => handleReply(msg)} className="p-1.5 hover:bg-gray-700/50 rounded-full transition-colors" title="Reply"><Reply size={16} className="text-white" /></button><button onClick={(e) => { e.stopPropagation(); setContextMenu({ messageId: msg.id!, x: e.clientX, y: e.clientY }); }} className="p-1.5 hover:bg-gray-700/50 rounded-full transition-colors" title="More"><MoreVertical size={16} className="text-white" /></button></div></div>
+                      <div className={`absolute ${isOwn ? 'right-full mr-2' : 'left-full ml-2'} top-1/2 -translate-y-1/2 ${(reactionPickerOpen === msg.id || fullEmojiPickerOpen?.messageId === msg.id) ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} pointer-events-none z-10`}>
+                        <div className="flex gap-1 pointer-events-auto mt-1">
+                          <button onClick={(e) => { e.stopPropagation(); if (reactionPickerOpen === msg.id) { setReactionPickerOpen(null); setReactionPickerPosition(null); } else { const rect = e.currentTarget.getBoundingClientRect(); setReactionPickerPosition({ x: rect.left, y: rect.top }); setReactionPickerOpen(msg.id!); } }} className="p-1.5 hover:bg-gray-700/50 rounded-full transition-colors" title="React"><Smile size={16} className="text-white" /></button>
+                          <button onClick={() => handleReply(msg)} className="p-1.5 hover:bg-gray-700/50 rounded-full transition-colors" title="Reply"><Reply size={16} className="text-white" /></button>
+                          <button onClick={(e) => { e.stopPropagation(); setContextMenu({ messageId: msg.id!, x: e.clientX, y: e.clientY }); }} className="p-1.5 hover:bg-gray-700/50 rounded-full transition-colors" title="More"><MoreVertical size={16} className="text-white" /></button>
+                        </div>
+                      </div>
                     </div>
                     {isOwn && msg.status !== 'failed' && msg.status !== 'pending' && (
                       <div className={`flex justify-end ${msg.reactions && Object.keys(msg.reactions).length > 0 ? 'mt-4' : 'mt-1'}`}>
@@ -723,7 +819,7 @@ export default function DirectMessages({ onNewMessage, preselectedUserId, onClea
           </div>
         )}
         
-        <div className="flex gap-2">
+        <div className="flex gap-2 items-center">
           <input
             ref={fileInputRef}
             type="file"
@@ -731,16 +827,51 @@ export default function DirectMessages({ onNewMessage, preselectedUserId, onClea
             onChange={handleFileSelect}
             className="hidden"
           />
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-            title="Upload image"
-          >
-            <Paperclip size={20} className="text-gray-500 dark:text-gray-400" />
-          </button>
+          {/* Left side icons */}
+          <div className="flex gap-0.5">
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors flex-shrink-0 w-9 h-9 flex items-center justify-center"
+              style={{ color: '#0066d9' }}
+              title="Upload image"
+            >
+              <ImageIcon size={20} />
+            </button>
+            
+            <button
+              type="button"
+              onClick={() => setShowBuildModal(true)}
+              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors flex-shrink-0 w-9 h-9 flex items-center justify-center"
+              style={{ color: '#0066d9' }}
+              title="Share PC Build"
+            >
+              <Monitor size={20} />
+            </button>
+          </div>
           
-          <div className="relative flex-1"><textarea ref={inputRef} value={newMessage} onChange={handleInputChange} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendMessage(e); } }} placeholder={imagePreview ? "Add a caption (optional)..." : "Type a message..."} rows={1} dir={inputDirection} className="w-full px-4 py-2 pr-12 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white resize-none" style={{ maxHeight: '100px' }} /><button type="button" onClick={() => setShowEmojiPicker(!showEmojiPicker)} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-gray-100 dark:hover:bg-gray-600 rounded transition-colors"><Smile size={20} className="text-gray-500 dark:text-gray-400" /></button>            {/* Emoji Picker Portal */}
+          {/* Input field */}
+          <div className="relative flex-1 flex items-center">
+            <textarea 
+              ref={inputRef} 
+              value={newMessage} 
+              onChange={handleInputChange} 
+              onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendMessage(e); } }} 
+              placeholder={imagePreview ? "Add a caption (optional)..." : "Type a message..."} 
+              rows={1} 
+              dir={inputDirection} 
+              className="w-full px-4 py-2 pr-10 bg-gray-100 dark:bg-gray-700 rounded-full focus:outline-none dark:text-white resize-none overflow-hidden" 
+              style={{ maxHeight: '100px' }} 
+            />
+            <button 
+              type="button" 
+              onClick={() => setShowEmojiPicker(!showEmojiPicker)} 
+              className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-full transition-colors"
+              title="Emoji"
+            >
+              <Smile size={18} className="text-gray-500 dark:text-gray-400" />
+            </button>
+            {/* Emoji Picker Portal */}
             {showEmojiPicker && createPortal(
               <>
                 <div 
@@ -766,19 +897,22 @@ export default function DirectMessages({ onNewMessage, preselectedUserId, onClea
               document.body
             )}
           </div>
+          
+          {/* Right side icons */}
           <button 
-            type="submit" 
-            disabled={(!newMessage.trim() && !imagePreview) || loading || uploadingImage} 
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-          >
-            {uploadingImage ? (
-              <>
-                <Loader2 size={20} className="animate-spin" />
-                <span className="text-sm">Uploading...</span>
-              </>
-            ) : (
-              <Send size={20} />
-            )}
+              type="submit" 
+              disabled={loading || uploadingImage} 
+              className={`rounded-full transition-colors flex-shrink-0 hover:bg-gray-100 dark:hover:bg-gray-700 w-9 h-9 flex items-center justify-center ${(loading || uploadingImage) ? 'opacity-50 cursor-not-allowed' : ''}`}
+              style={{ color: '#0066d9' }}
+              title={newMessage.trim() || imagePreview ? "Send" : "Send thumbs up"}
+            >
+              {uploadingImage ? (
+                <Loader2 size={24} className="animate-spin" />
+              ) : newMessage.trim() || imagePreview ? (
+                <img src="/send-message.png" alt="Send" className="w-6 h-6" />
+              ) : (
+                <img src="/thumbsup.png" alt="Like" className="w-[32px] h-[32px]" />
+              )}
           </button>
         </div>
       </form>
@@ -806,8 +940,16 @@ export default function DirectMessages({ onNewMessage, preselectedUserId, onClea
 
       {contextMenu && (<><div className="fixed inset-0 z-40" onClick={() => setContextMenu(null)} /><div className="fixed z-50 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 py-1 min-w-[150px]" style={{ right: window.innerWidth - contextMenu.x + 10, top: contextMenu.y, left: 'auto' }}>{messages.find(m => m.id === contextMenu.messageId)?.senderId === auth.currentUser?.uid && (<button onClick={() => handleDeleteMessage(contextMenu.messageId)} className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 text-red-600 dark:text-red-400"><Trash2 size={16} />Delete</button>)}<button onClick={() => handleReportMessage(contextMenu.messageId)} className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 text-gray-700 dark:text-gray-300"><Flag size={16} />Report</button></div></>)}
       {reactionModalOpen && (<ReactionModal messageId={reactionModalOpen.messageId} reactions={reactionModalOpen.reactions} isGlobal={false} conversationId={selectedConversation || undefined} onClose={() => setReactionModalOpen(null)} />)}
+      
+      {/* Build Share Modal */}
+      {showBuildModal && (
+        <BuildShareModal
+          onClose={() => setShowBuildModal(false)}
+          onSelectBuild={handleShareBuild}
+        />
+      )}
       {fullEmojiPickerOpen && createPortal(<><div className="fixed inset-0 z-[100]" onClick={() => setFullEmojiPickerOpen(null)} /><div className="fixed z-[101]" style={{ left: `${fullEmojiPickerOpen.position.x}px`, top: `${fullEmojiPickerOpen.position.y - 450}px`, transform: 'translateX(-50%)' }} onClick={(e) => e.stopPropagation()}><EmojiPicker onEmojiClick={(ed) => { if (auth.currentUser && fullEmojiPickerOpen.messageId && selectedConversation) { toggleReaction(fullEmojiPickerOpen.messageId, ed.emoji, auth.currentUser.uid, false, selectedConversation); setFullEmojiPickerOpen(null); } }} theme={document.documentElement.classList.contains('dark') ? 'dark' : 'light'} height={400} width={350} emojiStyle="facebook" searchPlaceHolder="Search emoji..." previewConfig={{ showPreview: false }} /></div></>, document.body)}
-      {reactionPickerOpen && reactionPickerPosition && createPortal(<><div className="fixed inset-0 z-[100]" onClick={() => { setReactionPickerOpen(null); setReactionPickerPosition(null); }} /><div className="fixed z-[101] bg-gray-800/95 dark:bg-gray-900/95 backdrop-blur-sm rounded-full px-3 py-2 shadow-lg flex gap-2 items-center" style={{ left: `${reactionPickerPosition.x}px`, top: `${reactionPickerPosition.y - 50}px`, transform: 'translateX(-50%)' }} onClick={(e) => e.stopPropagation()}>{['❤️', '😂', '😮', '😢', '😡', '👍'].map(e => (<button key={e} onClick={() => { if (auth.currentUser && reactionPickerOpen && selectedConversation) { toggleReaction(reactionPickerOpen, e, auth.currentUser.uid, false, selectedConversation); setReactionPickerOpen(null); setReactionPickerPosition(null); } }} className="hover:scale-125 transition-transform" title={`React with ${e}`}><Emoji emoji={e} size={32} /></button>))}<button onClick={(e) => { if (reactionPickerOpen && reactionPickerPosition) { setFullEmojiPickerOpen({ messageId: reactionPickerOpen, position: reactionPickerPosition }); setReactionPickerOpen(null); setReactionPickerPosition(null); } }} className="w-8 h-8 rounded-full bg-gray-600 dark:bg-gray-700 flex items-center justify-center hover:bg-gray-500 dark:hover:bg-gray-600 transition-all hover:scale-110 flex-shrink-0" title="More reactions"><span className="text-white text-2xl font-normal leading-none">+</span></button></div></>, document.body)}
+      {reactionPickerOpen && reactionPickerPosition && createPortal(<><div className="fixed inset-0 z-[100]" onClick={() => { setReactionPickerOpen(null); setReactionPickerPosition(null); }} /><div className="fixed z-[999] bg-gray-800/95 dark:bg-gray-900/95 backdrop-blur-sm rounded-full px-3 py-2 shadow-lg flex gap-2 items-center min-w-max" style={{ left: `${reactionPickerPosition.x}px`, top: `${reactionPickerPosition.y - 50}px`, transform: 'translateX(-50%)' }} onClick={(e) => e.stopPropagation()}>{['❤️', '😂', '😮', '😢', '😡', '👍'].map(e => (<button key={e} onClick={() => { if (auth.currentUser && reactionPickerOpen && selectedConversation) { toggleReaction(reactionPickerOpen, e, auth.currentUser.uid, false, selectedConversation); setReactionPickerOpen(null); setReactionPickerPosition(null); } }} className="hover:scale-125 transition-transform" title={`React with ${e}`}><Emoji emoji={e} size={32} /></button>))}<button onClick={(e) => { if (reactionPickerOpen && reactionPickerPosition) { setFullEmojiPickerOpen({ messageId: reactionPickerOpen, position: reactionPickerPosition }); setReactionPickerOpen(null); setReactionPickerPosition(null); } }} className="w-8 h-8 rounded-full bg-gray-600 dark:bg-gray-700 flex items-center justify-center hover:bg-gray-500 dark:hover:bg-gray-600 transition-all hover:scale-110 flex-shrink-0" title="More reactions"><span className="text-white text-2xl font-normal leading-none">+</span></button></div></>, document.body)}
     </div>
   );
 }

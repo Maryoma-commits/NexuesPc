@@ -38,6 +38,9 @@ export interface Message {
   reactions?: {
     [emoji: string]: string[]; // emoji -> array of user IDs who reacted
   };
+  seenBy?: {
+    [userId: string]: number; // userId -> timestamp when seen
+  };
 }
 
 // Conversation interface (participants fetched dynamically)
@@ -777,4 +780,29 @@ export const hasUserReacted = (
 ): boolean => {
   if (!reactions || !reactions[emoji]) return false;
   return reactions[emoji].includes(userId);
+};
+
+// Mark a global chat message as seen by a user
+export const markGlobalMessageAsSeen = async (messageId: string, userId: string) => {
+  try {
+    const seenRef = ref(database, `globalChat/messages/${messageId}/seenBy/${userId}`);
+    await set(seenRef, Date.now());
+  } catch (error) {
+    console.error('Failed to mark message as seen:', error);
+  }
+};
+
+// Get seen count for a message
+export const getSeenCount = (message: Message): number => {
+  if (!message.seenBy) return 0;
+  return Object.keys(message.seenBy).length;
+};
+
+// Get list of users who saw a message (for admin)
+export const getSeenByUsers = (message: Message): { userId: string; timestamp: number }[] => {
+  if (!message.seenBy) return [];
+  return Object.entries(message.seenBy).map(([userId, timestamp]) => ({
+    userId,
+    timestamp
+  }));
 };

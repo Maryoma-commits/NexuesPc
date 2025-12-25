@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Search, Trash2, AlertTriangle, MessageSquare, Mail, Eye, Ban, X, Check, ExternalLink, RefreshCw } from 'lucide-react';
+import { Search, Trash2, AlertTriangle, MessageSquare, Mail, Eye, Ban, X, Check, ExternalLink, RefreshCw, Monitor } from 'lucide-react';
 import ConversationViewerModal from './ConversationViewerModal';
 import { 
   getAllGlobalMessages, 
@@ -210,6 +210,75 @@ export default function MessageModeration() {
     }
   };
 
+  const handleDeleteAllInTab = async () => {
+    const tabName = activeTab === 'reported' ? 'Reported Messages' : 
+                    activeTab === 'all' ? 'All Messages' : 
+                    activeTab === 'global' ? 'Global Chat Messages' : 
+                    'Direct Messages';
+    
+    const count = activeTab === 'reported' ? reports.length :
+                  activeTab === 'all' ? allMessages.length :
+                  activeTab === 'global' ? globalMessages.length :
+                  dmMessages.length;
+    
+    if (!confirm(`⚠️ DELETE ALL ${count} MESSAGES in "${tabName}"?\n\nThis action CANNOT be undone!\n\nType "DELETE ALL" in the next prompt to confirm.`)) {
+      return;
+    }
+    
+    const confirmation = prompt('Type "DELETE ALL" to confirm:');
+    if (confirmation !== 'DELETE ALL') {
+      toast.error('Deletion cancelled');
+      return;
+    }
+    
+    try {
+      setLoading(true);
+      let deletedCount = 0;
+      
+      if (activeTab === 'reported') {
+        // Delete all reported messages
+        for (const report of reports) {
+          if (report.message) {
+            await adminDeleteMessage(report.messageId, report.messageType || 'global', report.conversationId);
+            deletedCount++;
+          }
+          await dismissReport(report.messageId);
+        }
+      } else if (activeTab === 'global') {
+        // Delete all global messages
+        for (const msg of globalMessages) {
+          await adminDeleteMessage(msg.id!, 'global');
+          deletedCount++;
+        }
+      } else if (activeTab === 'dm') {
+        // Delete all DM messages (grouped by conversation)
+        const conversations = groupDMsByConversation(dmMessages);
+        for (const msg of conversations) {
+          await adminDeleteMessage(msg.id!, 'dm', msg.conversationId);
+          deletedCount++;
+        }
+      } else if (activeTab === 'all') {
+        // Delete all messages (global + DM)
+        for (const msg of globalMessages) {
+          await adminDeleteMessage(msg.id!, 'global');
+          deletedCount++;
+        }
+        const conversations = groupDMsByConversation(dmMessages);
+        for (const msg of conversations) {
+          await adminDeleteMessage(msg.id!, 'dm', msg.conversationId);
+          deletedCount++;
+        }
+      }
+      
+      toast.success(`Successfully deleted ${deletedCount} messages`);
+      loadData();
+    } catch (error: any) {
+      toast.error('Failed to delete messages: ' + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Filter messages by search query
   const filterMessages = (messages: Message[]) => {
     if (!searchQuery.trim()) return messages;
@@ -333,6 +402,11 @@ export default function MessageModeration() {
                   View
                 </a>
               </div>
+            ) : msg.buildData ? (
+              <div className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                <Monitor size={16} />
+                <span>🖥️ PC Build: {msg.buildData.name}</span>
+              </div>
             ) : (
               <p className="text-sm text-gray-700 dark:text-gray-300 line-clamp-2">
                 {msg.text}
@@ -439,6 +513,15 @@ export default function MessageModeration() {
                       <a href={report.message.imageUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
                         View Image
                       </a>
+                    </div>
+                  ) : report.message.buildData ? (
+                    <div className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                      <Monitor size={16} />
+                      <span className="font-medium">🖥️ PC Build: {report.message.buildData.name}</span>
+                      <span className="text-xs text-gray-500 dark:text-gray-400">
+                        ({Object.keys(report.message.buildData.components).length} components, 
+                        {report.message.buildData.totalPrice.toLocaleString()} IQD)
+                      </span>
                     </div>
                   ) : (
                     <p className="text-sm text-gray-700 dark:text-gray-300">
@@ -548,19 +631,38 @@ export default function MessageModeration() {
           </p>
         </div>
         
-        {/* Refresh Button */}
-        <button
-          onClick={() => {
-            loadData();
-            toast.success('Messages refreshed');
-          }}
-          disabled={loading}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-          title="Refresh messages"
-        >
-          <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
-          Refresh
-        </button>
+        {/* Action Buttons */}
+        <div className="flex gap-2">
+          {/* Delete All Button (conditionally shown) */}
+          {((activeTab === 'reported' && reports.length > 0) ||
+            (activeTab === 'all' && allMessages.length > 0) ||
+            (activeTab === 'global' && globalMessages.length > 0) ||
+            (activeTab === 'dm' && dmMessages.length > 0)) && (
+            <button
+              onClick={handleDeleteAllInTab}
+              disabled={loading}
+              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              title="Delete all messages in current tab"
+            >
+              <Trash2 size={18} />
+              Delete All
+            </button>
+          )}
+          
+          {/* Refresh Button */}
+          <button
+            onClick={() => {
+              loadData();
+              toast.success('Messages refreshed');
+            }}
+            disabled={loading}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            title="Refresh messages"
+          >
+            <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
+            Refresh
+          </button>
+        </div>
       </div>
 
       {/* Tabs */}

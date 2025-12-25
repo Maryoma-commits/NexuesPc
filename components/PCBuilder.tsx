@@ -11,11 +11,12 @@ import { parseBuildFromURL, matchComponentsWithProducts } from '../utils/buildEn
 interface PCBuilderProps {
   products: Product[];
   onClose: () => void;
+  initialBuildData?: any; // BuildData from chat
 }
 
 const PAGE_SIZE = 20; // Number of products to load at once
 
-export const PCBuilder: React.FC<PCBuilderProps> = ({ products, onClose }) => {
+export const PCBuilder: React.FC<PCBuilderProps> = ({ products, onClose, initialBuildData }) => {
   const [currentBuild, setCurrentBuild] = useState<PCBuild>({
     id: `build_${Date.now()}`,
     name: 'My PC Build',
@@ -536,7 +537,72 @@ export const PCBuilder: React.FC<PCBuilderProps> = ({ products, onClose }) => {
   useEffect(() => {
     if (products.length === 0) return;
     
-    // First check for shared build in URL
+    const loadInitialBuild = async () => {
+    
+    // Priority 1: Check for build data from chat
+    if (initialBuildData) {
+      const newComponents = { ...currentBuild.components };
+      
+      // Convert BuildData format to PCBuilder format
+      // BuildData uses: { name, price, image, retailer }
+      // BUT also support legacy format where full Product objects are stored
+      Object.entries(initialBuildData.components).forEach(([key, component]: [string, any]) => {
+        if (component && newComponents[key as keyof typeof newComponents]) {
+          // Check if this is already a full Product object (legacy format)
+          if (component.id && component.title) {
+            newComponents[key as keyof typeof newComponents] = {
+              ...newComponents[key as keyof typeof newComponents],
+              product: component as Product
+            };
+            return; // Skip matching, use directly
+          }
+          
+          // Otherwise, it's the new BuildData format { name, price, image, retailer }
+          // Find matching product by name/title, price, and retailer
+          // First try exact match
+          let matchedProduct = products.find(p => 
+            p.title === component.name && 
+            p.price === component.price &&
+            p.retailer === component.retailer
+          );
+          
+          // If exact match fails, try case-insensitive retailer match
+          if (!matchedProduct) {
+            matchedProduct = products.find(p => 
+              p.title === component.name && 
+              p.price === component.price &&
+              p.retailer.toLowerCase() === component.retailer.toLowerCase()
+            );
+          }
+          
+          // If still no match, try without retailer (just title and price)
+          if (!matchedProduct) {
+            matchedProduct = products.find(p => 
+              p.title === component.name && 
+              p.price === component.price
+            );
+          }
+          
+          if (matchedProduct) {
+            newComponents[key as keyof typeof newComponents] = {
+              ...newComponents[key as keyof typeof newComponents],
+              product: matchedProduct
+            };
+          }
+        }
+      });
+
+      setCurrentBuild(prev => ({
+        ...prev,
+        components: newComponents,
+        updated: new Date()
+      }));
+
+      setBuildName(initialBuildData.name || 'Shared Build');
+      return; // Skip other load methods
+    }
+    
+    // Priority 2: Check for shared build in URL
     const encodedBuild = parseBuildFromURL();
     if (encodedBuild) {
       const matchedComponents = matchComponentsWithProducts(encodedBuild, products);
@@ -566,7 +632,7 @@ export const PCBuilder: React.FC<PCBuilderProps> = ({ products, onClose }) => {
         window.history.replaceState({}, document.title, window.location.pathname);
       }
     } else {
-      // No shared build - check for auto-save
+      // Priority 3: Check for auto-save (localStorage)
       const autoSaved = getAutoSavedBuild();
       if (autoSaved && autoSaved.components) {
         const newComponents = { ...currentBuild.components };
@@ -586,7 +652,10 @@ export const PCBuilder: React.FC<PCBuilderProps> = ({ products, onClose }) => {
         }));
       }
     }
-  }, [products]);
+    };
+    
+    loadInitialBuild();
+  }, [products, initialBuildData]);
 
   // Auto-save on component change (including removals and reset)
   useEffect(() => {

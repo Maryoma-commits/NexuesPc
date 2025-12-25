@@ -4,10 +4,15 @@ import { MessageCircle, X, Mail } from 'lucide-react';
 import { auth } from '../../firebase.config';
 import { useAuth } from '../../contexts/AuthContext';
 import { resendVerificationEmail } from '../../services/authService';
+import { BuildData } from '../../services/chatService';
 import AuthModal from '../auth/AuthModal';
 import ChatWindow from './ChatWindow';
 
-export default function ChatBubble() {
+interface ChatBubbleProps {
+  onLoadBuild?: (buildData: BuildData) => void;
+}
+
+export default function ChatBubble({ onLoadBuild }: ChatBubbleProps = {}) {
   const { user, loading } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -74,6 +79,8 @@ export default function ChatBubble() {
                   setUnreadCount(prev => prev + 1);
                 }
               }}
+              onLoadBuild={onLoadBuild}
+              isOpen={isOpen}
             />
           </div>
         )}

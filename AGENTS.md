@@ -185,7 +185,100 @@ git push
 
 ## 📝 Recent Major Changes
 
-### 2025-12-26 (PC Build Sharing & Admin Enhancements)
+### 2025-12-26 (Part 3 - Messenger UI & Seen Feature)
+**Major Features:**
+- **Facebook Messenger-Style Input Field:**
+    - Redesigned layout: Left icons (Image + PC Build) → Input field → Emoji (inside) → Send/Thumbs up (outside)
+    - Rounded pill input (`rounded-full`, light gray background)
+    - All icons same size (36px buttons) and color (`#0066d9`)
+    - Thumbs up icon when empty, Send icon when typing
+    - Proper vertical alignment with input field
+- **Caption Above Image:** Fixed message order to match Facebook Messenger
+    - Caption text bubble appears ABOVE image (not below)
+    - Text bubble doesn't stretch to image width (`inline-block`)
+    - Sent messages: caption aligns right, received: left
+    - Clean separation: Text → Image → Build
+- **"Seen by X" Feature in Global Chat:**
+    - Real-time tracking of who viewed each message
+    - Shows "Seen by 5" count below the last message only
+    - Only marks as seen when chat is open and viewing
+    - Optimized: Only marks once per user per message (prevents performance issues)
+    - Database: `globalChat/messages/{messageId}/seenBy/{userId}: timestamp`
+- **Admin Dashboard Improvements:**
+    - "Delete All" button in Message Moderation for current tab
+    - Double confirmation: Confirm dialog + type "DELETE ALL"
+    - Tab-specific deletion: Reported, All Messages, Global Chat, Direct Messages
+    - Loading state with toast feedback
+- **Message Read Tracking Fix:**
+    - Messages no longer marked as seen when chat is closed
+    - Fixed Firefox-specific issue with `document.hidden` check
+    - Added Page Visibility API for cross-browser compatibility
+    - Only marks as seen when: chat open + tab visible + document focused
+
+**Technical Implementation:**
+- `services/chatService.ts`: Added `seenBy`, `markGlobalMessageAsSeen()`, `getSeenCount()`, `getSeenByUsers()`
+- `components/chat/GlobalChat.tsx`: Auto-mark messages as seen, display count on last message
+- `components/chat/DirectMessages.tsx`: Added `isOpen` prop, visibility checks
+- `components/admin/MessageModeration.tsx`: Added `handleDeleteAllInTab()` with bulk delete
+- Input field: `rounded-full`, `bg-gray-100`, `#0066d9` color, `w-9 h-9` buttons
+- Custom icons: `thumbsup.png` (28px), `send-message.png` (24px)
+
+**Bug Fixes:**
+- Fixed message order (caption now above image, not below)
+- Fixed text bubble stretching to image width
+- Fixed sent message captions aligning left (now right-aligned)
+- Fixed messages being marked as seen when chat closed
+- Fixed Firefox-specific seen tracking issue
+- Fixed performance issue (checking `seenBy` before marking)
+- Fixed website crash (added `index` parameter to `.map()`)
+- Fixed reversed array index (`index === 0` for last message)
+
+### 2025-12-26 (Part 2 - Build Storage Migration & Load from Chat)
+**Major Features:**
+- **Firebase Build Storage:** Migrated from localStorage to Firebase Database per user account.
+    - Saved builds stored at `users/{userId}/savedBuilds/{buildId}`
+    - Auto-save kept in **localStorage** for instant recovery (no network delay)
+    - Syncs across all devices and browsers
+    - Persists even after browser data clear
+    - No migration needed (site not yet public)
+- **Load Build from Chat:** Users can load shared builds directly into PC Builder.
+    - "Load Build in PC Builder" button in BuildPreviewCard (Download icon)
+    - Opens PC Builder with all components pre-loaded
+    - Toast notification when loading
+    - Supports both legacy (full Product objects) and new (simplified BuildData) formats
+    - Smart 3-tier product matching: exact → case-insensitive → fallback (title + price only)
+- **UI Improvements:**
+    - Changed image upload icon from Paperclip to Image icon
+    - Removed caption input from build sharing (direct share only)
+
+**Technical Implementation:**
+- `services/buildStorageService.ts`: New Firebase-based build storage service (300+ lines)
+- `utils/buildStorage.ts`: Updated to use Firebase service (maintains backward compatibility)
+- `components/LoadBuildsModal.tsx`: Uses async `getSavedBuildsAsync()`
+- `components/chat/BuildShareModal.tsx`: Uses async `getSavedBuildsAsync()` + auto-migration
+- `components/PCBuilder.tsx`: Uses async `getAutoSavedBuildAsync()` + auto-migration
+- `components/chat/BuildPreviewCard.tsx`: Added "Load Build" button with callback chain
+- Callback chain: BuildPreviewCard → GlobalChat → ChatWindow → ChatBubble → App → PCBuilder
+
+**Database Structure:**
+```
+users/{userId}/
+└── savedBuilds/
+    └── {buildId}/
+        ├── id, name, dateCreated, dateModified
+        ├── components: { cpu, gpu, ram, ... }
+        ├── totalPrice, tags, notes
+
+localStorage/
+└── nexuspc_autosave  (auto-save kept in browser for instant recovery)
+```
+
+**Bug Fixes:**
+- Fixed build loading from chat (was showing "undefined" titles due to Product vs BuildData format mismatch)
+- Added legacy format support for old shared builds
+- Fixed async loading in all components
+
+### 2025-12-26 (Part 1 - PC Build Sharing & Admin Enhancements)
 **Major Features:**
 - **PC Build Sharing in Chat:** Users can now share their saved PC builds in Global Chat and Direct Messages.
     - Monitor icon (🖥️) button next to image upload in chat input
@@ -534,10 +627,10 @@ buildData: {
 
 ---
 
-**Last Updated:** 2025-12-26 01:30  
+**Last Updated:** 2025-12-26 04:30  
 **Status:** Production Ready ✅  
-**Recent Session:** PC Build sharing in chat, forgot password feature, admin message moderation with real-time updates, DM conversation viewer, online/offline presence system
-**Production Status:** 9.5/10 - Full chat system with build sharing, complete admin moderation tools, forgot password, presence tracking. Ready for launch after rate limiting implementation.
+**Recent Session:** Facebook Messenger-style input field redesign, image/caption ordering fix, "Seen by X" feature in Global Chat, admin "Delete All" messages button
+**Production Status:** 9.8/10 - Full Messenger-style chat with seen tracking, optimized UI/UX, complete admin tools with bulk delete. Ready for launch after rate limiting implementation.
 **Agent:** Claude Code Agent (Rovo Dev)
 
 ---

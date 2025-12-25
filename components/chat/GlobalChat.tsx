@@ -1,12 +1,12 @@
 // Global Chat Room Component
 import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { Send, Smile, MoreVertical, Flag, Trash2, Loader2, Reply, X, Heart, Paperclip, Image as ImageIcon, Monitor } from 'lucide-react';
+import { Send, Smile, MoreVertical, Flag, Trash2, Loader2, Reply, X, Heart, Image as ImageIcon, Monitor, ThumbsUp } from 'lucide-react';
 import EmojiPicker, { EmojiClickData } from 'emoji-picker-react';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../contexts/AuthContext';
 import { auth } from '../../firebase.config';
-import { sendGlobalMessage, listenToGlobalChat, loadOlderGlobalMessages, deleteMessage, reportMessage, setGlobalTypingStatus, listenToGlobalTyping, toggleReaction, uploadChatImage, Message, TypingStatus, BuildData } from '../../services/chatService';
+import { sendGlobalMessage, listenToGlobalChat, loadOlderGlobalMessages, deleteMessage, reportMessage, setGlobalTypingStatus, listenToGlobalTyping, toggleReaction, uploadChatImage, markGlobalMessageAsSeen, getSeenCount, Message, TypingStatus, BuildData } from '../../services/chatService';
 import { getUserProfile, UserProfile } from '../../services/authService';
 import UserProfileMenu from './UserProfileMenu';
 import ReactionModal from './ReactionModal';
@@ -17,9 +17,11 @@ import Emoji from '../ui/Emoji';
 interface GlobalChatProps {
   onNewMessage: () => void;
   onOpenDM?: (userId: string) => void;
+  onLoadBuild?: (buildData: BuildData) => void;
+  isOpen?: boolean;
 }
 
-export default function GlobalChat({ onNewMessage, onOpenDM }: GlobalChatProps) {
+export default function GlobalChat({ onNewMessage, onOpenDM, onLoadBuild, isOpen = true }: GlobalChatProps) {
   const { userProfile: currentUserProfile, getCachedProfile, profileCache } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
@@ -72,10 +74,22 @@ export default function GlobalChat({ onNewMessage, onOpenDM }: GlobalChatProps) 
       await fetchUserProfiles(uniqueUserIds);
       setMessagesLoading(false);
       isFirstLoad = false;
+      
+      // Mark messages as seen if chat is open (only if not already seen)
+      if (isOpen && auth.currentUser) {
+        msgs.forEach(msg => {
+          if (msg.id && msg.senderId !== auth.currentUser?.uid) {
+            // Only mark if not already seen by this user
+            if (!msg.seenBy || !msg.seenBy[auth.currentUser!.uid]) {
+              markGlobalMessageAsSeen(msg.id, auth.currentUser!.uid);
+            }
+          }
+        });
+      }
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [isOpen]);
 
   useEffect(() => {
     if (!auth.currentUser) return;
@@ -278,7 +292,32 @@ export default function GlobalChat({ onNewMessage, onOpenDM }: GlobalChatProps) 
       return;
     }
     
-    if (!newMessage.trim() || !auth.currentUser || loading) return;
+    // If no text, send thumbs up emoji
+    if (!newMessage.trim()) {
+      if (!auth.currentUser || loading) return;
+      
+      const messageText = '👍';
+      const replyData = replyingTo ? {
+        messageId: replyingTo.id!,
+        text: replyingTo.text,
+        senderId: replyingTo.senderId,
+        senderName: profileCache[replyingTo.senderId]?.displayName || 'User'
+      } : undefined;
+
+      try {
+        setLoading(true);
+        await sendGlobalMessage(auth.currentUser.uid, messageText, replyData);
+        setReplyingTo(null);
+        onNewMessage();
+      } catch (error: any) {
+        toast.error(error.message || 'Failed to send message');
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+    
+    if (!auth.currentUser || loading) return;
 
     // Clear typing status immediately on send
     if (currentUserProfile && auth.currentUser) {
@@ -482,7 +521,7 @@ export default function GlobalChat({ onNewMessage, onOpenDM }: GlobalChatProps) 
         )}
 
         {/* Messages list - REVERSED order for flex-col-reverse */}
-        {!messagesLoading && [...messages].reverse().map((msg) => {
+        {!messagesLoading && [...messages].reverse().map((msg, index) => {
             const isOwnMessage = msg.senderId === auth.currentUser?.uid;
             const senderProfile = isOwnMessage ? currentUserProfile : profileCache[msg.senderId];
             const senderName = senderProfile?.displayName || 'User';
@@ -527,13 +566,18 @@ export default function GlobalChat({ onNewMessage, onOpenDM }: GlobalChatProps) 
                           {msg.replyTo.text}
                         </button>
                       )}
-                      {msg.buildData && (
-                        <div className="mb-2">
-                          <BuildPreviewCard buildData={msg.buildData} isSender={isOwnMessage} />
+                      {msg.text && (
+                        <div className={`${msg.imageUrl ? 'mb-2' : ''} ${isOwnMessage ? 'flex justify-end' : ''}`}>
+                          <div
+                            className={`px-4 py-2 max-w-[200px] break-words leading-relaxed shadow-md relative z-10 rounded-[18px] inline-block ${isOwnMessage ? 'bg-[#7835F7] text-white' : 'bg-gray-200 dark:bg-[#3E4042] text-gray-900 dark:text-white'}`}
+                            style={{ wordBreak: 'break-word', overflowWrap: 'break-word', direction: detectTextDirection(msg.text), textAlign: detectTextDirection(msg.text) === 'rtl' ? 'right' : 'left', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif' }}
+                          >
+                            {msg.text}
+                          </div>
                         </div>
                       )}
                       {msg.imageUrl && (
-                        <div className={`relative max-w-sm overflow-hidden rounded-[18px] mb-2 ${isOwnMessage ? 'ml-auto' : 'mr-auto'}`}>
+                        <div className={`relative max-w-[180px] overflow-hidden rounded-[18px] ${msg.buildData ? 'mb-2' : ''} ${isOwnMessage ? 'ml-auto' : 'mr-auto'}`}>
                           <img 
                             src={msg.imageUrl} 
                             alt="Shared image"
@@ -542,12 +586,13 @@ export default function GlobalChat({ onNewMessage, onOpenDM }: GlobalChatProps) 
                           />
                         </div>
                       )}
-                      {msg.text && (
-                        <div
-                          className={`px-4 py-2 max-w-sm break-words leading-relaxed shadow-md relative z-10 rounded-[18px] ${isOwnMessage ? 'bg-[#7835F7] text-white' : 'bg-gray-200 dark:bg-[#3E4042] text-gray-900 dark:text-white'}`}
-                          style={{ wordBreak: 'break-word', overflowWrap: 'break-word', direction: detectTextDirection(msg.text), textAlign: detectTextDirection(msg.text) === 'rtl' ? 'right' : 'left', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif' }}
-                        >
-                          {msg.text}
+                      {msg.buildData && (
+                        <div className="relative">
+                          <BuildPreviewCard 
+                            buildData={msg.buildData} 
+                            isSender={isOwnMessage}
+                            onLoadBuild={onLoadBuild}
+                          />
                         </div>
                       )}
                       {msg.reactions && Object.keys(msg.reactions).length > 0 && (() => {
@@ -567,13 +612,20 @@ export default function GlobalChat({ onNewMessage, onOpenDM }: GlobalChatProps) 
                         );
                       })()}
                     </div>
-                    <div className={`absolute ${isOwnMessage ? 'right-full mr-2' : 'left-full ml-2'} bottom-0 ${(reactionPickerOpen === msg.id || fullEmojiPickerOpen?.messageId === msg.id) ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} pointer-events-none z-10`}>
+                    <div className={`absolute ${isOwnMessage ? 'right-full mr-2' : 'left-full ml-2'} top-1/2 -translate-y-1/2 ${(reactionPickerOpen === msg.id || fullEmojiPickerOpen?.messageId === msg.id) ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} pointer-events-none z-10`}>
                       <div className="flex gap-1 pointer-events-auto mt-1">
                         <button onClick={(e) => { e.stopPropagation(); if (reactionPickerOpen === msg.id) { setReactionPickerOpen(null); setReactionPickerPosition(null); } else { const rect = e.currentTarget.getBoundingClientRect(); setReactionPickerPosition({ x: rect.left, y: rect.top }); setReactionPickerOpen(msg.id!); } }} className="p-1.5 hover:bg-gray-700/50 rounded-full transition-colors" title="React"><Smile size={16} className="text-white" /></button>
                         <button onClick={() => handleReply(msg)} className="p-1.5 hover:bg-gray-700/50 rounded-full transition-colors" title="Reply"><Reply size={16} className="text-white" /></button>
                         <button onClick={(e) => { e.stopPropagation(); setContextMenu({ messageId: msg.id!, x: e.clientX, y: e.clientY }); }} className="p-1.5 hover:bg-gray-700/50 rounded-full transition-colors" title="More"><MoreVertical size={16} className="text-white" /></button>
                       </div>
                     </div>
+                    
+                    {/* Seen by count - only on last message */}
+                    {index === 0 && getSeenCount(msg) > 0 && (
+                      <div className={`text-[11px] text-gray-500 dark:text-gray-400 mt-1 ${isOwnMessage ? 'text-right mr-1' : 'text-left ml-1'}`}>
+                        Seen by {getSeenCount(msg)}
+                      </div>
+                    )}
                   </div>
                   {msg.status === 'pending' && msg.tempId && isOwnMessage && (
                     <div className="mt-1 flex items-center justify-end">
@@ -644,7 +696,7 @@ export default function GlobalChat({ onNewMessage, onOpenDM }: GlobalChatProps) 
           </div>
         )}
         
-        <div className="flex gap-2">
+        <div className="flex gap-2 items-center">
           <input
             ref={fileInputRef}
             type="file"
@@ -652,25 +704,32 @@ export default function GlobalChat({ onNewMessage, onOpenDM }: GlobalChatProps) 
             onChange={handleFileSelect}
             className="hidden"
           />
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-            title="Upload image"
-          >
-            <Paperclip size={20} className="text-gray-500 dark:text-gray-400" />
-          </button>
           
-          <button
-            type="button"
-            onClick={() => setShowBuildModal(true)}
-            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-            title="Share PC Build"
-          >
-            <Monitor size={20} className="text-gray-500 dark:text-gray-400" />
-          </button>
+          {/* Left side icons */}
+          <div className="flex gap-0.5">
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors flex-shrink-0 w-9 h-9 flex items-center justify-center"
+              style={{ color: '#0066d9' }}
+              title="Upload image"
+            >
+              <ImageIcon size={20} />
+            </button>
+            
+            <button
+              type="button"
+              onClick={() => setShowBuildModal(true)}
+              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors flex-shrink-0 w-9 h-9 flex items-center justify-center"
+              style={{ color: '#0066d9' }}
+              title="Share PC Build"
+            >
+              <Monitor size={20} />
+            </button>
+          </div>
           
-          <div className="relative flex-1">
+          {/* Input field */}
+          <div className="relative flex-1 flex items-center">
             <textarea
               ref={inputRef}
               value={newMessage}
@@ -679,11 +738,16 @@ export default function GlobalChat({ onNewMessage, onOpenDM }: GlobalChatProps) 
               placeholder={imagePreview ? "Add a caption (optional)..." : "Type a message..."}
               rows={1}
               dir={inputDirection}
-              className="w-full px-4 py-2 pr-12 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white resize-none"
+              className="w-full px-4 py-2 pr-10 bg-gray-100 dark:bg-gray-700 rounded-full focus:outline-none dark:text-white resize-none overflow-hidden"
               style={{ maxHeight: '100px' }}
             />
-            <button type="button" onClick={() => setShowEmojiPicker(!showEmojiPicker)} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-gray-100 dark:hover:bg-gray-600 rounded transition-colors">
-              <Smile size={20} className="text-gray-500 dark:text-gray-400" />
+            <button 
+              type="button" 
+              onClick={() => setShowEmojiPicker(!showEmojiPicker)} 
+              className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-full transition-colors"
+              title="Emoji"
+            >
+              <Smile size={18} className="text-gray-500 dark:text-gray-400" />
             </button>
             {/* Emoji Picker Portal */}
             {showEmojiPicker && createPortal(
@@ -711,19 +775,22 @@ export default function GlobalChat({ onNewMessage, onOpenDM }: GlobalChatProps) 
               document.body
             )}
           </div>
+          
+          {/* Right side icons */}
           <button 
-            type="submit" 
-            disabled={(!newMessage.trim() && !imagePreview) || loading || uploadingImage} 
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-          >
-            {uploadingImage ? (
-              <>
-                <Loader2 size={20} className="animate-spin" />
-                <span className="text-sm">Uploading...</span>
-              </>
-            ) : (
-              <Send size={20} />
-            )}
+              type="submit" 
+              disabled={loading || uploadingImage} 
+              className={`rounded-full transition-colors flex-shrink-0 hover:bg-gray-100 dark:hover:bg-gray-700 w-9 h-9 flex items-center justify-center ${(loading || uploadingImage) ? 'opacity-50 cursor-not-allowed' : ''}`}
+              style={{ color: '#0066d9' }}
+              title={newMessage.trim() || imagePreview ? "Send" : "Send thumbs up"}
+            >
+              {uploadingImage ? (
+                <Loader2 size={24} className="animate-spin" />
+              ) : newMessage.trim() || imagePreview ? (
+                <img src="/send-message.png" alt="Send" className="w-6 h-6" />
+              ) : (
+                <img src="/thumbsup.png" alt="Like" className="w-[32px] h-[32px]" />
+              )}
           </button>
         </div>
       </form>
@@ -797,7 +864,7 @@ export default function GlobalChat({ onNewMessage, onOpenDM }: GlobalChatProps) 
       {reactionPickerOpen && reactionPickerPosition && createPortal(
         <>
           <div className="fixed inset-0 z-[100]" onClick={() => { setReactionPickerOpen(null); setReactionPickerPosition(null); }} />
-          <div className="fixed z-[101] bg-gray-800/95 dark:bg-gray-900/95 backdrop-blur-sm rounded-full px-3 py-2 shadow-lg flex gap-2 items-center" style={{ left: `${reactionPickerPosition.x}px`, top: `${reactionPickerPosition.y - 50}px`, transform: 'translateX(-50%)' }} onClick={(e) => e.stopPropagation()}>
+          <div className="fixed z-[999] bg-gray-800/95 dark:bg-gray-900/95 backdrop-blur-sm rounded-full px-3 py-2 shadow-lg flex gap-2 items-center min-w-max" style={{ left: `${reactionPickerPosition.x}px`, top: `${reactionPickerPosition.y - 50}px`, transform: 'translateX(-50%)' }} onClick={(e) => e.stopPropagation()}>
             {['❤️', '😂', '😮', '😢', '😡', '👍'].map(emoji => (
               <button key={emoji} onClick={() => { if (auth.currentUser && reactionPickerOpen) { toggleReaction(reactionPickerOpen, emoji, auth.currentUser.uid, true); setReactionPickerOpen(null); setReactionPickerPosition(null); } }} className="hover:scale-125 transition-transform" title={`React with ${emoji}`}><Emoji emoji={emoji} size={32} /></button>
             ))}

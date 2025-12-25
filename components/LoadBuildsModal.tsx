@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { X, FolderOpen, Trash2, Calendar, DollarSign, Grid3x3, List, ArrowUpDown, Cpu, Gpu, CircuitBoard, HardDrive, Zap, Fan, Box, MemoryStick } from 'lucide-react';
-import { getSavedBuilds, deleteBuild, SavedBuild } from '../utils/buildStorage';
+import { getSavedBuildsAsync, deleteBuild, SavedBuild } from '../utils/buildStorage';
+import { auth } from '../firebase.config';
 
 interface LoadBuildsModalProps {
   isOpen: boolean;
@@ -20,8 +21,11 @@ export default function LoadBuildsModal({ isOpen, onClose, onLoadBuild }: LoadBu
     }
   }, [isOpen]);
 
-  const loadBuilds = () => {
-    const savedBuilds = getSavedBuilds();
+  const loadBuilds = async () => {
+    if (!auth.currentUser) return;
+    
+    // Load builds from Firebase
+    const savedBuilds = await getSavedBuildsAsync();
     setBuilds(savedBuilds);
   };
 
