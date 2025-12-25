@@ -1,8 +1,9 @@
 // Admin service for NexusPC - User management and moderation
-import { ref, get, remove, set, update, query, orderByChild } from 'firebase/database';
+import { ref, get, remove, set, update, query, orderByChild, limitToLast } from 'firebase/database';
 import { database, auth } from '../firebase.config';
 import { UserProfile } from './authService';
 import { deleteUser } from 'firebase/auth';
+import { Message } from './chatService';
 
 // Ban interface
 export interface BanInfo {
@@ -299,6 +300,169 @@ export const getSystemStats = async () => {
       newUsersToday,
       bannedUsers: (await getAllBannedUsers()).length || 0
     };
+  } catch (error: any) {
+    throw new Error(error.message);
+  }
+};
+
+// ============================================
+// MESSAGE MODERATION FUNCTIONS
+// ============================================
+
+// Report interface
+export interface Report {
+  messageId: string;
+  reportedBy: string;
+  reason: string;
+  timestamp: number;
+  message?: Message; // The actual message (fetched separately)
+  messageType?: 'global' | 'dm';
+  conversationId?: string;
+}
+
+// Get all global messages (for admin moderation)
+export const getAllGlobalMessages = async (limit: number = 100): Promise<Message[]> => {
+  try {
+    const messagesRef = ref(database, 'globalChat/messages');
+    const messagesQuery = query(messagesRef, orderByChild('timestamp'), limitToLast(limit));
+    const snapshot = await get(messagesQuery);
+    
+    const messages: Message[] = [];
+    snapshot.forEach((childSnapshot) => {
+      messages.push({
+        id: childSnapshot.key!,
+        ...childSnapshot.val()
+      });
+    });
+    
+    return messages.reverse(); // Newest first
+  } catch (error: any) {
+    throw new Error(error.message);
+  }
+};
+
+// Get all DM messages (for admin moderation)
+export const getAllDMMessages = async (limit: number = 100): Promise<(Message & { conversationId: string })[]> => {
+  try {
+    const dmRef = ref(database, 'directMessages');
+    const snapshot = await get(dmRef);
+    
+    const messages: (Message & { conversationId: string })[] = [];
+    
+    if (snapshot.exists()) {
+      const conversations = snapshot.val();
+      
+      // Collect all messages from all conversations
+      Object.entries(conversations).forEach(([convId, convData]: [string, any]) => {
+        if (convData.messages) {
+          Object.entries(convData.messages).forEach(([msgId, msgData]: [string, any]) => {
+            messages.push({
+              id: msgId,
+              conversationId: convId,
+              ...msgData
+            });
+          });
+        }
+      });
+    }
+    
+    // Sort by timestamp (newest first) and limit
+    messages.sort((a, b) => b.timestamp - a.timestamp);
+    return messages.slice(0, limit);
+  } catch (error: any) {
+    throw new Error(error.message);
+  }
+};
+
+// Get all reported messages
+export const getAllReports = async (): Promise<Report[]> => {
+  try {
+    const reportsRef = ref(database, 'reports');
+    const snapshot = await get(reportsRef);
+    
+    const reports: Report[] = [];
+    
+    if (snapshot.exists()) {
+      const reportsData = snapshot.val();
+      
+      // Fetch message details for each report
+      for (const [messageId, reportData] of Object.entries(reportsData)) {
+        const report = reportData as Report;
+        
+        // Try to find the message in global chat first
+        let message: Message | null = null;
+        let messageType: 'global' | 'dm' = 'global';
+        let conversationId: string | undefined;
+        
+        const globalMsgRef = ref(database, `globalChat/messages/${messageId}`);
+        const globalSnapshot = await get(globalMsgRef);
+        
+        if (globalSnapshot.exists()) {
+          message = { id: messageId, ...globalSnapshot.val() };
+        } else {
+          // Search in DMs
+          const dmRef = ref(database, 'directMessages');
+          const dmSnapshot = await get(dmRef);
+          
+          if (dmSnapshot.exists()) {
+            const conversations = dmSnapshot.val();
+            
+            for (const [convId, convData] of Object.entries(conversations)) {
+              const conv = convData as any;
+              if (conv.messages && conv.messages[messageId]) {
+                message = { id: messageId, ...conv.messages[messageId] };
+                messageType = 'dm';
+                conversationId = convId;
+                break;
+              }
+            }
+          }
+        }
+        
+        reports.push({
+          messageId,
+          reportedBy: report.reportedBy,
+          reason: report.reason,
+          timestamp: report.timestamp,
+          message: message || undefined,
+          messageType,
+          conversationId
+        });
+      }
+    }
+    
+    // Sort by timestamp (newest first)
+    reports.sort((a, b) => b.timestamp - a.timestamp);
+    return reports;
+  } catch (error: any) {
+    throw new Error(error.message);
+  }
+};
+
+// Admin delete message (can delete any message)
+export const adminDeleteMessage = async (
+  messageId: string,
+  messageType: 'global' | 'dm',
+  conversationId?: string
+) => {
+  try {
+    if (messageType === 'global') {
+      await remove(ref(database, `globalChat/messages/${messageId}`));
+    } else if (conversationId) {
+      await remove(ref(database, `directMessages/${conversationId}/messages/${messageId}`));
+    }
+    
+    // Also remove the report if it exists
+    await remove(ref(database, `reports/${messageId}`));
+  } catch (error: any) {
+    throw new Error(error.message);
+  }
+};
+
+// Dismiss a report (remove from reports list without deleting message)
+export const dismissReport = async (messageId: string) => {
+  try {
+    await remove(ref(database, `reports/${messageId}`));
   } catch (error: any) {
     throw new Error(error.message);
   }

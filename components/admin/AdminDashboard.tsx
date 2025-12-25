@@ -2,12 +2,13 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { isAdmin } from '../../constants/adminConfig';
-import { Users, BarChart3, Shield, Activity, ArrowLeft } from 'lucide-react';
+import { Users, BarChart3, Shield, Activity, ArrowLeft, MessageSquare } from 'lucide-react';
 import UserManagement from './UserManagement';
 import Statistics from './Statistics';
+import MessageModeration from './MessageModeration';
 import toast from 'react-hot-toast';
 
-type TabType = 'users' | 'stats' | 'banned';
+type TabType = 'users' | 'stats' | 'banned' | 'messages';
 
 export default function AdminDashboard() {
   const { currentUser, loading: authLoading } = useAuth();
@@ -149,6 +150,17 @@ export default function AdminDashboard() {
               <Activity size={20} />
               Banned Users
             </button>
+            <button
+              onClick={() => setActiveTab('messages')}
+              className={`flex items-center gap-2 py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                activeTab === 'messages'
+                  ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
+              }`}
+            >
+              <MessageSquare size={20} />
+              Message Moderation
+            </button>
           </nav>
         </div>
       </div>
@@ -158,6 +170,7 @@ export default function AdminDashboard() {
         {activeTab === 'users' && <UserManagement showBanned={false} />}
         {activeTab === 'stats' && <Statistics />}
         {activeTab === 'banned' && <UserManagement showBanned={true} />}
+        {activeTab === 'messages' && <MessageModeration />}
       </div>
     </div>
   );

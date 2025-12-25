@@ -1,15 +1,17 @@
 // Global Chat Room Component
 import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { Send, Smile, MoreVertical, Flag, Trash2, Loader2, Reply, X, Heart, Paperclip, Image as ImageIcon } from 'lucide-react';
+import { Send, Smile, MoreVertical, Flag, Trash2, Loader2, Reply, X, Heart, Paperclip, Image as ImageIcon, Monitor } from 'lucide-react';
 import EmojiPicker, { EmojiClickData } from 'emoji-picker-react';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../contexts/AuthContext';
 import { auth } from '../../firebase.config';
-import { sendGlobalMessage, listenToGlobalChat, loadOlderGlobalMessages, deleteMessage, reportMessage, setGlobalTypingStatus, listenToGlobalTyping, toggleReaction, uploadChatImage, Message, TypingStatus } from '../../services/chatService';
+import { sendGlobalMessage, listenToGlobalChat, loadOlderGlobalMessages, deleteMessage, reportMessage, setGlobalTypingStatus, listenToGlobalTyping, toggleReaction, uploadChatImage, Message, TypingStatus, BuildData } from '../../services/chatService';
 import { getUserProfile, UserProfile } from '../../services/authService';
 import UserProfileMenu from './UserProfileMenu';
 import ReactionModal from './ReactionModal';
+import BuildShareModal from './BuildShareModal';
+import BuildPreviewCard from './BuildPreviewCard';
 import Emoji from '../ui/Emoji';
 
 interface GlobalChatProps {
@@ -42,6 +44,7 @@ export default function GlobalChat({ onNewMessage, onOpenDM }: GlobalChatProps) 
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [imageLightbox, setImageLightbox] = useState<string | null>(null);
+  const [showBuildModal, setShowBuildModal] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -363,6 +366,34 @@ export default function GlobalChat({ onNewMessage, onOpenDM }: GlobalChatProps) 
     }
   };
 
+  const handleShareBuild = async (buildData: BuildData, caption: string) => {
+    if (!auth.currentUser) return;
+    
+    try {
+      setLoading(true);
+      await sendGlobalMessage(
+        auth.currentUser.uid,
+        caption,
+        replyingTo ? {
+          messageId: replyingTo.id!,
+          text: replyingTo.text,
+          senderId: replyingTo.senderId,
+          senderName: profileCache[replyingTo.senderId]?.displayName || 'User'
+        } : undefined,
+        undefined, // no imageUrl
+        buildData // pass build data
+      );
+      
+      setReplyingTo(null);
+      onNewMessage();
+      toast.success('PC Build shared!');
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to share build');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleReportMessage = async (messageId: string) => {
     if (!auth.currentUser) return;
     const reason = prompt('Why are you reporting this message?');
@@ -496,6 +527,11 @@ export default function GlobalChat({ onNewMessage, onOpenDM }: GlobalChatProps) 
                           {msg.replyTo.text}
                         </button>
                       )}
+                      {msg.buildData && (
+                        <div className="mb-2">
+                          <BuildPreviewCard buildData={msg.buildData} isSender={isOwnMessage} />
+                        </div>
+                      )}
                       {msg.imageUrl && (
                         <div className={`relative max-w-sm overflow-hidden rounded-[18px] mb-2 ${isOwnMessage ? 'ml-auto' : 'mr-auto'}`}>
                           <img 
@@ -623,6 +659,15 @@ export default function GlobalChat({ onNewMessage, onOpenDM }: GlobalChatProps) 
             title="Upload image"
           >
             <Paperclip size={20} className="text-gray-500 dark:text-gray-400" />
+          </button>
+          
+          <button
+            type="button"
+            onClick={() => setShowBuildModal(true)}
+            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+            title="Share PC Build"
+          >
+            <Monitor size={20} className="text-gray-500 dark:text-gray-400" />
           </button>
           
           <div className="relative flex-1">
@@ -760,6 +805,14 @@ export default function GlobalChat({ onNewMessage, onOpenDM }: GlobalChatProps) 
           </div>
         </>,
         document.body
+      )}
+
+      {/* Build Share Modal */}
+      {showBuildModal && (
+        <BuildShareModal
+          onClose={() => setShowBuildModal(false)}
+          onSelectBuild={handleShareBuild}
+        />
       )}
     </div>
   );

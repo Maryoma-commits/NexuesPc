@@ -2,6 +2,21 @@
 import { ref, push, set, onValue, query, orderByChild, limitToLast, endBefore, get, remove, update, serverTimestamp } from 'firebase/database';
 import { database } from '../firebase.config';
 
+// PC Build data interface for sharing in chat
+export interface BuildData {
+  name: string;
+  components: {
+    [category: string]: {
+      name: string;
+      price: number;
+      image: string;
+      retailer: string;
+    };
+  };
+  totalPrice: number;
+  createdAt: number;
+}
+
 // Message interface (stores only senderId, profiles fetched separately)
 export interface Message {
   id?: string;
@@ -13,6 +28,7 @@ export interface Message {
   recipientId?: string; // For direct messages
   tempId?: string; // Temporary ID for optimistic messages
   imageUrl?: string; // For image messages
+  buildData?: BuildData; // For PC build shares
   replyTo?: {
     messageId: string;
     text: string;
@@ -39,7 +55,8 @@ export const sendGlobalMessage = async (
   senderId: string, 
   text: string,
   replyTo?: { messageId: string; text: string; senderId: string; senderName: string },
-  imageUrl?: string
+  imageUrl?: string,
+  buildData?: BuildData
 ) => {
   try {
     // Check if user is banned
@@ -68,7 +85,8 @@ export const sendGlobalMessage = async (
       timestamp: Date.now(),
       type: 'global',
       ...(replyTo && { replyTo }),
-      ...(imageUrl && { imageUrl })
+      ...(imageUrl && { imageUrl }),
+      ...(buildData && { buildData })
     };
     
     await set(newMessageRef, messageData);
@@ -129,7 +147,8 @@ export const sendDirectMessage = async (
   recipientId: string,
   text: string,
   replyTo?: { messageId: string; text: string; senderId: string; senderName: string },
-  imageUrl?: string
+  imageUrl?: string,
+  buildData?: BuildData
 ) => {
   try {
     // Check if user is banned
@@ -164,7 +183,8 @@ export const sendDirectMessage = async (
       type: 'dm',
       status: 'sent',
       ...(replyTo && { replyTo }),
-      ...(imageUrl && { imageUrl })
+      ...(imageUrl && { imageUrl }),
+      ...(buildData && { buildData })
     };
     
     await set(newMessageRef, messageData);
@@ -173,7 +193,7 @@ export const sendDirectMessage = async (
     // The conversation will reappear because getUserConversations checks for new messages
     
     // Update conversation metadata
-    const lastMessage = imageUrl ? '📷 Photo' : text;
+    const lastMessage = buildData ? '🖥️ PC Build' : imageUrl ? '📷 Photo' : text;
     await updateConversationMetadata(conversationId, senderId, recipientId, lastMessage);
     
     return newMessageRef.key;

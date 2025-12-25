@@ -185,6 +185,115 @@ git push
 
 ## 📝 Recent Major Changes
 
+### 2025-12-26 (PC Build Sharing & Admin Enhancements)
+**Major Features:**
+- **PC Build Sharing in Chat:** Users can now share their saved PC builds in Global Chat and Direct Messages.
+    - Monitor icon (🖥️) button next to image upload in chat input
+    - BuildShareModal: Select from saved builds with preview (name, price, CPU, GPU, component count)
+    - Optional caption with shared builds
+    - BuildPreviewCard: Compact card display (280px width) with expand/collapse functionality
+    - Collapsed view: Build name, total price, component count, CPU & GPU preview
+    - Expanded view: Full component list with images, prices, and retailer names
+    - Proper handling of Product properties (title, imageUrl) vs BuildData (name, image)
+    - Conversation list shows "🖥️ PC Build" for build messages
+- **Forgot Password Feature:** Self-service password reset for email users.
+    - "Forgot Password?" link on sign-in screen (blue, below Sign In button)
+    - Clean reset form with email input only (hides Google sign-in)
+    - Firebase `sendPasswordResetEmail()` integration
+    - Success message with email confirmation
+    - "Back to Sign In" navigation
+    - Email template customizable in Firebase Console with %DISPLAY_NAME% placeholder
+- **Real-Time Presence System:** Accurate online/offline status tracking.
+    - Firebase `.info/connected` detection (not manual polling)
+    - Auto-sets offline when tab closes or internet disconnects
+    - Updates `lastOnline` every 30 seconds while active
+    - Green dot indicator on user avatars when online
+    - "Online now" text in admin dashboard (green, bold)
+    - Users considered online if active within last 90 seconds
+    - Proper cleanup on logout (clears interval)
+- **Admin Message Moderation System:** Complete moderation tools with real-time updates.
+    - New "Message Moderation" tab in admin dashboard
+    - 4 sub-tabs: Reported, All Messages, Global Chat, Direct Messages
+    - Real-time auto-updates using Firebase `onChildAdded`/`onChildRemoved` (NOT onValue to avoid typing indicator spam)
+    - DM messages grouped by conversation (one row per conversation, not per message)
+    - Shows both participants in DM rows: "User1 ↔️ User2" with overlapping avatars
+    - Message count badge on DM rows (e.g., "45 messages")
+    - Click DM row → Opens ConversationViewerModal with full message history
+    - ConversationViewerModal features:
+        - Both user avatars and names in header
+        - Full scrollable message history (oldest to newest)
+        - Real-time updates (new messages appear instantly with auto-scroll)
+        - Select messages with checkboxes (individual or "Select All")
+        - Delete selected messages (bulk) or individual trash icons
+        - Ban either user with reason prompt
+        - Export conversation to .txt file
+        - Delete entire conversation (removes all messages + metadata)
+    - Reported messages section with full context:
+        - Reporter avatar + name + reason + timestamp
+        - Original message display (text or image with "View Image" link)
+        - Quick actions: Delete Message, Ban User, Dismiss Report
+    - Action buttons removed from DM table rows (confusing, now shows "Click row to manage")
+    - Manual refresh button with toast notification
+    - Profile caching for performance
+    - Dark mode support throughout
+- **Firebase Error Message Improvements:** User-friendly error messages for all authentication errors.
+    - Changed `formatFirebaseError()` to accept full error object (not just message string)
+    - Checks `error.code` property first (Firebase v9+ standard)
+    - Maps all common Firebase error codes to friendly messages
+    - Added `auth/invalid-credential` for newer Firebase versions
+    - Examples:
+        - `auth/wrong-password` → "Invalid email or password. Please try again."
+        - `auth/user-not-found` → "No account found with this email. Please check your email or sign up."
+        - `auth/email-already-in-use` → "This email is already registered. Please sign in instead or use a different email."
+- **Delete Confirmation Simplification:** Removed "type DELETE" requirement in admin dashboard.
+    - Changed from text input confirmation to simple two-button modal
+    - User clicks "Delete User" → Confirms → User deleted
+    - Warning banner and message handling options still present
+    - Much faster and less frustrating for admins
+
+**Technical Implementation:**
+- `services/chatService.ts`: Added `BuildData` interface with components structure
+- `components/chat/BuildShareModal.tsx`: Modal to select saved builds (150 lines)
+- `components/chat/BuildPreviewCard.tsx`: Compact/expandable build display (140 lines)
+- `components/chat/GlobalChat.tsx`: Integrated Monitor button, build preview rendering, and modal
+- `services/authService.ts`: Added `sendPasswordReset()`, updated presence system with `initializePresenceSystem()` and `cleanupPresenceSystem()`
+- `contexts/AuthContext.tsx`: Calls `initializePresenceSystem()` on sign-in, cleanup on logout
+- `services/adminService.ts`: Added message moderation functions (getAllGlobalMessages, getAllDMMessages, getAllReports, adminDeleteMessage, dismissReport)
+- `components/admin/MessageModeration.tsx`: Main moderation interface with tabs and real-time listeners (500+ lines)
+- `components/admin/ConversationViewerModal.tsx`: Full DM conversation viewer with real-time updates (400+ lines)
+- `components/admin/UserManagement.tsx`: Added refresh button, green dot for online users, "Online now" text
+- `components/admin/DeleteUserModal.tsx`: Simplified to two-button confirmation
+- `components/auth/AuthModal.tsx`: Added forgot password mode, improved error handling
+- Updated `sendGlobalMessage()` and `sendDirectMessage()` to accept `buildData` parameter
+
+**Bug Fixes:**
+- Fixed admin ban user function parameter order (was passing `reason` as `bannedBy`)
+- Fixed message moderation refresh spam from typing indicators (switched to `onChildAdded`/`onChildRemoved`)
+- Fixed DM table showing every message as separate row (now groups by conversation)
+- Fixed delete button in DM table deleting wrong conversation (removed action buttons, use conversation viewer instead)
+- Fixed BuildPreviewCard property access (`imageUrl` before `image`, `title` before `name`)
+- Fixed `[object Object]` in image URLs by correcting property order
+- Fixed BuildShareModal using `createdAt` instead of `dateCreated` from SavedBuild
+
+**Database Structure:**
+```
+buildData: {
+  name: string,
+  components: {
+    [category]: {
+      title: string,
+      imageUrl: string,
+      price: number,
+      retailer: string
+    }
+  },
+  totalPrice: number,
+  createdAt: number
+}
+```
+
+## 📝 Recent Major Changes
+
 ### 2025-12-24 (Part 3 - Error Handling & Auto-Send)
 **Major Features:**
 - **Toast Notifications:** Comprehensive error handling with react-hot-toast across all chat operations.
@@ -425,10 +534,10 @@ git push
 
 ---
 
-**Last Updated:** 2025-12-25 02:00  
+**Last Updated:** 2025-12-26 01:30  
 **Status:** Production Ready ✅  
-**Recent Session:** Image sharing in chat, complete admin dashboard, user onboarding system, profile simplification, error message improvements
-**Production Status:** 9/10 - Full-featured admin panel, onboarding flow, image sharing. Ready for launch after rate limiting implementation.
+**Recent Session:** PC Build sharing in chat, forgot password feature, admin message moderation with real-time updates, DM conversation viewer, online/offline presence system
+**Production Status:** 9.5/10 - Full chat system with build sharing, complete admin moderation tools, forgot password, presence tracking. Ready for launch after rate limiting implementation.
 **Agent:** Claude Code Agent (Rovo Dev)
 
 ---

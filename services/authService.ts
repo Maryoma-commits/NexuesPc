@@ -7,6 +7,7 @@ import {
   signOut,
   updateProfile,
   sendEmailVerification,
+  sendPasswordResetEmail,
   User,
   onAuthStateChanged
 } from 'firebase/auth';
@@ -45,7 +46,8 @@ export const signInWithEmail = async (email: string, password: string) => {
     await updateUserOnlineStatus(result.user.uid, true);
     return result.user;
   } catch (error: any) {
-    throw new Error(error.message);
+    // Throw the original error to preserve Firebase error codes
+    throw error;
   }
 };
 
@@ -66,7 +68,8 @@ export const signUpWithEmail = async (email: string, password: string, displayNa
     
     return result.user;
   } catch (error: any) {
-    throw new Error(error.message);
+    // Throw the original error to preserve Firebase error codes
+    throw error;
   }
 };
 
@@ -93,7 +96,8 @@ export const signInWithGoogle = async () => {
     
     return { user: result.user, isNewUser };
   } catch (error: any) {
-    throw new Error(error.message);
+    // Throw the original error to preserve Firebase error codes
+    throw error;
   }
 };
 
@@ -250,6 +254,15 @@ export const resendVerificationEmail = async () => {
 // Check if email is verified
 export const isEmailVerified = (): boolean => {
   return auth.currentUser?.emailVerified || false;
+};
+
+// Send password reset email
+export const sendPasswordReset = async (email: string) => {
+  try {
+    await sendPasswordResetEmail(auth, email);
+  } catch (error: any) {
+    throw error;
+  }
 };
 
 // Upload profile picture to ImgBB
