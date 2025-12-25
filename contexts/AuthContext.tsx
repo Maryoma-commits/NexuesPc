@@ -51,13 +51,31 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   useEffect(() => {
     const unsubscribe = onAuthChange(async (currentUser) => {
-      setUser(currentUser);
-      
       if (currentUser) {
+        // Keep loading state true during IP check
         // Load user profile
         try {
           const profile = await getUserProfile(currentUser.uid);
           if (profile) {
+            // Track IP address and check if banned BEFORE setting user/profile
+            const userIP = await trackUserIP(currentUser.uid, 'signin');
+            if (userIP) {
+              const banned = await isIPBanned(userIP);
+              if (banned) {
+                // Sign out immediately if IP is banned - BEFORE setting state
+                await auth.signOut();
+                toast.error('Access denied: Your IP address has been banned from this service.');
+                setUser(null);
+                setUserProfile(null);
+                setProfileCache({});
+                setLoading(false);
+                return;
+              }
+            }
+            
+            // IP is not banned - proceed with normal auth flow
+            setUser(currentUser);
+            
             // Check if onboarding needed BEFORE setting profile
             // This ensures onboarding state is ready before UI renders
             const isGoogleUser = profile.provider === 'google';
@@ -71,33 +89,21 @@ export function AuthProvider({ children }: AuthProviderProps) {
             // Also cache current user's profile
             setProfileCache(prev => ({ ...prev, [currentUser.uid]: profile }));
             
-            // Track IP address and check if banned
-            const userIP = await trackUserIP(currentUser.uid, 'signin');
-            if (userIP) {
-              const banned = await isIPBanned(userIP);
-              if (banned) {
-                // Sign out immediately if IP is banned
-                await auth.signOut();
-                toast.error('Access denied: Your IP address has been banned from this service.');
-                setUserProfile(null);
-                setProfileCache({});
-                setLoading(false);
-                return;
-              }
-            }
-            
             // Initialize Firebase presence system for real-time online/offline detection
             initializePresenceSystem(currentUser.uid);
           } else {
+            setUser(currentUser);
             setUserProfile(null);
             setNeedsOnboarding(false);
           }
         } catch (error) {
           console.error('Error loading user profile:', error);
+          setUser(currentUser);
           setUserProfile(null);
           setNeedsOnboarding(false);
         }
       } else {
+        setUser(null);
         setUserProfile(null);
         // Clear cache on logout
         setProfileCache({});
