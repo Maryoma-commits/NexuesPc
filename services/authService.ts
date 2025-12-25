@@ -10,7 +10,8 @@ import {
   User,
   onAuthStateChanged
 } from 'firebase/auth';
-import { ref, set, get, update } from 'firebase/database';
+import { onValue } from 'firebase/database';
+import { ref, set, get, update, onDisconnect, serverTimestamp } from 'firebase/database';
 import { auth, database } from '../firebase.config';
 
 // Providers
@@ -150,6 +151,48 @@ const updateUserOnlineStatus = async (uid: string, isOnline: boolean) => {
     lastOnline: Date.now(),
     isOnline
   });
+};
+
+// Initialize Firebase presence system for real-time online/offline detection
+export const initializePresenceSystem = (uid: string) => {
+  const userStatusRef = ref(database, `users/${uid}`);
+  const connectedRef = ref(database, '.info/connected');
+
+  // Listen to Firebase's connection state
+  onValue(connectedRef, (snapshot) => {
+    if (snapshot.val() === true) {
+      // User is online
+      // Set up what happens when user disconnects (closes tab, loses internet, etc.)
+      onDisconnect(userStatusRef).update({
+        isOnline: false,
+        lastOnline: serverTimestamp() as any
+      });
+
+      // Set user as online now
+      update(userStatusRef, {
+        isOnline: true,
+        lastOnline: Date.now()
+      });
+
+      // Update lastOnline every 30 seconds while user is active
+      const intervalId = setInterval(() => {
+        update(userStatusRef, {
+          lastOnline: Date.now()
+        });
+      }, 30000); // 30 seconds
+
+      // Store interval ID to clear it later if needed
+      (window as any).__presenceInterval = intervalId;
+    }
+  });
+};
+
+// Clean up presence system on logout
+export const cleanupPresenceSystem = () => {
+  if ((window as any).__presenceInterval) {
+    clearInterval((window as any).__presenceInterval);
+    delete (window as any).__presenceInterval;
+  }
 };
 
 // Get user profile

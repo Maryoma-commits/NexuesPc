@@ -81,23 +81,6 @@ export default function OnboardingModal({ isOpen, onComplete }: OnboardingModalP
     }
   };
 
-  const handleSkip = async () => {
-    // Use default name from email or "User"
-    const defaultName = user.email?.split('@')[0] || 'User';
-    
-    try {
-      await updateUserProfile(user.uid, {
-        displayName: defaultName,
-        photoURL: `https://ui-avatars.com/api/?name=${encodeURIComponent(defaultName)}&background=random`
-      });
-      
-      // Reload page to refresh profile
-      window.location.reload();
-    } catch (error) {
-      console.error('Error setting default profile:', error);
-      window.location.reload(); // Reload anyway
-    }
-  };
 
   return createPortal(
     <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4">
@@ -111,7 +94,7 @@ export default function OnboardingModal({ isOpen, onComplete }: OnboardingModalP
             Complete Your Profile
           </h2>
           <p className="text-gray-600 dark:text-gray-400 text-sm">
-            Help others recognize you by setting up your profile
+            Please enter your name to continue
           </p>
         </div>
 
@@ -163,20 +146,12 @@ export default function OnboardingModal({ isOpen, onComplete }: OnboardingModalP
             />
           </div>
 
-          {/* Buttons */}
-          <div className="flex gap-3 pt-4">
-            <button
-              type="button"
-              onClick={handleSkip}
-              disabled={loading}
-              className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
-            >
-              Skip
-            </button>
+          {/* Button */}
+          <div className="pt-4">
             <button
               type="submit"
               disabled={loading || !displayName.trim()}
-              className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {loading ? (
                 <>

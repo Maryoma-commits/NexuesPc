@@ -3,7 +3,7 @@ import { createContext, useContext, useState, useEffect, ReactNode, useCallback 
 import { User } from 'firebase/auth';
 import { ref, onValue, off } from 'firebase/database';
 import { auth, database } from '../firebase.config';
-import { onAuthChange, UserProfile, getUserProfile } from '../services/authService';
+import { onAuthChange, UserProfile, getUserProfile, initializePresenceSystem, cleanupPresenceSystem } from '../services/authService';
 
 interface AuthContextType {
   user: User | null;
@@ -68,6 +68,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
             setUserProfile(profile);
             // Also cache current user's profile
             setProfileCache(prev => ({ ...prev, [currentUser.uid]: profile }));
+            
+            // Initialize Firebase presence system for real-time online/offline detection
+            initializePresenceSystem(currentUser.uid);
           } else {
             setUserProfile(null);
             setNeedsOnboarding(false);
@@ -82,6 +85,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
         // Clear cache on logout
         setProfileCache({});
         setNeedsOnboarding(false);
+        // Clean up presence system
+        cleanupPresenceSystem();
       }
       
       setLoading(false);

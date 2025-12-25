@@ -1,6 +1,6 @@
 // User Management Component for Admin Dashboard
 import { useState, useEffect } from 'react';
-import { Search, Filter, UserX, Ban, Trash2, Eye, Clock, Mail, Calendar } from 'lucide-react';
+import { Search, Filter, UserX, Ban, Trash2, Eye, Clock, Mail, Calendar, RefreshCw } from 'lucide-react';
 import { getAllUsers, getAllBannedUsers, getUserStats, BanInfo } from '../../services/adminService';
 import { UserProfile } from '../../services/authService';
 import toast from 'react-hot-toast';
@@ -36,7 +36,7 @@ export default function UserManagement({ showBanned }: UserManagementProps) {
     loadUsers();
   }, []);
 
-  const loadUsers = async () => {
+  const loadUsers = async (showToast = false) => {
     setLoading(true);
     try {
       const [allUsers, banned] = await Promise.all([
@@ -57,6 +57,11 @@ export default function UserManagement({ showBanned }: UserManagementProps) {
       
       // Reset to first page after reload
       setCurrentPage(1);
+      
+      // Show success toast if manually refreshed
+      if (showToast) {
+        toast.success(`Refreshed! ${allUsers.length} users loaded`);
+      }
     } catch (error: any) {
       toast.error('Failed to load users: ' + error.message);
     } finally {
@@ -122,6 +127,12 @@ export default function UserManagement({ showBanned }: UserManagementProps) {
     return formatDate(timestamp);
   };
 
+  // Check if user is online (active within last 90 seconds)
+  const isUserOnline = (user: UserProfile) => {
+    const seconds = Math.floor((Date.now() - user.lastOnline) / 1000);
+    return user.isOnline && seconds < 90; // Consider online if active within 90 seconds
+  };
+
   // Get sign-in method badge
   const getSignInBadge = (user: UserProfile) => {
     // Use provider field from user profile (set during signup)
@@ -182,6 +193,17 @@ export default function UserManagement({ showBanned }: UserManagementProps) {
             <option value="google">Google Only</option>
             <option value="email">Email Only</option>
           </select>
+
+          {/* Refresh Button */}
+          <button
+            onClick={() => loadUsers(true)}
+            disabled={loading}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            title="Refresh user list"
+          >
+            <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
+            Refresh
+          </button>
         </div>
 
         {/* Results Count */}
@@ -221,11 +243,16 @@ export default function UserManagement({ showBanned }: UserManagementProps) {
                 {/* User Avatar & Name */}
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center">
-                    <img
-                      src={user.photoURL}
-                      alt={user.displayName}
-                      className="w-10 h-10 rounded-full"
-                    />
+                    <div className="relative">
+                      <img
+                        src={user.photoURL}
+                        alt={user.displayName}
+                        className="w-10 h-10 rounded-full"
+                      />
+                      {isUserOnline(user) && (
+                        <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white dark:border-gray-800 rounded-full" title="Online now"></div>
+                      )}
+                    </div>
                     <div className="ml-4">
                       <div className="text-sm font-medium text-gray-900 dark:text-white">
                         {user.displayName}
@@ -255,8 +282,16 @@ export default function UserManagement({ showBanned }: UserManagementProps) {
                 </td>
 
                 {/* Last Active */}
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                  {timeAgo(user.lastOnline)}
+                <td className="px-6 py-4 whitespace-nowrap text-sm">
+                  {isUserOnline(user) ? (
+                    <span className="text-green-600 dark:text-green-400 font-medium">
+                      Online now
+                    </span>
+                  ) : (
+                    <span className="text-gray-500 dark:text-gray-400">
+                      {timeAgo(user.lastOnline)}
+                    </span>
+                  )}
                 </td>
 
                 {/* Actions */}

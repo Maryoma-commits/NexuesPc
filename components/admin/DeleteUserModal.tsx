@@ -14,15 +14,9 @@ interface DeleteUserModalProps {
 
 export default function DeleteUserModal({ user, onClose, onSuccess }: DeleteUserModalProps) {
   const [deleteMessages, setDeleteMessages] = useState<'anonymize' | 'delete'>('anonymize');
-  const [confirmText, setConfirmText] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleDelete = async () => {
-    if (confirmText !== 'DELETE') {
-      toast.error('Please type DELETE to confirm');
-      return;
-    }
-
     setLoading(true);
     try {
       await deleteUserAccount(user.uid, deleteMessages === 'delete');
@@ -120,19 +114,6 @@ export default function DeleteUserModal({ user, onClose, onSuccess }: DeleteUser
             </div>
           </div>
 
-          {/* Confirmation Input */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Type <strong>DELETE</strong> to confirm:
-            </label>
-            <input
-              type="text"
-              value={confirmText}
-              onChange={(e) => setConfirmText(e.target.value)}
-              placeholder="DELETE"
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-500 dark:bg-gray-700 dark:text-white"
-            />
-          </div>
         </div>
 
         {/* Footer */}
@@ -146,7 +127,7 @@ export default function DeleteUserModal({ user, onClose, onSuccess }: DeleteUser
           </button>
           <button
             onClick={handleDelete}
-            disabled={loading || confirmText !== 'DELETE'}
+            disabled={loading}
             className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
             {loading ? (
