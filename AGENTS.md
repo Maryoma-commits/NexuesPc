@@ -185,6 +185,98 @@ git push
 
 ## 📝 Recent Major Changes
 
+### 2025-12-24 (Part 3 - Error Handling & Auto-Send)
+**Major Features:**
+- **Toast Notifications:** Comprehensive error handling with react-hot-toast across all chat operations.
+    - Success toasts (green, 2s) for positive actions (message sent, profile updated, etc.)
+    - Error toasts (red, 4s) for failures with user-friendly messages
+    - Replaced all console.error() with visible user feedback
+- **WhatsApp-Style Auto-Send:** Messages sent offline show "Sending..." and auto-send when connection returns.
+    - Optimistic message display (appears instantly)
+    - "Sending..." status for offline messages
+    - Browser online/offline event listeners
+    - Automatic retry when WiFi reconnects
+    - No manual retry/delete buttons needed
+- **Optimistic Seen Status:** Reduced perceived delay for read receipts.
+    - Local state updates immediately when marking as read
+    - Firebase syncs in background
+    - 1-3 second delay is normal Firebase behavior (matches WhatsApp/Messenger)
+- **Status Indicators:**
+    - "Sending..." - Message pending offline
+    - "Sent" - Message delivered (replaced checkmark icon with text)
+    - Seen avatar - Recipient viewed message
+
+**Technical Implementation:**
+- `status: 'pending'` for offline messages
+- `window.addEventListener('online')` for auto-retry
+- Optimistic `currentConversationMetadata` updates
+- Toast provider in App.tsx with dark theme
+
+**Bug Fixes:**
+- Fixed sent checkmark showing during "Sending..."
+- Fixed action button alignment with reactions + seen status
+- Removed unused retry/delete functions
+
+### 2025-12-24 (Part 2 - Chat Preloading & UI Fixes)
+**Major Features:**
+- **Chat Preloading System:** Eliminated all loading flashes when switching tabs or conversations.
+    - Both Global Chat and Direct Messages stay mounted (CSS visibility toggle instead of unmounting).
+    - Firebase listeners created for ALL conversations simultaneously (not just selected one).
+    - Messages cached in ref - instant display when switching conversations.
+    - Smart cleanup: Only removes listeners for deleted conversations, keeps active ones alive.
+- **Fixed Message Sending:** Messages now appear instantly after sending (no need to close/reopen chat).
+    - Used `selectedConversationRef` to track current selection (prevents closure stale data issues).
+    - Listeners check ref instead of closure variable for accurate real-time updates.
+- **Fixed Reaction/Seen Status Overlap:** Seen status indicator now has proper spacing when reactions exist.
+    - Conditional margin: `mt-4` when reactions present, `mt-1` when none.
+    - Prevents reaction emoji from covering the tiny "Seen" avatar.
+- **Fixed Action Button Alignment:** Action buttons now anchor to message bubble, not outer container.
+    - Moved action buttons inside message bubble div (line 473 in DirectMessages.tsx).
+    - Always use `bottom-0` relative to bubble itself - perfect alignment regardless of reactions/seen status.
+- **Smart Badge Logic:** DM tab badge now excludes current conversation's unread count.
+    - Added `onConversationChange` callback from DirectMessages to ChatWindow.
+    - Badge only shows unread from OTHER conversations when viewing a specific chat.
+    - No false badge when receiving messages in active conversation.
+
+**Technical Implementation:**
+- `messageCache.current[conversationId]` stores messages for each conversation
+- `activeListeners.current[conversationId]` tracks Firebase unsubscribe functions
+- `selectedConversationRef.current` provides accurate selection state to listeners
+- `selectedConversationId` in ChatWindow tracks which DM is open for badge calculation
+- Dependency array simplified: `[conversations]` instead of `[conversations, selectedConversation]`
+
+**Bug Fixes:**
+- Fixed listeners being removed on tab switch (was breaking message sending/reactions)
+- Fixed action buttons misalignment when reactions + seen status present
+- Fixed badge showing for currently-viewed conversation
+- Removed debug console.log statements (production-ready)
+
+### 2025-12-24 (Part 1 - Chat UI/UX & Reliability Overhaul)
+**Major Features:**
+- **Reverse Flex Architecture:** Switched messages container to `flex-col-reverse`. This pins the view to the bottom naturally, matching Facebook/Messenger and eliminating scroll jumps when messages arrive or typing indicators disappear.
+- **Messenger-style Replies:** Redesigned reply UI with stacked preview bubbles. Own messages use vibrant purple (`#7835F7`), while previews use deep grey (`#3E4042`).
+- **Jump to Message:** Replies are now clickable. Clicking the header or preview bubble smoothly scrolls the chat to the original message with a 2-second blue highlight animation.
+- **Sent/Seen Status:** Implemented reliable status indicators for Direct Messages.
+    - **Seen:** Recipient's tiny avatar appears next to the last message they read.
+    - **Sent:** Grey check icon appears if not yet seen.
+    - **Reliability:** Switched to Firebase `serverTimestamp()` to eliminate device clock drift issues. Added periodic sync and focus detection.
+- **Enhanced Emoji/Reaction UI:** 
+    - Matched "perfect example" spacing (5px gap between emojis and count).
+    - Used `w-max` to ensure badge backgrounds perfectly contain content.
+    - Updated count to 10px regular font weight for a cleaner look.
+    - Added high-z-index portals (`z-[100]`) and backdrops for both emoji and reaction pickers, allowing them to close on any outside click.
+
+**UI/UX Improvements:**
+- **Scroll Locking:** Added mouse hover listeners to the chat modal to lock background page scrolling (`overflow: hidden`) whenever the mouse is over the chat UI.
+- **Typing Indicator Polish:** Typing status now correctly triggers when picking emojis from the input field picker.
+- **Action Bar Persistence:** The message action bar (React, Reply, More) now stays visible while the reaction picker is open.
+- **ResizeObserver Stability:** Added height monitoring to ensures the chat stays pinned to the absolute bottom even when avatars or reactions load asynchronously.
+
+**Bug Fixes:**
+- Fixed JSX syntax errors in `DirectMessages.tsx`.
+- Resolved issue where `margin-left` was ignored in flex containers by switching to `gap` and `padding`.
+- Fixed "scrolling leak" where chat limits would trigger background page scrolling.
+
 ### 2025-12-21 (Part 2 - Save/Share System & UI/UX Overhaul)
 **Major Features:**
 - Save & Share PC Builds: Complete system with localStorage, URL sharing, auto-restore (24h)
@@ -292,24 +384,260 @@ git push
 ---
 
 ## 💡 Future Ideas / TODOs
+
+### ❌ CRITICAL - Must Fix Before Production Launch
+- [x] **Error Handling:** Toast notifications + WhatsApp-style auto-send (DONE - 2025-12-24)
+- [ ] **Rate Limiting:** Implement message send rate limiting (max 10 messages/minute per user)
+- [ ] **Input Validation:** Add max message length (2000 chars) and content sanitization
+- [ ] **Firebase Security Rules:** Review and tighten security rules in Firebase Console
+- [ ] **Error Tracking:** Add Sentry or similar error monitoring service
+
+### ⚠️ IMPORTANT - Should Fix Within Week 1
+- [ ] **Memory Leak Testing:** Test with 50+ conversations over extended periods
+- [ ] **Offline Handling:** Add offline indicator and reconnection logic
+- [ ] **Admin Moderation:** Build admin panel to review reports and ban users
+- [ ] **Mobile Testing:** Verify full responsiveness on all mobile devices
+- [ ] **Cross-browser Testing:** Test on Chrome, Firefox, Safari, Edge
+
+### 🔧 Product Features (Completed)
 - [x] Fix JokerCenter SSL certificate (fixed by JokerCenter - 2025-12-21)
 - [x] Galaxy IQ has all categories (12 total: Case, Cooler, CPU, GPU, Headsets, Keyboard, Laptops, Monitors, Motherboards, Mouse, Power Supply, RAM, Storage)
+- [x] Chat preloading system (no loading flashes)
+- [x] Real-time messaging with reactions, replies, typing indicators
+- [x] Message pagination and infinite scroll
+- [x] Instagram-style conversation deletion
+- [x] Facebook-style emoji reactions
+- [x] Sent/Seen status with server timestamps
+- [x] RTL/LTR auto-detection
+
+### 🚀 Future Enhancements (Nice to Have)
+- [ ] Message editing (currently only delete)
+- [ ] Online/offline status indicators (green dot)
+- [ ] Push notifications (requires service worker)
+- [ ] Image/file sharing in messages
+- [ ] Voice messages
+- [ ] Message search functionality
+- [ ] User @mentions
 - [ ] Consider custom domain purchase
 - [ ] PWA/APK generation (if needed)
 - [ ] Automated GitHub Actions for scheduled scraping
 - [ ] Add Google AdSense when traffic grows
-- [ ] User accounts/saved builds (future)
 
 ---
 
-**Last Updated:** 2025-12-23 03:45  
-**Status:** Production ✅  
-**Recent Session:** Facebook-style reactions complete, full emoji picker, working on reaction bubble padding issue with 3+ emojis  
-**Agent:** Rovo Dev
+**Last Updated:** 2025-12-25 02:00  
+**Status:** Production Ready ✅  
+**Recent Session:** Image sharing in chat, complete admin dashboard, user onboarding system, profile simplification, error message improvements
+**Production Status:** 9/10 - Full-featured admin panel, onboarding flow, image sharing. Ready for launch after rate limiting implementation.
+**Agent:** Claude Code Agent (Rovo Dev)
 
 ---
 
-## 💬 Community Chat System (NEW - 2025-12-22)
+## 🖼️ Image Sharing in Chat (NEW - 2025-12-25)
+
+### Overview
+Full image sharing functionality in both Global Chat and Direct Messages using ImgBB hosting.
+
+### Features
+- **Upload via Paperclip:** Click 📎 button next to message input
+- **File Validation:** Max 5MB, JPEG/PNG/GIF/WebP only
+- **Preview Before Send:** Thumbnail with cancel button (X)
+- **Optional Captions:** Add text with images
+- **Fullscreen Lightbox:** Click image to view full size
+- **Toast Notifications:** Success/error feedback
+
+### Technical Implementation
+- **Storage:** ImgBB API (free, unlimited)
+- **Upload Function:** `uploadChatImage()` in chatService.ts
+- **Message Type:** `imageUrl` field added to Message interface
+- **Conversation List:** Shows "📷 Photo" for image messages
+
+### Files Modified
+- `services/chatService.ts` - Added uploadChatImage(), updated sendGlobalMessage/sendDirectMessage
+- `components/chat/GlobalChat.tsx` - Image upload UI, preview, lightbox
+- `components/chat/DirectMessages.tsx` - Image upload UI, preview, lightbox
+
+---
+
+## 🛡️ Admin Dashboard (NEW - 2025-12-25)
+
+### Overview
+Complete admin control panel for user management and system monitoring. Only accessible to whitelisted admin UIDs.
+
+### Access Control
+**Admin Whitelist:** `constants/adminConfig.ts`
+```typescript
+export const ADMIN_UIDS = [
+  '6S4vRBMUVHf3GAvzKW6ShjY...', // Your UID
+  // Add more admin UIDs here
+];
+```
+
+### Features
+
+#### User Management
+- **User List Table:** All registered users with pagination (20/page)
+- **Search:** By name or email (real-time)
+- **Filter:** By sign-in method (Google/Email)
+- **User Details Modal:** Full profile, message count, conversation count
+- **Provider Detection:** Auto-detects from Firebase Auth providerData
+
+#### User Actions
+1. **View Details (👁️):** 
+   - Display name, email, join date, last active
+   - Total messages sent (Global + DM)
+   - Number of conversations
+   - User ID (for debugging)
+
+2. **Ban User (⚠️):**
+   - **Permanent Ban:** Until manually unbanned
+   - **Temporary Ban:** 1h, 3h, 6h, 12h, 24h, 2d, 3d, 1w, 2w, 1mo
+   - Ban reason required
+   - Banned users cannot send messages (enforced in chatService)
+   - Ban persists even after account deletion
+   - Unban button for banned users
+
+3. **Delete User (🗑️):**
+   - **Option 1:** Anonymize messages (keeps messages, changes to "[Message from deleted user]")
+   - **Option 2:** Delete all messages (removes everything)
+   - Type "DELETE" to confirm
+   - Removes: Profile, messages (optional), conversations, typing indicators
+   - **Note:** Does NOT delete from Firebase Authentication (manual step required)
+   - **Best Practice:** Ban first, then delete from dashboard, then delete from Firebase Console
+
+#### System Statistics
+- Total users, online users, new users today
+- Total messages (Global + DM breakdown)
+- Total conversations
+- Banned users count
+- Activity rate, growth rate, engagement metrics
+- Beautiful gradient stat cards with progress bars
+
+### Navigation
+- **Access:** Click avatar → "Admin Dashboard" (Shield icon) OR visit `/admin`
+- **Tabs:** User Management, Statistics, Banned Users
+- **Back Button:** Arrow in header returns to main site
+- **Dark Mode:** Syncs with main site theme
+
+### Database Operations
+**Ban Enforcement:**
+```typescript
+// Checked before EVERY message send
+const banRef = ref(database, `bannedUsers/${senderId}`);
+// If banned → Error toast with reason
+// If temporary ban expired → Auto-removes ban
+```
+
+**Provider Detection:**
+```typescript
+// Runs on every sign-in via onAuthChange
+const provider = user.providerData[0]?.providerId;
+const providerType = provider === 'google.com' ? 'google' : 'email';
+await update(userRef, { provider: providerType });
+```
+
+### Files Created
+- `constants/adminConfig.ts` - Admin whitelist
+- `services/adminService.ts` - All admin functions (deleteUserAccount, banUser, unbanUser, getSystemStats, etc.)
+- `components/admin/AdminDashboard.tsx` - Main layout with tabs
+- `components/admin/UserManagement.tsx` - User list with search/filter
+- `components/admin/UserDetailsModal.tsx` - User profile viewer
+- `components/admin/DeleteUserModal.tsx` - Delete confirmation with options
+- `components/admin/BanUserModal.tsx` - Ban/unban with temporary options
+- `components/admin/Statistics.tsx` - System stats dashboard
+
+### Security Notes
+- Client-side cannot delete from Firebase Authentication (Google security restriction)
+- Ban feature is recommended over delete for blocking users
+- Admin routes protected by UID whitelist
+- All destructive actions require confirmation
+
+---
+
+## 👤 User Onboarding System (NEW - 2025-12-25)
+
+### Overview
+Professional onboarding flow for new Google sign-in users to set custom display name and profile picture.
+
+### Flow
+1. **New Google User Signs In** → Page auto-refreshes
+2. **Onboarding Modal Appears** (fullscreen, cannot close)
+3. **User Enters:**
+   - Display name (required text field)
+   - Profile picture (optional upload, 5MB max)
+4. **Click Continue** → Profile saved → Page refreshes
+5. **Profile Loaded** → Name and photo display immediately
+6. **Future Sign-Ins** → No onboarding (already completed)
+
+### Detection Logic
+```typescript
+// Shows onboarding if ALL true:
+const isGoogleUser = profile.provider === 'google';
+const needsSetup = isGoogleUser && profile.displayName === 'User';
+```
+
+### New User Setup
+- Google users start with `displayName = 'User'` (generic placeholder)
+- Forces onboarding modal to appear
+- After completion, name updates to custom choice
+- Email users provide name during signup (no onboarding needed)
+
+### Files Created
+- `components/auth/OnboardingModal.tsx` - Profile setup modal
+
+### Files Modified
+- `services/authService.ts` - signInWithGoogle returns `{ user, isNewUser }`
+- `components/auth/AuthModal.tsx` - Auto-refresh for new users
+- `contexts/AuthContext.tsx` - needsOnboarding state + detection logic
+- `App.tsx` - OnboardingModal integrated
+
+---
+
+## 📝 Profile System Simplification (2025-12-25)
+
+### Changes
+**Removed:**
+- ❌ Bio field (completely removed from interface, database, all components)
+- ❌ Photo URL text input (users can ONLY upload photos)
+
+**What Remains:**
+- ✅ Display Name (editable text field)
+- ✅ Profile Picture (camera upload button only, max 5MB)
+- ✅ Email (read-only)
+- ✅ Provider (Google/Email - stored but hidden from user)
+
+### Affected Components
+- `services/authService.ts` - Removed bio from UserProfile interface
+- `components/auth/UserProfile.tsx` - Removed bio textarea and URL input
+- `components/auth/OnboardingModal.tsx` - Removed bio field
+- `components/admin/UserDetailsModal.tsx` - Removed bio display
+- `contexts/AuthContext.tsx` - Onboarding detection changed from `bio === ''` to `displayName === 'User'`
+
+---
+
+## ✨ Error Message Improvements (2025-12-25)
+
+### Professional Firebase Error Messages
+All Firebase authentication errors now display user-friendly messages instead of technical codes.
+
+**Examples:**
+| Firebase Error | User Message |
+|----------------|--------------|
+| `Firebase: Error (auth/email-already-in-use)` | This email is already registered. Please sign in instead or use a different email. |
+| `auth/weak-password` | Password is too weak. Please use at least 6 characters. |
+| `auth/user-not-found` | No account found with this email. Please check your email or sign up. |
+| `auth/wrong-password` | Incorrect password. Please try again. |
+| `auth/too-many-requests` | Too many failed attempts. Please try again later. |
+
+### Implementation
+- Helper function: `formatFirebaseError()` in AuthModal.tsx
+- Maps Firebase error codes to friendly messages
+- Removes technical prefixes
+- Applied to both email and Google sign-in errors
+
+---
+
+## 💬 Community Chat System (2025-12-22 - 2025-12-24)
 
 ### Overview
 Full-featured real-time chat system with Firebase integration, allowing users to communicate globally and privately.
@@ -446,14 +774,14 @@ firebase/
 - [x] Message reactions with Facebook emojis (DONE - 2025-12-23)
 - [x] RTL/LTR auto-detection (DONE - 2025-12-23)
 - [x] Full emoji picker (+ button functionality) (DONE - 2025-12-23)
-- [ ] Read receipts  
+- [x] Read receipts / Seen status (DONE - 2025-12-24)
+- [x] Smooth scrolling / Reverse flex (DONE - 2025-12-24)
 - [ ] Image/file sharing
 - [ ] User online/offline status indicators
 - [ ] Push notifications
 
 **Known Issues:**
-- Reaction bubble padding: With 3+ emoji types, count number appears at edge of gray bubble (needs investigation)
-- Possible CSS constraint preventing padding styles from applying properly
+- None identified in the current session.
 
 ---
 

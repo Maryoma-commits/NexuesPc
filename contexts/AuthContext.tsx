@@ -7,16 +7,22 @@ import { onAuthChange, UserProfile, getUserProfile } from '../services/authServi
 
 interface AuthContextType {
   user: User | null;
+  currentUser: User | null; // Alias for compatibility
   userProfile: UserProfile | null;
   loading: boolean;
+  needsOnboarding: boolean;
+  setNeedsOnboarding: (value: boolean) => void;
   getCachedProfile: (userId: string) => Promise<UserProfile | null>;
   profileCache: { [userId: string]: UserProfile };
 }
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
+  currentUser: null,
   userProfile: null,
   loading: true,
+  needsOnboarding: false,
+  setNeedsOnboarding: () => {},
   getCachedProfile: async () => null,
   profileCache: {}
 });
@@ -39,6 +45,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [loading, setLoading] = useState(true);
   const [profileCache, setProfileCache] = useState<{ [userId: string]: UserProfile }>({});
   const [activeListeners, setActiveListeners] = useState<Set<string>>(new Set());
+  const [needsOnboarding, setNeedsOnboarding] = useState(false);
 
   useEffect(() => {
     const unsubscribe = onAuthChange(async (currentUser) => {
@@ -48,17 +55,33 @@ export function AuthProvider({ children }: AuthProviderProps) {
         // Load user profile
         try {
           const profile = await getUserProfile(currentUser.uid);
-          setUserProfile(profile);
-          // Also cache current user's profile
-          setProfileCache(prev => ({ ...prev, [currentUser.uid]: profile }));
+          if (profile) {
+            // Check if onboarding needed BEFORE setting profile
+            // This ensures onboarding state is ready before UI renders
+            const isGoogleUser = profile.provider === 'google';
+            const needsSetup = isGoogleUser && profile.displayName === 'User';
+            
+            // Set onboarding state first
+            setNeedsOnboarding(needsSetup);
+            
+            // Then set profile
+            setUserProfile(profile);
+            // Also cache current user's profile
+            setProfileCache(prev => ({ ...prev, [currentUser.uid]: profile }));
+          } else {
+            setUserProfile(null);
+            setNeedsOnboarding(false);
+          }
         } catch (error) {
           console.error('Error loading user profile:', error);
           setUserProfile(null);
+          setNeedsOnboarding(false);
         }
       } else {
         setUserProfile(null);
         // Clear cache on logout
         setProfileCache({});
+        setNeedsOnboarding(false);
       }
       
       setLoading(false);
@@ -113,7 +136,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, [profileCache, activeListeners]);
 
   return (
-    <AuthContext.Provider value={{ user, userProfile, loading, getCachedProfile, profileCache }}>
+    <AuthContext.Provider value={{ user, currentUser: user, userProfile, loading, needsOnboarding, setNeedsOnboarding, getCachedProfile, profileCache }}>
       {children}
     </AuthContext.Provider>
   );

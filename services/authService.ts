@@ -22,9 +22,9 @@ export interface UserProfile {
   displayName: string;
   email: string;
   photoURL: string;
-  bio: string;
   createdAt: number;
   lastOnline: number;
+  provider?: 'google' | 'email'; // Sign-in provider
 }
 
 // Sign in with email/password
@@ -36,6 +36,10 @@ export const signInWithEmail = async (email: string, password: string) => {
     if (!result.user.emailVerified) {
       throw new Error('Please verify your email before signing in. Check your inbox for verification link.');
     }
+    
+    // Always update provider to ensure it's correct (in case of migration)
+    const userRef = ref(database, `users/${result.user.uid}`);
+    await update(userRef, { provider: 'email' });
     
     await updateUserOnlineStatus(result.user.uid, true);
     return result.user;
@@ -54,7 +58,7 @@ export const signUpWithEmail = async (email: string, password: string, displayNa
     await sendEmailVerification(result.user);
     
     // Create user profile in database
-    await createUserProfile(result.user, displayName);
+    await createUserProfile(result.user, displayName, 'email');
     
     // Sign out immediately - user must verify email first
     await signOut(auth);
@@ -74,13 +78,19 @@ export const signInWithGoogle = async () => {
     const userRef = ref(database, `users/${result.user.uid}`);
     const snapshot = await get(userRef);
     
+    let isNewUser = false;
+    
     if (!snapshot.exists()) {
-      await createUserProfile(result.user);
+      // Use generic name for new Google users (will be set via onboarding)
+      await createUserProfile(result.user, 'User', 'google');
+      isNewUser = true;
     } else {
+      // Always update provider to ensure it's correct (in case of migration)
+      await update(userRef, { provider: 'google' });
       await updateUserOnlineStatus(result.user.uid, true);
     }
     
-    return result.user;
+    return { user: result.user, isNewUser };
   } catch (error: any) {
     throw new Error(error.message);
   }
@@ -100,18 +110,20 @@ export const signOutUser = async () => {
 };
 
 // Create user profile in database
-const createUserProfile = async (user: User, customDisplayName?: string) => {
+const createUserProfile = async (user: User, customDisplayName?: string, provider: 'google' | 'email' = 'email') => {
   const userProfile: UserProfile = {
     uid: user.uid,
     displayName: customDisplayName || user.displayName || 'Anonymous',
     email: user.email || '',
-    photoURL: user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(customDisplayName || user.displayName || 'User')}&background=random`,
-    bio: '',
+    // Always use default avatar (never Google photo)
+    photoURL: `https://ui-avatars.com/api/?name=${encodeURIComponent(customDisplayName || user.displayName || 'User')}&background=random`,
     createdAt: Date.now(),
-    lastOnline: Date.now()
+    lastOnline: Date.now(),
+    provider
   };
   
   await set(ref(database, `users/${user.uid}`), userProfile);
+  return userProfile;
 };
 
 // Update user profile
@@ -152,7 +164,27 @@ export const getUserProfile = async (uid: string): Promise<UserProfile | null> =
 
 // Auth state observer
 export const onAuthChange = (callback: (user: User | null) => void) => {
-  return onAuthStateChanged(auth, callback);
+  return onAuthStateChanged(auth, async (user) => {
+    if (user) {
+      // Auto-update provider field based on actual Firebase Auth provider
+      const provider = user.providerData[0]?.providerId;
+      const providerType = provider === 'google.com' ? 'google' : 'email';
+      
+      // Check if user profile exists
+      const userRef = ref(database, `users/${user.uid}`);
+      const snapshot = await get(userRef);
+      
+      if (snapshot.exists()) {
+        // Update existing user with provider
+        await update(userRef, { 
+          provider: providerType,
+          lastOnline: Date.now()
+        });
+      }
+      // If profile doesn't exist, it will be created during sign-up/sign-in flow
+    }
+    callback(user);
+  });
 };
 
 // Resend verification email

@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Mail, Lock, User, Chrome } from 'lucide-react';
 import { signInWithEmail, signUpWithEmail, signInWithGoogle } from '../../services/authService';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -10,7 +11,34 @@ interface AuthModalProps {
   onSuccess: () => void;
 }
 
+// Helper function to format Firebase errors
+const formatFirebaseError = (errorMessage: string): string => {
+  const errorMap: { [key: string]: string } = {
+    'auth/email-already-in-use': 'This email is already registered. Please sign in instead or use a different email.',
+    'auth/weak-password': 'Password is too weak. Please use at least 6 characters.',
+    'auth/invalid-email': 'Invalid email address. Please check and try again.',
+    'auth/user-not-found': 'No account found with this email. Please check your email or sign up.',
+    'auth/wrong-password': 'Incorrect password. Please try again.',
+    'auth/too-many-requests': 'Too many failed attempts. Please try again later.',
+    'auth/network-request-failed': 'Network error. Please check your connection and try again.',
+    'auth/popup-closed-by-user': 'Sign-in cancelled. Please try again.',
+    'auth/cancelled-popup-request': 'Sign-in cancelled. Please try again.',
+  };
+
+  // Check if error contains Firebase error code
+  for (const [code, message] of Object.entries(errorMap)) {
+    if (errorMessage.includes(code)) {
+      return message;
+    }
+  }
+
+  // Remove "Firebase: Error (auth/...)" prefix for cleaner display
+  const cleanError = errorMessage.replace(/^Firebase: Error \(auth\/[^)]+\)\.?\s*/i, '');
+  return cleanError || 'An error occurred. Please try again.';
+};
+
 export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
+  const { setNeedsOnboarding } = useAuth();
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -46,7 +74,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
         onClose();
       }
     } catch (err: any) {
-      setError(err.message || 'Authentication failed');
+      setError(formatFirebaseError(err.message || 'Authentication failed'));
     } finally {
       setLoading(false);
     }
@@ -56,11 +84,19 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
     setError('');
     setLoading(true);
     try {
-      await signInWithGoogle();
+      const result = await signInWithGoogle();
+      
+      // If new user, refresh page to load fresh profile and onboarding
+      if (result.isNewUser) {
+        window.location.reload();
+        return; // Don't execute further, page is reloading
+      }
+      
+      // Existing user - just close modal
       onSuccess();
       onClose();
     } catch (err: any) {
-      setError(err.message || 'Google sign-in failed');
+      setError(formatFirebaseError(err.message || 'Google sign-in failed'));
     } finally {
       setLoading(false);
     }

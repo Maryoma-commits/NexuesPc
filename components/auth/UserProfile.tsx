@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { User, Camera, Save, X, Upload } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { getUserProfile, updateUserProfile, uploadProfilePicture, UserProfile as UserProfileType } from '../../services/authService';
 import { auth } from '../../firebase.config';
 
@@ -13,7 +14,6 @@ interface UserProfileProps {
 export default function UserProfile({ isOpen, onClose }: UserProfileProps) {
   const [profile, setProfile] = useState<UserProfileType | null>(null);
   const [displayName, setDisplayName] = useState('');
-  const [bio, setBio] = useState('');
   const [photoURL, setPhotoURL] = useState('');
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -34,7 +34,6 @@ export default function UserProfile({ isOpen, onClose }: UserProfileProps) {
       if (userProfile) {
         setProfile(userProfile);
         setDisplayName(userProfile.displayName);
-        setBio(userProfile.bio || '');
         setPhotoURL(userProfile.photoURL);
       }
     } catch (err: any) {
@@ -52,8 +51,10 @@ export default function UserProfile({ isOpen, onClose }: UserProfileProps) {
     try {
       const downloadURL = await uploadProfilePicture(file);
       setPhotoURL(downloadURL);
+      toast.success('Profile picture uploaded');
     } catch (err: any) {
       setError(err.message || 'Failed to upload image');
+      toast.error('Failed to upload image');
     } finally {
       setUploading(false);
     }
@@ -68,12 +69,13 @@ export default function UserProfile({ isOpen, onClose }: UserProfileProps) {
     try {
       await updateUserProfile(auth.currentUser.uid, {
         displayName,
-        bio,
         photoURL
       });
+      toast.success('Profile updated successfully');
       onClose();
     } catch (err: any) {
       setError(err.message || 'Failed to update profile');
+      toast.error('Failed to update profile');
     } finally {
       setLoading(false);
     }
@@ -158,39 +160,6 @@ export default function UserProfile({ isOpen, onClose }: UserProfileProps) {
                 className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
               />
             </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Bio
-            </label>
-            <textarea
-              value={bio}
-              onChange={(e) => setBio(e.target.value)}
-              placeholder="Tell us about yourself..."
-              rows={3}
-              maxLength={150}
-              className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white resize-none"
-            />
-            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400 text-right">
-              {bio.length}/150
-            </p>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Photo URL (optional)
-            </label>
-            <input
-              type="url"
-              value={photoURL}
-              onChange={(e) => setPhotoURL(e.target.value)}
-              placeholder="Or paste image URL here"
-              className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-            />
-            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-              You can upload a file or paste a URL
-            </p>
           </div>
 
           {/* Save button */}

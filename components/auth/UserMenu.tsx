@@ -1,8 +1,9 @@
 // User Menu Component for Navbar
 import { useState } from 'react';
-import { LogOut, UserCircle } from 'lucide-react';
+import { LogOut, UserCircle, Shield } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { signOutUser } from '../../services/authService';
+import { isAdmin } from '../../constants/adminConfig';
 import AuthModal from './AuthModal';
 import UserProfile from './UserProfile';
 
@@ -89,6 +90,23 @@ export default function UserMenu() {
                 <UserCircle size={16} />
                 Edit Profile
               </button>
+
+              {isAdmin(user.uid) && (
+                <>
+                  <div className="border-t border-gray-200 dark:border-gray-700 my-1"></div>
+                  <button
+                    onClick={() => {
+                      window.history.pushState({}, '', '/admin');
+                      window.dispatchEvent(new PopStateEvent('popstate'));
+                      setShowMenu(false);
+                    }}
+                    className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 text-blue-600 dark:text-blue-400"
+                  >
+                    <Shield size={16} />
+                    Admin Dashboard
+                  </button>
+                </>
+              )}
 
               <div className="border-t border-gray-200 dark:border-gray-700 my-1"></div>
 

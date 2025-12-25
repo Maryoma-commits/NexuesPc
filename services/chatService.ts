@@ -9,7 +9,10 @@ export interface Message {
   senderId: string;
   timestamp: number;
   type: 'global' | 'dm';
+  status?: 'sent' | 'seen' | 'failed' | 'pending';
   recipientId?: string; // For direct messages
+  tempId?: string; // Temporary ID for optimistic messages
+  imageUrl?: string; // For image messages
   replyTo?: {
     messageId: string;
     text: string;
@@ -28,15 +31,34 @@ export interface Conversation {
   lastMessage: string;
   lastMessageTime: number;
   unreadCount: { [uid: string]: number };
+  lastReadTimestamp?: { [uid: string]: number };
 }
 
 // Send message to global chat
 export const sendGlobalMessage = async (
   senderId: string, 
   text: string,
-  replyTo?: { messageId: string; text: string; senderId: string; senderName: string }
+  replyTo?: { messageId: string; text: string; senderId: string; senderName: string },
+  imageUrl?: string
 ) => {
   try {
+    // Check if user is banned
+    const banRef = ref(database, `bannedUsers/${senderId}`);
+    const banSnapshot = await get(banRef);
+    
+    if (banSnapshot.exists()) {
+      const banInfo = banSnapshot.val();
+      
+      // Check if temporary ban has expired
+      if (!banInfo.permanent && banInfo.expiresAt && Date.now() > banInfo.expiresAt) {
+        // Ban expired, remove it
+        await remove(banRef);
+      } else {
+        // User is still banned
+        throw new Error('You are banned from sending messages. Reason: ' + banInfo.reason);
+      }
+    }
+    
     const messagesRef = ref(database, 'globalChat/messages');
     const newMessageRef = push(messagesRef);
     
@@ -45,7 +67,8 @@ export const sendGlobalMessage = async (
       senderId,
       timestamp: Date.now(),
       type: 'global',
-      ...(replyTo && { replyTo })
+      ...(replyTo && { replyTo }),
+      ...(imageUrl && { imageUrl })
     };
     
     await set(newMessageRef, messageData);
@@ -105,9 +128,27 @@ export const sendDirectMessage = async (
   senderId: string,
   recipientId: string,
   text: string,
-  replyTo?: { messageId: string; text: string; senderId: string; senderName: string }
+  replyTo?: { messageId: string; text: string; senderId: string; senderName: string },
+  imageUrl?: string
 ) => {
   try {
+    // Check if user is banned
+    const banRef = ref(database, `bannedUsers/${senderId}`);
+    const banSnapshot = await get(banRef);
+    
+    if (banSnapshot.exists()) {
+      const banInfo = banSnapshot.val();
+      
+      // Check if temporary ban has expired
+      if (!banInfo.permanent && banInfo.expiresAt && Date.now() > banInfo.expiresAt) {
+        // Ban expired, remove it
+        await remove(banRef);
+      } else {
+        // User is still banned
+        throw new Error('You are banned from sending messages. Reason: ' + banInfo.reason);
+      }
+    }
+    
     // Create conversation ID (alphabetically sorted to ensure consistency)
     const conversationId = [senderId, recipientId].sort().join('_');
     
@@ -121,7 +162,9 @@ export const sendDirectMessage = async (
       recipientId,
       timestamp: Date.now(),
       type: 'dm',
-      ...(replyTo && { replyTo })
+      status: 'sent',
+      ...(replyTo && { replyTo }),
+      ...(imageUrl && { imageUrl })
     };
     
     await set(newMessageRef, messageData);
@@ -130,11 +173,73 @@ export const sendDirectMessage = async (
     // The conversation will reappear because getUserConversations checks for new messages
     
     // Update conversation metadata
-    await updateConversationMetadata(conversationId, senderId, recipientId, text);
+    const lastMessage = imageUrl ? '📷 Photo' : text;
+    await updateConversationMetadata(conversationId, senderId, recipientId, lastMessage);
     
     return newMessageRef.key;
   } catch (error: any) {
     throw new Error(error.message);
+  }
+};
+
+// Upload image to ImgBB (reuse from authService)
+export const uploadChatImage = async (file: File): Promise<string> => {
+  // Validate file
+  const maxSize = 5 * 1024 * 1024; // 5MB
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+  
+  if (file.size > maxSize) {
+    throw new Error('Image must be less than 5MB');
+  }
+  
+  if (!allowedTypes.includes(file.type)) {
+    throw new Error('Only JPEG, PNG, GIF, and WebP images are allowed');
+  }
+
+  try {
+    // Get ImgBB API key from environment
+    const apiKey = import.meta.env.VITE_IMGBB_API_KEY;
+    if (!apiKey) {
+      throw new Error('ImgBB API key not configured');
+    }
+
+    // Convert file to base64
+    const base64 = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = reader.result as string;
+        // Remove data URL prefix (e.g., "data:image/png;base64,")
+        const base64String = result.split(',')[1];
+        resolve(base64String);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+
+    // Upload to ImgBB
+    const formData = new FormData();
+    formData.append('image', base64);
+    formData.append('name', `chat_${Date.now()}`);
+
+    const response = await fetch(`https://api.imgbb.com/1/upload?key=${apiKey}`, {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to upload to ImgBB');
+    }
+
+    const data = await response.json();
+    
+    if (!data.success) {
+      throw new Error(data.error?.message || 'Upload failed');
+    }
+
+    // Return the permanent URL
+    return data.data.url;
+  } catch (error: any) {
+    throw new Error(error.message || 'Failed to upload image');
   }
 };
 
@@ -256,6 +361,21 @@ export const loadOlderDirectMessages = async (
   return messages;
 };
 
+// Listen to a specific conversation's metadata
+export const listenToConversation = (conversationId: string, callback: (conversation: Conversation | null) => void) => {
+  const conversationRef = ref(database, `conversations/${conversationId}`);
+  return onValue(conversationRef, (snapshot) => {
+    if (snapshot.exists()) {
+      callback({
+        id: snapshot.key!,
+        ...snapshot.val()
+      });
+    } else {
+      callback(null);
+    }
+  });
+};
+
 // Get user conversations (showing only if there are new messages after deletion)
 export const getUserConversations = (userId: string, callback: (conversations: Conversation[]) => void) => {
   const conversationsRef = ref(database, 'conversations');
@@ -359,10 +479,9 @@ export const getUserConversations = (userId: string, callback: (conversations: C
 // Mark conversation as read (and store last read timestamp)
 export const markConversationAsRead = async (conversationId: string, userId: string) => {
   try {
-    const now = Date.now();
     const updates = {
       [`unreadCount/${userId}`]: 0,
-      [`lastReadTimestamp/${userId}`]: now
+      [`lastReadTimestamp/${userId}`]: serverTimestamp()
     };
     await update(ref(database, `conversations/${conversationId}`), updates);
   } catch (error: any) {

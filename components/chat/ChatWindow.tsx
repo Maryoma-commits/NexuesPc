@@ -16,8 +16,17 @@ export default function ChatWindow({ onClose, onNewMessage }: ChatWindowProps) {
   const { loading } = useAuth();
   const [activeTab, setActiveTab] = useState<'global' | 'dms'>('global');
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
   const [globalUnreadCount, setGlobalUnreadCount] = useState(0);
   const [dmUnreadCount, setDmUnreadCount] = useState(0);
+
+  // Lock body scroll when mouse is over the chat window
+  useEffect(() => {
+    return () => {
+      // Cleanup when chat is closed/unmounted
+      document.body.style.overflow = 'unset';
+    };
+  }, []);
 
   const handleOpenDM = (userId: string) => {
     setSelectedUserId(userId);
@@ -54,22 +63,31 @@ export default function ChatWindow({ onClose, onNewMessage }: ChatWindowProps) {
 
     const unsubscribe = getUserConversations(auth.currentUser.uid, (convs) => {
       // Calculate total unread count across all DM conversations
-      const totalUnread = convs.reduce((sum, conv) => {
+      let totalUnread = convs.reduce((sum, conv) => {
         const myUnread = conv.unreadCount?.[auth.currentUser!.uid] || 0;
         return sum + myUnread;
       }, 0);
       
-      // Update DM badge count (only when not viewing DMs)
-      if (activeTab !== 'dms') {
-        setDmUnreadCount(totalUnread);
+      // If viewing a specific conversation in DMs, subtract its unread count
+      if (activeTab === 'dms' && selectedConversationId) {
+        const currentConv = convs.find(c => c.id === selectedConversationId);
+        const currentUnread = currentConv?.unreadCount?.[auth.currentUser!.uid] || 0;
+        totalUnread -= currentUnread;
       }
+      
+      // Update DM badge count
+      setDmUnreadCount(totalUnread);
     });
 
     return () => unsubscribe();
-  }, [activeTab]);
+  }, [activeTab, selectedConversationId]);
 
   return (
-    <div className="w-96 h-[600px] bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 flex flex-col overflow-hidden relative">
+    <div 
+      onMouseEnter={() => { document.body.style.overflow = 'hidden'; }}
+      onMouseLeave={() => { document.body.style.overflow = 'unset'; }}
+      className="w-96 h-[600px] bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 flex flex-col overflow-hidden relative overscroll-contain"
+    >
       {/* Header */}
       <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-4 flex items-center justify-between">
         <h3 className="font-bold text-lg">NexusPC Chat</h3>
@@ -133,19 +151,22 @@ export default function ChatWindow({ onClose, onNewMessage }: ChatWindowProps) {
           </div>
 
           {/* Content */}
-          <div className="flex-1 overflow-hidden">
-            {activeTab === 'global' ? (
+          <div className="flex-1 overflow-hidden relative">
+            {/* Keep both tabs mounted, toggle visibility with CSS */}
+            <div className={`absolute inset-0 ${activeTab === 'global' ? 'block' : 'hidden'}`}>
               <GlobalChat 
                 onNewMessage={handleGlobalMessage} 
                 onOpenDM={handleOpenDM}
               />
-            ) : (
+            </div>
+            <div className={`absolute inset-0 ${activeTab === 'dms' ? 'block' : 'hidden'}`}>
               <DirectMessages 
                 onNewMessage={handleDMMessage}
                 preselectedUserId={selectedUserId}
                 onClearPreselection={() => setSelectedUserId(null)}
+                onConversationChange={setSelectedConversationId}
               />
-            )}
+            </div>
           </div>
         </>
       )}

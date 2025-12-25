@@ -2,8 +2,11 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { SpeedInsights } from "@vercel/speed-insights/react";
 import { Analytics } from "@vercel/analytics/react";
-import { AuthProvider } from './contexts/AuthContext';
+import { Toaster } from 'react-hot-toast';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 import ChatBubble from './components/chat/ChatBubble';
+import AdminDashboard from './components/admin/AdminDashboard';
+import OnboardingModal from './components/auth/OnboardingModal';
 import { Navbar } from './components/Navbar';
 import { Sidebar } from './components/Sidebar';
 import { ProductCard } from './components/ProductCard';
@@ -19,6 +22,43 @@ import { parseBuildFromURL } from './utils/buildEncoder';
 const PAGE_SIZE = 24;
 
 const App: React.FC = () => {
+  // Check if we're on admin page
+  const [currentPage, setCurrentPage] = useState(window.location.pathname);
+
+  useEffect(() => {
+    const handleLocationChange = () => {
+      setCurrentPage(window.location.pathname);
+    };
+    window.addEventListener('popstate', handleLocationChange);
+    return () => window.removeEventListener('popstate', handleLocationChange);
+  }, []);
+
+  // If admin page, render admin dashboard
+  if (currentPage === '/admin') {
+    return (
+      <AuthProvider>
+        <AdminDashboard />
+        <Toaster position="top-center" />
+        <SpeedInsights />
+        <Analytics />
+      </AuthProvider>
+    );
+  }
+
+  // Otherwise render main app
+  return (
+    <AuthProvider>
+      <MainApp />
+    </AuthProvider>
+  );
+};
+
+const MainApp: React.FC = () => {
+  return <MainAppContent />;
+};
+
+const MainAppContent: React.FC = () => {
+  const { needsOnboarding, setNeedsOnboarding } = useAuth();
   const [query, setQuery] = useState('');
   const [allProducts, setAllProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -327,7 +367,13 @@ const App: React.FC = () => {
   }, [hasMore, loading]);
 
   return (
-    <AuthProvider>
+    <>
+      {/* Onboarding Modal for new users */}
+      <OnboardingModal 
+        isOpen={needsOnboarding}
+        onComplete={() => setNeedsOnboarding(false)}
+      />
+      
       <div className="min-h-screen bg-nexus-950 text-gray-100 flex flex-col font-sans selection:bg-nexus-accent selection:text-nexus-950 relative overflow-x-hidden">
 
       {/* Ambient Background Effects */}
@@ -529,10 +575,36 @@ const App: React.FC = () => {
       {/* Vercel Web Analytics */}
       <Analytics />
       
+      {/* Toast Notifications */}
+      <Toaster 
+        position="top-center"
+        toastOptions={{
+          duration: 3000,
+          style: {
+            background: '#333',
+            color: '#fff',
+          },
+          success: {
+            duration: 2000,
+            iconTheme: {
+              primary: '#10B981',
+              secondary: '#fff',
+            },
+          },
+          error: {
+            duration: 4000,
+            iconTheme: {
+              primary: '#EF4444',
+              secondary: '#fff',
+            },
+          },
+        }}
+      />
+      
       {/* Chat Bubble */}
       <ChatBubble />
       </div>
-    </AuthProvider>
+    </>
   );
 };
 
