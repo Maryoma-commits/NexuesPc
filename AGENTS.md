@@ -627,11 +627,36 @@ buildData: {
 
 ---
 
-**Last Updated:** 2025-12-26 04:30  
+**Last Updated:** 2025-12-26 07:00  
 **Status:** Production Ready ✅  
-**Recent Session:** Facebook Messenger-style input field redesign, image/caption ordering fix, "Seen by X" feature in Global Chat, admin "Delete All" messages button
+**Recent Session:** Improved IP ban UX - banned users no longer see brief "signed in" flash before being kicked out. IP check now happens BEFORE setting auth state.
 **Production Status:** 9.8/10 - Full Messenger-style chat with seen tracking, optimized UI/UX, complete admin tools with bulk delete. Ready for launch after rate limiting implementation.
 **Agent:** Claude Code Agent (Rovo Dev)
+
+---
+
+## 🔒 Recent Security Improvements
+
+### 2025-12-26 - IP Ban UX Enhancement (Commit 41da713)
+**Issue Fixed:**
+- Users with banned IPs would briefly see "signed in" UI before being kicked out
+- Poor user experience with visible state flashing
+
+**Solution Implemented:**
+- Moved IP ban check to happen BEFORE setting user state in `AuthContext.tsx`
+- Order of operations now:
+  1. User attempts sign-in
+  2. Load user profile
+  3. **Check IP ban status FIRST**
+  4. If banned → Sign out immediately + error toast (no UI flash)
+  5. If not banned → Set user state + continue normal flow
+
+**Technical Changes:**
+- `setUser(currentUser)` now called AFTER IP check passes (line 76)
+- Added `setUser(null)` in ban handler to ensure clean state
+- Loading state stays true during IP check (prevents UI flash)
+
+**Result:** Smooth, professional ban enforcement with no visual glitches ✅
 
 ---
 
