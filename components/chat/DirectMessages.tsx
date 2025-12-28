@@ -75,6 +75,7 @@ export default function DirectMessages({ onNewMessage, preselectedUserId, onClea
   const [uploadingImage, setUploadingImage] = useState(false);
   const [imageLightbox, setImageLightbox] = useState<string | null>(null);
   const [showBuildModal, setShowBuildModal] = useState(false);
+  const [expandedReplies, setExpandedReplies] = useState<Set<string>>(new Set());
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -865,11 +866,64 @@ export default function DirectMessages({ onNewMessage, preselectedUserId, onClea
                   </div>
                   <div className="relative group inline-block">
                     <div className="relative overflow-visible flex flex-col">
-                      {msg.replyTo && (<button onClick={() => scrollToMessage(msg.replyTo!.messageId)} className={`px-3 pt-2 pb-3 text-[13px] line-clamp-1 max-w-sm bg-[#3E4042] text-gray-300 hover:bg-[#4E5052] transition-colors rounded-[18px] mb-[-10px] relative z-0 opacity-80 cursor-pointer`} style={{ direction: detectTextDirection(msg.replyTo.text), textAlign: detectTextDirection(msg.replyTo.text) === 'rtl' ? 'right' : 'left' }}>{msg.replyTo.text}</button>)}
+                      {msg.replyTo && (() => {
+                        const isExpanded = expandedReplies.has(msg.id);
+                        const replyText = msg.replyTo.text;
+                        const needsExpansion = replyText.split('\n').length > 3 || replyText.length > 70;
+                        
+                        return (
+                          <div 
+                            className="px-3 pt-2 pb-3 text-[13px] max-w-[212px] bg-gray-200 dark:bg-[#3E4042] text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-[#4E5052] transition-colors rounded-[18px] mb-[-10px] relative z-0 opacity-80 cursor-pointer"
+                            style={{ 
+                              direction: detectTextDirection(replyText), 
+                              textAlign: detectTextDirection(replyText) === 'rtl' ? 'right' : 'left',
+                              wordBreak: 'break-word',
+                              overflowWrap: 'break-word'
+                            }}
+                            onClick={() => scrollToMessage(msg.replyTo!.messageId)}
+                          >
+                            {!isExpanded && needsExpansion ? (
+                              <>
+                                <div className="line-clamp-3">
+                                  {replyText}
+                                </div>
+                                <span 
+                                  className="text-gray-400 hover:text-gray-300 cursor-pointer text-xs -mt-1 inline-block"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setExpandedReplies(prev => new Set([...prev, msg.id]));
+                                  }}
+                                >
+                                  more
+                                </span>
+                              </>
+                            ) : (
+                              <>
+                                <div>{replyText}</div>
+                                {needsExpansion && (
+                                  <button
+                                    className="text-gray-400 hover:text-gray-300 text-xs ml-1"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setExpandedReplies(prev => {
+                                        const newSet = new Set(prev);
+                                        newSet.delete(msg.id);
+                                        return newSet;
+                                      });
+                                    }}
+                                  >
+                                    Show less
+                                  </button>
+                                )}
+                              </>
+                            )}
+                          </div>
+                        );
+                      })()}
                       {msg.text && (
                         <div className={`${msg.imageUrl ? 'mb-2' : ''} ${isOwn ? 'flex justify-end' : ''}`}>
                           <div 
-                            className={`px-3 py-2 max-w-[212px] break-words leading-relaxed shadow-md relative z-10 rounded-[18px] inline-block ${isOwn ? 'bg-[#7835F7] text-white' : isUserAdmin(msg.senderId) ? 'bg-yellow-50 dark:bg-yellow-900/20 text-gray-900 dark:text-white border border-yellow-500' : 'bg-gray-200 dark:bg-[#3E4042] text-gray-900 dark:text-white'}`} 
+                            className={`px-3 py-2 max-w-[212px] break-words leading-relaxed shadow-md relative z-10 rounded-[18px] inline-block ${isOwn ? 'bg-[#7835F7] !text-white' : isUserAdmin(msg.senderId) ? 'bg-yellow-50 dark:bg-gray-800 text-gray-900 dark:text-white border border-yellow-500' : 'bg-gray-200 dark:bg-[#3E4042] text-gray-900 dark:text-white'}`} 
                             style={{ 
                               wordBreak: 'break-word', 
                               overflowWrap: 'break-word', 

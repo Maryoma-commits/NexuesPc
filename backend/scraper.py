@@ -1077,17 +1077,49 @@ def extract_kolshzin_products_from_page(soup, is_laptop=False):
     
     for p in soup.select("li.product"):
         title_el = p.select_one("h2.woocommerce-loop-product__title a") or p.select_one("a.woocommerce-LoopProduct-link")
-        new_price_el = p.select_one(".price .amount") or p.select_one(".price")
+        price_container = p.select_one(".price")
         old_price_el = p.select_one("del .amount")
 
         title = title_el.text.strip() if title_el else "Unknown"
-        new_price_text = new_price_el.text if new_price_el and new_price_el.text else "0"
-        old_price_text = old_price_el.text if old_price_el and old_price_el.text else None
-
-        price_data = parse_price(new_price_text)
-        compare_price_data = parse_price(old_price_text) if old_price_text else None
         
-        price = price_data['numeric_value']
+        # Check if this is a variable product with price range
+        # Price range format: "335,000 د.ع – 510,000 د.ع"
+        is_price_range = False
+        min_price = 0
+        max_price = 0
+        
+        if price_container:
+            # Get all price amounts in the container
+            price_amounts = price_container.select(".amount")
+            
+            # If we have 2 or more amounts, it's a price range
+            if len(price_amounts) >= 2:
+                is_price_range = True
+                min_price_text = price_amounts[0].text.strip()
+                max_price_text = price_amounts[-1].text.strip()
+                
+                min_price_data = parse_price(min_price_text)
+                max_price_data = parse_price(max_price_text)
+                
+                min_price = min_price_data['numeric_value']
+                max_price = max_price_data['numeric_value']
+                
+                # Use min price as the main price for sorting/filtering
+                price = min_price
+                # Store the range in raw_price for display
+                new_price_text = f"{min_price_data['raw_value']} - {max_price_data['raw_value']}"
+            else:
+                # Single price (simple product)
+                new_price_el = price_container.select_one(".amount") or price_container
+                new_price_text = new_price_el.text if new_price_el and new_price_el.text else "0"
+                price_data = parse_price(new_price_text)
+                price = price_data['numeric_value']
+        else:
+            new_price_text = "0"
+            price = 0
+        
+        old_price_text = old_price_el.text if old_price_el and old_price_el.text else None
+        compare_price_data = parse_price(old_price_text) if old_price_text else None
         old_price = compare_price_data['numeric_value'] if compare_price_data else None
         
         normalized_compare_price = None
@@ -1289,17 +1321,37 @@ def get_products_from_kolshzin() -> List[Dict]:
 
             for p in items:
                 title_el = p.select_one("h3 a")
-                new_price_el = p.select_one(".price ins bdi") or p.select_one(".price bdi")
+                price_container = p.select_one(".price")
                 old_price_el = p.select_one("del bdi")
 
                 title = title_el.text.strip() if title_el else "Unknown"
-                new_price_text = new_price_el.text if new_price_el and new_price_el.text else "0"
-                old_price_text = old_price_el.text if old_price_el and old_price_el.text else None
-
-                price_data = parse_price(new_price_text)
-                compare_price_data = parse_price(old_price_text) if old_price_text else None
                 
-                price = price_data['numeric_value']
+                # Check if this is a variable product with price range
+                if price_container:
+                    price_amounts = price_container.select(".amount")
+                    
+                    if len(price_amounts) >= 2:
+                        # Price range detected
+                        min_price_text = price_amounts[0].text.strip()
+                        max_price_text = price_amounts[-1].text.strip()
+                        
+                        min_price_data = parse_price(min_price_text)
+                        max_price_data = parse_price(max_price_text)
+                        
+                        price = min_price_data['numeric_value']
+                        new_price_text = f"{min_price_data['raw_value']} - {max_price_data['raw_value']}"
+                    else:
+                        # Single price
+                        new_price_el = price_container.select_one("ins bdi") or price_container.select_one("bdi")
+                        new_price_text = new_price_el.text if new_price_el and new_price_el.text else "0"
+                        price_data = parse_price(new_price_text)
+                        price = price_data['numeric_value']
+                else:
+                    new_price_text = "0"
+                    price = 0
+                    
+                old_price_text = old_price_el.text if old_price_el and old_price_el.text else None
+                compare_price_data = parse_price(old_price_text) if old_price_text else None
                 old_price = compare_price_data['numeric_value'] if compare_price_data else None
                 
                 normalized_compare_price = None

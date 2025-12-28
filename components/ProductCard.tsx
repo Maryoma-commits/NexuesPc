@@ -29,7 +29,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, isFavorite = 
   const isOutOfStock = product.inStock === false;
 
   // Format prices for display using the normalized values
-  const formattedPrice = hasNoPrice ? null : formatPrice(product.price, currency);
+  // Check if raw_price contains a range (e.g., "30,000 د.ع - 415,000 د.ع")
+  const hasRange = product.rawPrice && product.rawPrice.includes('-') && product.rawPrice.split('-').length === 2;
+  // Clean the range by removing Arabic currency symbol (د.ع) - will be added back with our formatting
+  const cleanedRange = hasRange ? product.rawPrice.replace(/د\.ع/g, '').trim() : '';
+  const formattedPrice = hasNoPrice ? null : (hasRange ? cleanedRange : formatPrice(product.price, currency));
   const formattedComparePrice = product.compareAtPrice ? formatPrice(product.compareAtPrice, currency) : null;
   const formattedSavedAmount = savedAmount > 0 ? formatPrice(savedAmount, currency) : null;
 
@@ -220,13 +224,13 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, isFavorite = 
                   </span>
                 ) : (
                   <>
-                    <span className={`text-xl font-bold tracking-tight bg-clip-text text-transparent ${hasDiscount
+                    <span className={`${hasRange ? 'text-base' : 'text-xl'} font-bold tracking-tight bg-clip-text text-transparent ${hasDiscount
                       ? 'bg-gradient-to-r from-red-400 to-rose-400'
                       : 'bg-gradient-to-r from-white to-gray-300'
                       }`}>
                       {formattedPrice}
                     </span>
-                    <span className="text-xs font-semibold text-gray-600">{currency}</span>
+                    <span className="text-xs font-semibold text-gray-600 whitespace-nowrap">{currency}</span>
                   </>
                 )}
               </div>
