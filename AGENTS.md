@@ -627,11 +627,31 @@ buildData: {
 
 ---
 
-**Last Updated:** 2025-12-27 08:30  
+**Last Updated:** 2025-12-28 21:00  
 **Status:** Production Ready ✅  
-**Recent Session:** Complete MVP chat system in Flutter app with image sharing, reactions, replies, message deletion, and full Firebase sync with website chat.
+**Recent Session:** Added Kolshzin variable product price range support. Attempted @mentions feature but removed due to performance issues.
 **Production Status:** 10/10 - Full-featured web app + native Android app with complete chat functionality matching website features.
 **Agent:** Claude Code Agent (Rovo Dev)
+
+---
+
+## ⚠️ CRITICAL RULES FOR AGENT
+
+### 🚫 NEVER USE GIT COMMANDS WITHOUT EXPLICIT USER PERMISSION
+**DO NOT run any of these commands without asking first:**
+- ❌ `git checkout`
+- ❌ `git reset`
+- ❌ `git revert`
+- ❌ `git stash`
+- ❌ Any command that modifies working directory
+
+**Why:** Git commands can undo recent work that hasn't been committed yet. Always make manual code changes using find_and_replace_code instead.
+
+**Only allowed Git commands (for information):**
+- ✅ `git status`
+- ✅ `git log`
+- ✅ `git diff`
+- ✅ `git branch`
 
 ---
 

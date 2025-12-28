@@ -51,6 +51,8 @@ export default function DirectMessages({ onNewMessage, preselectedUserId, onClea
   const [newMessage, setNewMessage] = useState('');
   const [inputDirection, setInputDirection] = useState<'ltr' | 'rtl'>('ltr');
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [emojiButtonPosition, setEmojiButtonPosition] = useState<{ x: number; y: number } | null>(null);
+  const emojiButtonRef = useRef<HTMLButtonElement>(null);
   const [loading, setLoading] = useState(false);
   const [loadingOlder, setLoadingOlder] = useState(false);
   const [hasMoreMessages, setHasMoreMessages] = useState(true);
@@ -1049,15 +1051,20 @@ export default function DirectMessages({ onNewMessage, preselectedUserId, onClea
               style={{ maxHeight: '100px' }} 
             />
             <button 
+              ref={emojiButtonRef}
               type="button" 
-              onClick={() => setShowEmojiPicker(!showEmojiPicker)} 
+              onClick={(e) => {
+                const rect = e.currentTarget.getBoundingClientRect();
+                setEmojiButtonPosition({ x: rect.left + rect.width / 2, y: rect.top });
+                setShowEmojiPicker(!showEmojiPicker);
+              }} 
               className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-full transition-colors"
               title="Emoji"
             >
               <Smile size={18} className="text-gray-500 dark:text-gray-400" />
             </button>
             {/* Emoji Picker Portal */}
-            {showEmojiPicker && createPortal(
+            {showEmojiPicker && emojiButtonPosition && createPortal(
               <>
                 <div 
                   className="fixed inset-0 z-[100]" 
@@ -1066,8 +1073,9 @@ export default function DirectMessages({ onNewMessage, preselectedUserId, onClea
                 <div 
                   className="fixed z-[101]"
                   style={{
-                    bottom: '80px',
-                    right: '20px',
+                    left: `${emojiButtonPosition.x - 40}px`,
+                    top: `${emojiButtonPosition.y - 410}px`,
+                    transform: 'translateX(-50%)',
                   }}
                 >
                   <EmojiPicker 
@@ -1075,7 +1083,19 @@ export default function DirectMessages({ onNewMessage, preselectedUserId, onClea
                     theme={document.documentElement.classList.contains('dark') ? 'dark' : 'light'} 
                     height={400} 
                     width={280} 
-                    emojiStyle="facebook" 
+                    emojiStyle="facebook"
+                    previewConfig={{ showPreview: false }}
+                    skinTonesDisabled
+                    categories={[
+                      'smileys_people',
+                      'animals_nature', 
+                      'food_drink',
+                      'travel_places',
+                      'activities',
+                      'objects',
+                      'symbols',
+                      'flags'
+                    ]}
                   />
                 </div>
               </>,
