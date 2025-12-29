@@ -5,9 +5,30 @@
 
     "users": {
       "$uid": {
-        ".read": "auth != null && auth.uid === $uid",
+        ".read": "auth != null && (auth.uid === $uid || auth.token.admin === true)",
         ".write": "auth != null && auth.uid === $uid",
         "provider": { ".validate": "newData.val() === data.val() || newData.val() === 'google' || newData.val() === 'email'" }
+      }
+    },
+
+    "bannedUsers": {
+      "$uid": {
+        ".read": "auth != null && auth.token.admin === true",
+        ".write": "auth != null && auth.token.admin === true"
+      }
+    },
+    "bannedIPs": {
+      "$ip": {
+        ".read": "auth != null && auth.token.admin === true",
+        ".write": "auth != null && auth.token.admin === true"
+      }
+    },
+
+    "viewingStatus": {
+      "$uid": {
+        ".read": "auth != null",
+        "globalChat": { ".write": "auth != null && auth.uid === $uid" },
+        "dmConversation": { ".write": "auth != null && auth.uid === $uid" }
       }
     },
 
@@ -16,7 +37,7 @@
         ".indexOn": ["timestamp"],
         "$msgId": {
           ".read": "auth != null",
-          ".write": "auth != null && ((!data.exists() && newData.child('senderId').val() === auth.uid) || (data.exists() && data.child('senderId').val() === auth.uid))",
+          ".write": "auth != null && ((auth.token.admin === true) || ((!data.exists() && newData.child('senderId').val() === auth.uid) || (data.exists() && data.child('senderId').val() === auth.uid)))",
           "senderId": { ".validate": "newData.val() === data.val() || (!data.exists() && newData.val() === auth.uid)" },
           "timestamp": { ".validate": "newData.isNumber()" },
           "text": { ".validate": "newData.val() === null || (newData.isString() && newData.val().length > 0 && newData.val().length <= 2000)" },
@@ -46,7 +67,7 @@
           ".indexOn": ["timestamp"],
           "$msgId": {
             ".read": "auth != null",
-            ".write": "auth != null && ((!data.exists() && newData.child('senderId').val() === auth.uid) || (data.exists() && data.child('senderId').val() === auth.uid))",
+            ".write": "auth != null && ((auth.token.admin === true) || ((!data.exists() && newData.child('senderId').val() === auth.uid) || (data.exists() && data.child('senderId').val() === auth.uid)))",
             "senderId": { ".validate": "newData.val() === data.val() || (!data.exists() && newData.val() === auth.uid)" },
             "recipientId": { ".validate": "newData.val() === data.val() || (!data.exists() && newData.isString())" },
             "timestamp": { ".validate": "newData.isNumber()" },
@@ -85,6 +106,13 @@
         "$notifId": {
           "read": { ".write": "auth != null && auth.uid === $uid" }
         }
+      }
+    },
+
+    "reports": {
+      "$messageId": {
+        ".write": "auth != null",
+        ".read": "auth != null && auth.token.admin === true"
       }
     },
 

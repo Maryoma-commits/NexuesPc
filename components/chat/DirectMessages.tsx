@@ -780,7 +780,7 @@ export default function DirectMessages({ onNewMessage, preselectedUserId, onClea
         <div className="p-4 border-b border-gray-200 dark:border-gray-700"><h3 className="text-lg font-semibold text-gray-900 dark:text-white">Messages</h3></div>
         <div className="flex-1 overflow-y-auto overflow-x-hidden overscroll-contain">
           <div className="p-2">
-            {conversations.length === 0 ? (<div className="text-center text-gray-500 dark:text-gray-400 py-8"><p className="text-lg mb-2">ðŸ’¬ No conversations yet</p><p className="text-sm">Start a chat from Global Chat!</p></div>) : (
+            {conversations.length === 0 ? (<div className="text-center text-gray-500 dark:text-gray-400 py-8"><p className="text-lg mb-2">💬 No conversations yet</p><p className="text-sm">Start a chat from Global Chat!</p></div>) : (
               conversations.map((conv) => {
                 const ou = getOtherUser(conv);
                 const unreadCount = conv.unreadCount[auth.currentUser?.uid || ''] || 0;
