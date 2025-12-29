@@ -1,7 +1,7 @@
 ﻿// Direct Messages Component
 import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { Send, Smile, ArrowLeft, MoreVertical, Flag, Trash2, Loader2, Reply, X, Heart, Trash, Check, Image as ImageIcon, Monitor, ThumbsUp, Crown } from 'lucide-react';
+import { Send, Smile, ArrowLeft, MoreVertical, Flag, Trash2, Loader2, Reply, X, Heart, Trash, Check, Image as ImageIcon, Monitor, ThumbsUp, Crown, Pencil } from 'lucide-react';
 import EmojiPicker, { EmojiClickData } from 'emoji-picker-react';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../contexts/AuthContext';
@@ -23,6 +23,7 @@ import {
   deleteConversationForUser,
   toggleReaction,
   uploadChatImage,
+  editDirectMessage,
   Message,
   Conversation 
 } from '../../services/chatService';
@@ -69,6 +70,7 @@ export default function DirectMessages({ onNewMessage, preselectedUserId, onClea
   const [allUsers, setAllUsers] = useState<UserProfile[]>([]);
   const [showUserSearch, setShowUserSearch] = useState(false);
   const [contextMenu, setContextMenu] = useState<{ messageId: string; x: number; y: number } | null>(null);
+  const [editingMessage, setEditingMessage] = useState<{ id: string; text: string } | null>(null);
   const [deleteConfirmConvId, setDeleteConfirmConvId] = useState<string | null>(null);
   const [currentConversationMetadata, setCurrentConversationMetadata] = useState<Conversation | null>(null);
   const [, setTick] = useState(0); // Force re-render for timestamp updates
@@ -491,6 +493,17 @@ export default function DirectMessages({ onNewMessage, preselectedUserId, onClea
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // If editing, save edit instead of sending new message
+    if (editingMessage) {
+      if (!auth.currentUser || !selectedConversation) return;
+      const text = newMessage.trim();
+      if (!text) { toast.error('Message cannot be empty'); return; }
+      const success = await editDirectMessage(selectedConversation, editingMessage.id, auth.currentUser.uid, text);
+      if (success) { toast.success('Message edited'); setEditingMessage(null); setNewMessage(''); scrollToBottom(true); }
+      else { toast.error('Failed to edit message (too old or unauthorized)'); }
+      return;
+    }
+    
     if (imagePreview && imageFile) {
       await handleSendImage();
       return;
@@ -614,6 +627,53 @@ export default function DirectMessages({ onNewMessage, preselectedUserId, onClea
     const conversationId = [auth.currentUser.uid, userId].sort().join('_');
     setSelectedConversation(conversationId);
     setShowUserSearch(false);
+  };
+
+  const handleEditMessage = (messageId: string) => {
+    const message = messages.find(m => m.id === messageId);
+    if (!message) return;
+    
+    // Check if message is within 5 minutes
+    const fiveMinutes = 5 * 60 * 1000;
+    if (Date.now() - message.timestamp > fiveMinutes) {
+      toast.error('Message is too old to edit (5 minute limit)');
+      return;
+    }
+    
+    setEditingMessage({ id: messageId, text: message.text });
+    setNewMessage(message.text || '');
+    setReplyingTo(null);
+    setShowEmojiPicker(false);
+    setContextMenu(null);
+    // Focus main input for inline editing like Facebook and place caret at end
+    setTimeout(() => {
+      const el = inputRef.current as HTMLTextAreaElement | null;
+      if (el) {
+        el.focus();
+        const len = el.value.length;
+        try { el.setSelectionRange(len, len); } catch {}
+      }
+    }, 0);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingMessage || !auth.currentUser || !selectedConversation) return;
+    
+    const newText = newMessage.trim();
+    if (!newText) {
+      toast.error('Message cannot be empty');
+      return;
+    }
+    
+    const success = await editDirectMessage(selectedConversation, editingMessage.id, auth.currentUser.uid, newText);
+    
+    if (success) {
+      toast.success('Message edited');
+      setEditingMessage(null);
+      setNewMessage('');
+    } else {
+      toast.error('Failed to edit message (too old or unauthorized)');
+    }
   };
 
   const handleDeleteMessage = async (messageId: string) => {
@@ -843,14 +903,15 @@ export default function DirectMessages({ onNewMessage, preselectedUserId, onClea
           </div>
         )}
 
-        {[...messages].reverse().map((msg) => {
+        {[...messages].reverse().map((msg, index) => {
+            if (!msg) return null;
             const isOwn = msg.senderId === auth.currentUser?.uid;
             const sp = isOwn ? currentUserProfile : profileCache[msg.senderId];
             const sn = sp?.displayName || 'User';
             const sph = sp?.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(sn)}&background=random`;
             const isHighlighted = highlightedMessageId === msg.id;
             return (
-              <div key={msg.id} id={`msg-${msg.id}`} className={`flex gap-3 transition-all duration-500 ${isOwn ? 'flex-row-reverse' : ''} ${msg.reactions && Object.keys(msg.reactions).length > 0 ? 'mb-4' : 'mb-1'} ${isHighlighted ? 'bg-blue-500/20 rounded-lg p-2 ring-2 ring-blue-500 ring-opacity-50 scale-[1.02]' : ''}`}>
+              <div key={msg.id || msg.tempId || `temp-${index}`} id={`msg-${msg.id || msg.tempId}`} className={`flex gap-3 transition-all duration-500 ${isOwn ? 'flex-row-reverse' : ''} ${msg.reactions && Object.keys(msg.reactions).length > 0 ? 'mb-4' : 'mb-1'} ${isHighlighted ? 'bg-blue-500/20 rounded-lg p-2 ring-2 ring-blue-500 ring-opacity-50 scale-[1.02]' : ''}`}>
                 <div className="flex-shrink-0">
                   <div className="relative">
                     <img src={sph} alt={sn} className={`w-8 h-8 rounded-full object-cover ${isUserAdmin(msg.senderId) ? 'ring-2 ring-yellow-500' : ''}`} />
@@ -924,19 +985,47 @@ export default function DirectMessages({ onNewMessage, preselectedUserId, onClea
                       })()}
                       {msg.text && (
                         <div className={`${msg.imageUrl ? 'mb-2' : ''} ${isOwn ? 'flex justify-end' : ''}`}>
-                          <div 
-                            className={`px-3 py-2 max-w-[212px] break-words leading-relaxed shadow-md relative z-10 rounded-[18px] inline-block ${isOwn ? 'bg-[#7835F7] !text-white' : isUserAdmin(msg.senderId) ? 'bg-yellow-50 dark:bg-gray-800 text-gray-900 dark:text-white border border-yellow-500' : 'bg-gray-200 dark:bg-[#3E4042] text-gray-900 dark:text-white'}`} 
-                            style={{ 
-                              wordBreak: 'break-word', 
-                              overflowWrap: 'break-word', 
-                              direction: detectTextDirection(msg.text), 
-                              textAlign: detectTextDirection(msg.text) === 'rtl' ? 'right' : 'left', 
-                              fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
-                              ...(isUserAdmin(msg.senderId) && !isOwn ? { boxShadow: '0 0 10px rgba(234, 179, 8, 0.3)' } : {})
-                            }}
-                          >
-                            {msg.text}
-                          </div>
+                          {/* Inline edit UI removed: editing happens in input field */}
+{false ? (
+                            <div className="flex flex-col gap-2">
+                              <textarea
+                                value={editingMessage.text}
+                                onChange={(e) => setEditingMessage({ id: msg.id, text: e.target.value })}
+                                className="px-3 py-2 max-w-[212px] min-w-[212px] bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg border-2 border-blue-500 focus:outline-none resize-none"
+                                rows={3}
+                                autoFocus
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter' && !e.shiftKey) {
+                                    e.preventDefault();
+                                    handleSaveEdit();
+                                  } else if (e.key === 'Escape') {
+                                    setEditingMessage(null);
+                                  }
+                                }}
+                              />
+                              <div className="flex gap-2">
+                                <button onClick={handleSaveEdit} className="px-3 py-1 bg-blue-500 text-white rounded-lg text-sm hover:bg-blue-600">Save</button>
+                                <button onClick={() => setEditingMessage(null)} className="px-3 py-1 bg-gray-300 dark:bg-gray-600 text-gray-900 dark:text-white rounded-lg text-sm hover:bg-gray-400 dark:hover:bg-gray-500">Cancel</button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div 
+                              className={`px-3 py-2 max-w-[212px] break-words leading-relaxed shadow-md relative z-10 rounded-[18px] inline-block ${isOwn ? 'bg-[#7835F7] !text-white' : isUserAdmin(msg.senderId) ? 'bg-yellow-50 dark:bg-gray-800 text-gray-900 dark:text-white border border-yellow-500' : 'bg-gray-200 dark:bg-[#3E4042] text-gray-900 dark:text-white'}`} 
+                              style={{ 
+                                wordBreak: 'break-word', 
+                                overflowWrap: 'break-word', 
+                                direction: detectTextDirection(msg.text), 
+                                textAlign: detectTextDirection(msg.text) === 'rtl' ? 'right' : 'left', 
+                                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+                                ...(isUserAdmin(msg.senderId) && !isOwn ? { boxShadow: '0 0 10px rgba(234, 179, 8, 0.3)' } : {})
+                              }}
+                            >
+                              {msg.text}
+                              {msg.edited && (
+                                <span className="text-[10px] opacity-60 ml-2">(edited)</span>
+                              )}
+                            </div>
+                          )}
                         </div>
                       )}
                       {msg.imageUrl && (
@@ -992,6 +1081,20 @@ export default function DirectMessages({ onNewMessage, preselectedUserId, onClea
         {messages.length === 0 && (<div className="text-center text-gray-500 dark:text-gray-400 mt-8"><p className="text-lg mb-2">ðŸ‘‹ Start a conversation!</p><p className="text-sm">Send your first message</p></div>)}
       </div>
 
+      {/* Edit Bar (input-field editing like Facebook) */}
+      {editingMessage && (
+        <div className="px-4 py-2 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 flex items-center justify-between">
+          <div className="flex-1 min-w-0">
+            <div className="text-xs font-medium text-blue-600 dark:text-blue-400 mb-1">Editing your message</div>
+            <div className="text-sm text-gray-500 dark:text-gray-400 truncate">{editingMessage.text}</div>
+          </div>
+          <div className="flex items-center gap-2 ml-2">
+            <button onClick={() => { setEditingMessage(null); setNewMessage(''); }} className="px-3 py-1 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white rounded-full text-sm hover:bg-gray-300 dark:hover:bg-gray-600" title="Cancel edit">Cancel</button>
+            <button onClick={handleSaveEdit} className="px-3 py-1 bg-blue-600 text-white rounded-full text-sm hover:bg-blue-700" title="Save edit">Save</button>
+          </div>
+        </div>
+      )}
+
       <form onSubmit={handleSendMessage} className="p-4 border-t border-gray-200 dark:border-gray-700">
         {imagePreview && (
           <div className="mb-3 relative inline-block">
@@ -1044,7 +1147,7 @@ export default function DirectMessages({ onNewMessage, preselectedUserId, onClea
               value={newMessage} 
               onChange={handleInputChange} 
               onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendMessage(e); } }} 
-              placeholder={imagePreview ? "Add a caption (optional)..." : "Type a message..."} 
+              placeholder={editingMessage ? "Edit your message..." : imagePreview ? "Add a caption (optional)..." : "Type a message..."} 
               rows={1} 
               dir={inputDirection} 
               className="w-full px-4 py-2 pr-10 bg-gray-100 dark:bg-gray-700 rounded-full focus:outline-none dark:text-white resize-none overflow-hidden" 
@@ -1143,7 +1246,7 @@ export default function DirectMessages({ onNewMessage, preselectedUserId, onClea
         document.body
       )}
 
-      {contextMenu && (<><div className="fixed inset-0 z-40" onClick={() => setContextMenu(null)} /><div className="fixed z-50 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 py-1 min-w-[150px]" style={{ right: window.innerWidth - contextMenu.x + 10, top: contextMenu.y, left: 'auto' }}>{messages.find(m => m.id === contextMenu.messageId)?.senderId === auth.currentUser?.uid && (<button onClick={() => handleDeleteMessage(contextMenu.messageId)} className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 text-red-600 dark:text-red-400"><Trash2 size={16} />Delete</button>)}<button onClick={() => handleReportMessage(contextMenu.messageId)} className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 text-gray-700 dark:text-gray-300"><Flag size={16} />Report</button></div></>)}
+      {contextMenu && (<><div className="fixed inset-0 z-40" onClick={() => setContextMenu(null)} /><div className="fixed z-50 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 py-1 min-w-[150px]" style={{ right: window.innerWidth - contextMenu.x + 10, top: contextMenu.y, left: 'auto' }}>{messages.find(m => m.id === contextMenu.messageId)?.senderId === auth.currentUser?.uid && (<><button onClick={() => handleEditMessage(contextMenu.messageId)} className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 text-gray-700 dark:text-gray-300"><Pencil size={16} />Edit</button><button onClick={() => handleDeleteMessage(contextMenu.messageId)} className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 text-red-600 dark:text-red-400"><Trash2 size={16} />Delete</button></>)}<button onClick={() => handleReportMessage(contextMenu.messageId)} className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 text-gray-700 dark:text-gray-300"><Flag size={16} />Report</button></div></>)}
       {reactionModalOpen && (<ReactionModal messageId={reactionModalOpen.messageId} reactions={reactionModalOpen.reactions} isGlobal={false} conversationId={selectedConversation || undefined} onClose={() => setReactionModalOpen(null)} />)}
       
       {/* Build Share Modal */}

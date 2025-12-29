@@ -8,7 +8,10 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import ChatBubble from './components/chat/ChatBubble';
 import AdminDashboard from './components/admin/AdminDashboard';
 import OnboardingModal from './components/auth/OnboardingModal';
+import NotificationsPanel from './components/NotificationsPanel';
 import { Navbar } from './components/Navbar';
+import { Notification, listenToNotifications } from './services/notificationService';
+import { auth } from './firebase.config';
 import { Sidebar } from './components/Sidebar';
 import { ProductCard } from './components/ProductCard';
 import { FavoritesPanel } from './components/FavoritesPanel';
@@ -92,6 +95,24 @@ const MainAppContent: React.FC = () => {
   // PC Builder State
   const [isPCBuilderOpen, setIsPCBuilderOpen] = useState(false);
   const [initialBuildData, setInitialBuildData] = useState<any>(null);
+  
+  // Notifications State
+  const [notificationCount, setNotificationCount] = useState(0);
+
+  // Listen to notifications in real-time
+  useEffect(() => {
+    if (!auth.currentUser) {
+      setNotificationCount(0);
+      return;
+    }
+
+    const unsubscribe = listenToNotifications(auth.currentUser.uid, (notifications) => {
+      const unreadCount = notifications.filter(n => !n.read).length;
+      setNotificationCount(unreadCount);
+    });
+
+    return () => unsubscribe();
+  }, [auth.currentUser]);
 
   const observerTarget = useRef(null);
 
@@ -395,6 +416,33 @@ const MainAppContent: React.FC = () => {
           favoritesCount={favorites.length}
           onOpenFavorites={() => setIsFavoritesOpen(true)}
           onOpenPCBuilder={() => setIsPCBuilderOpen(true)}
+          notificationCount={notificationCount}
+          onNotificationClick={(notification) => {
+            // Check if chat is already open
+            const chatWindow = document.querySelector('[data-chat-window]');
+            const isChatOpen = chatWindow !== null;
+            
+            if (!isChatOpen) {
+              // Open chat if closed
+              const chatBubble = document.querySelector('[data-chat-bubble]');
+              if (chatBubble) {
+                (chatBubble as HTMLElement).click();
+              }
+            }
+            
+            // Pass message ID to scroll to
+            setTimeout(() => {
+              const event = new CustomEvent('scrollToMessage', { 
+                detail: { 
+                  messageId: notification.messageId,
+                  conversationType: notification.conversationType,
+                  conversationId: notification.conversationId
+                }
+              });
+              window.dispatchEvent(event);
+            }, isChatOpen ? 0 : 300);
+          }}
+          onNotificationCountChange={(count) => setNotificationCount(count)}
         />
 
         <FavoritesPanel
@@ -403,6 +451,7 @@ const MainAppContent: React.FC = () => {
           favorites={favoriteProducts}
           onRemoveFavorite={removeFavorite}
         />
+
 
       <main className="flex-grow max-w-8xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Category Navigation */}

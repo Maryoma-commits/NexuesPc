@@ -1,8 +1,10 @@
 
 import React, { useState } from 'react';
-import { Search, Cpu, Heart, Wrench } from 'lucide-react';
+import { Search, Cpu, Heart, Wrench, Bell } from 'lucide-react';
 import { ThemeToggle } from './ui';
 import UserMenu from './auth/UserMenu';
+import NotificationsPanel from './NotificationsPanel';
+import { Notification } from '../services/notificationService';
 
 interface NavbarProps {
   onSearch: (query: string) => void;
@@ -12,6 +14,9 @@ interface NavbarProps {
   favoritesCount?: number;
   onOpenFavorites?: () => void;
   onOpenPCBuilder?: () => void;
+  notificationCount?: number;
+  onNotificationClick?: (notification: Notification) => void;
+  onNotificationCountChange?: (count: number) => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -21,10 +26,14 @@ export const Navbar: React.FC<NavbarProps> = ({
   onToggleTheme,
   favoritesCount = 0,
   onOpenFavorites,
-  onOpenPCBuilder
+  onOpenPCBuilder,
+  notificationCount = 0,
+  onNotificationClick,
+  onNotificationCountChange
 }) => {
   const [inputValue, setInputValue] = useState('');
   const [isFocused, setIsFocused] = useState(false);
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newVal = e.target.value;
@@ -120,6 +129,42 @@ export const Navbar: React.FC<NavbarProps> = ({
                 </span>
               )}
             </button>
+
+            {/* Notifications Button */}
+            <div className="relative">
+              <button
+                onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
+                className="relative p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-yellow-500/30 transition-all duration-200 group"
+                aria-label="Notifications"
+              >
+                <Bell
+                  className={`h-5 w-5 transition-all duration-200 ${notificationCount > 0
+                      ? 'text-yellow-400'
+                      : 'text-gray-400 group-hover:text-yellow-400'
+                    }`}
+                />
+                {notificationCount > 0 && (
+                  <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] flex items-center justify-center px-1 text-[10px] font-bold text-white bg-gradient-to-r from-yellow-500 to-orange-500 rounded-full shadow-lg animate-pulse">
+                    {notificationCount > 99 ? '99+' : notificationCount}
+                  </span>
+                )}
+              </button>
+              
+              {/* Notifications Dropdown */}
+              {isNotificationsOpen && (
+                <NotificationsPanel
+                  isOpen={isNotificationsOpen}
+                  onClose={() => setIsNotificationsOpen(false)}
+                  onNotificationClick={(notification) => {
+                    if (onNotificationClick) onNotificationClick(notification);
+                    setIsNotificationsOpen(false);
+                  }}
+                  onCountChange={(count) => {
+                    if (onNotificationCountChange) onNotificationCountChange(count);
+                  }}
+                />
+              )}
+            </div>
 
             {/* Theme Toggle */}
             <ThemeToggle

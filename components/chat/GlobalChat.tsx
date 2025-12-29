@@ -1,12 +1,12 @@
 // Global Chat Room Component
 import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { Send, Smile, MoreVertical, Flag, Trash2, Loader2, Reply, X, Heart, Image as ImageIcon, Monitor, ThumbsUp } from 'lucide-react';
+import { Send, Smile, MoreVertical, Flag, Trash2, Loader2, Reply, X, Heart, Image as ImageIcon, Monitor, ThumbsUp, Pencil } from 'lucide-react';
 import EmojiPicker, { EmojiClickData } from 'emoji-picker-react';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../contexts/AuthContext';
 import { auth } from '../../firebase.config';
-import { sendGlobalMessage, listenToGlobalChat, loadOlderGlobalMessages, deleteMessage, reportMessage, setGlobalTypingStatus, listenToGlobalTyping, toggleReaction, uploadChatImage, markGlobalMessageAsSeen, getSeenCount, Message, TypingStatus, BuildData } from '../../services/chatService';
+import { sendGlobalMessage, listenToGlobalChat, loadOlderGlobalMessages, deleteMessage, reportMessage, setGlobalTypingStatus, listenToGlobalTyping, toggleReaction, uploadChatImage, markGlobalMessageAsSeen, getSeenCount, setCurrentlyViewingGlobalChat, editGlobalMessage, Message, TypingStatus, BuildData } from '../../services/chatService';
 import { getUserProfile, UserProfile } from '../../services/authService';
 import UserProfileMenu from './UserProfileMenu';
 import ReactionModal from './ReactionModal';
@@ -44,6 +44,7 @@ export default function GlobalChat({ onNewMessage, onOpenDM, onLoadBuild, isOpen
   const [reactionPickerOpen, setReactionPickerOpen] = useState<string | null>(null); // messageId of open picker
   const [reactionPickerPosition, setReactionPickerPosition] = useState<{ x: number; y: number } | null>(null);
   const [reactionModalOpen, setReactionModalOpen] = useState<{ messageId: string; reactions: { [emoji: string]: string[] } } | null>(null);
+  const [editingMessage, setEditingMessage] = useState<{ id: string; text: string } | null>(null);
   const [fullEmojiPickerOpen, setFullEmojiPickerOpen] = useState<{ messageId: string; position: { x: number; y: number } } | null>(null);
   const [userMenu, setUserMenu] = useState<{ userId: string; userName: string; userPhoto: string; x: number; y: number } | null>(null);
   const [, setTick] = useState(0); // Force re-render for timestamp updates
@@ -115,12 +116,56 @@ export default function GlobalChat({ onNewMessage, onOpenDM, onLoadBuild, isOpen
     return () => unsubscribe();
   }, [isOpen]);
 
+  // Track when chat is open/closed for notification suppression
   useEffect(() => {
     if (!auth.currentUser) return;
+    
+    if (isOpen) {
+      setCurrentlyViewingGlobalChat(auth.currentUser.uid, true);
+    } else {
+      setCurrentlyViewingGlobalChat(auth.currentUser.uid, false);
+    }
+    
+    return () => {
+      if (auth.currentUser) {
+        setCurrentlyViewingGlobalChat(auth.currentUser.uid, false);
+      }
+    };
+  }, [isOpen]);
+
+  // Listen for notification scroll events
+  useEffect(() => {
+    const handleScrollToMessage = (event: any) => {
+      const { messageId, conversationType } = event.detail;
+      if (conversationType === 'global') {
+        // Wait for messages to load if they haven't yet
+        const attemptScroll = (retries = 5) => {
+          const messageElement = document.getElementById(`msg-${messageId}`);
+          if (messageElement) {
+            scrollToMessage(messageId);
+          } else if (retries > 0) {
+            // Retry after 500ms if message not found (messages still loading)
+            setTimeout(() => attemptScroll(retries - 1), 500);
+          } else {
+            scrollToMessage(messageId); // Final attempt (will show "not found" message)
+          }
+        };
+        attemptScroll();
+      }
+    };
+
+    window.addEventListener('scrollToMessage', handleScrollToMessage);
+    return () => window.removeEventListener('scrollToMessage', handleScrollToMessage);
+  }, []);
+
+  useEffect(() => {
+    if (!auth.currentUser) return;
+    
     const unsubscribe = listenToGlobalTyping((users) => {
       const otherUsers = users.filter(u => u.userId !== auth.currentUser?.uid);
       setTypingUsers(otherUsers);
     });
+    
     return () => unsubscribe();
   }, []);
 
@@ -308,7 +353,29 @@ export default function GlobalChat({ onNewMessage, onOpenDM, onLoadBuild, isOpen
   };
 
   const handleSendMessage = async (e: React.FormEvent) => {
+    if (contextMenu) setContextMenu(null);
+
     e.preventDefault();
+    
+    // If editing, save edit instead of sending new message
+    if (editingMessage) {
+      if (!auth.currentUser) return;
+      const newText = newMessage.trim();
+      if (!newText) {
+        toast.error('Message cannot be empty');
+        return;
+      }
+      const success = await editGlobalMessage(editingMessage.id, auth.currentUser.uid, newText);
+      if (success) {
+        toast.success('Message edited');
+        setEditingMessage(null);
+        setNewMessage('');
+        scrollToBottom(true);
+      } else {
+        toast.error('Failed to edit message (too old or unauthorized)');
+      }
+      return;
+    }
     
     // If there's an image preview, send the image instead
     if (imagePreview && imageFile) {
@@ -418,7 +485,7 @@ export default function GlobalChat({ onNewMessage, onOpenDM, onLoadBuild, isOpen
     inputRef.current?.focus();
   };
 
-  const handleDeleteMessage = async (messageId: string) => {
+const handleDeleteMessage = async (messageId: string) => {
     if (!auth.currentUser) return;
     try {
       await deleteMessage(messageId, 'global');
@@ -467,6 +534,59 @@ export default function GlobalChat({ onNewMessage, onOpenDM, onLoadBuild, isOpen
       setContextMenu(null);
     } catch (error) {
       toast.error('Failed to report message. Please try again.');
+    }
+  };
+
+  const handleEditMessage = (messageId: string) => {
+    if (!auth.currentUser) return;
+    const message = messages.find(m => m.id === messageId);
+    if (!message) return;
+
+    // Only allow editing own messages
+    if (message.senderId !== auth.currentUser.uid) return;
+
+    // Check if message is within 5 minutes
+    const fiveMinutes = 5 * 60 * 1000;
+    if (Date.now() - message.timestamp > fiveMinutes) {
+      toast.error('Message is too old to edit (5 minute limit)');
+      return;
+    }
+
+    setEditingMessage({ id: messageId, text: message.text });
+    setNewMessage(message.text || '');
+    setReplyingTo(null);
+    setShowEmojiPicker(false);
+    setContextMenu(null);
+    // Focus main input for inline editing like Facebook and place caret at end
+    setTimeout(() => {
+      const el = inputRef.current as HTMLTextAreaElement | null;
+      if (el) {
+        el.focus();
+        const len = el.value.length;
+        try {
+          el.setSelectionRange(len, len);
+        } catch {}
+      }
+    }, 0);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingMessage || !auth.currentUser) return;
+
+    const newText = newMessage.trim();
+    if (!newText) {
+      toast.error('Message cannot be empty');
+      return;
+    }
+
+    const success = await editGlobalMessage(editingMessage.id, auth.currentUser.uid, newText);
+
+    if (success) {
+      toast.success('Message edited');
+      setEditingMessage(null);
+      setNewMessage('');
+    } else {
+      toast.error('Failed to edit message (too old or unauthorized)');
     }
   };
 
@@ -546,6 +666,9 @@ export default function GlobalChat({ onNewMessage, onOpenDM, onLoadBuild, isOpen
 
         {/* Messages list - REVERSED order for flex-col-reverse */}
         {!messagesLoading && [...messages].reverse().map((msg, index) => {
+            // Skip invalid messages FIRST
+            if (!msg) return null;
+            
             const isOwnMessage = msg.senderId === auth.currentUser?.uid;
             const senderProfile = isOwnMessage ? currentUserProfile : profileCache[msg.senderId];
             const senderName = senderProfile?.displayName || 'User';
@@ -554,7 +677,7 @@ export default function GlobalChat({ onNewMessage, onOpenDM, onLoadBuild, isOpen
             
             return (
               <div
-                key={msg.id}
+                key={msg.id || msg.tempId || `temp-${index}`}
                 id={`msg-${msg.id}`}
                 className={`flex gap-3 transition-all duration-500 ${isOwnMessage ? 'flex-row-reverse' : ''} ${msg.reactions && Object.keys(msg.reactions).length > 0 ? 'mb-4' : 'mb-1'} ${isHighlighted ? 'bg-blue-500/20 rounded-lg p-2 ring-2 ring-blue-500 ring-opacity-50 scale-[1.02]' : ''}`}
               >
@@ -613,7 +736,7 @@ export default function GlobalChat({ onNewMessage, onOpenDM, onLoadBuild, isOpen
                         
                         return (
                           <div 
-                            className="px-3 pt-2 pb-3 text-[13px] max-w-[212px] bg-gray-200 dark:bg-[#3E4042] text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-[#4E5052] transition-colors rounded-[18px] mb-[-10px] relative z-0 opacity-80 cursor-pointer"
+                            className="px-3 pt-2 pb-3 text-[13px] max-w-[212px] w-fit bg-gray-200 dark:bg-[#3E4042] text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-[#4E5052] transition-colors rounded-[18px] mb-[-10px] relative z-0 opacity-80 cursor-pointer"
                             style={{ 
                               direction: detectTextDirection(replyText), 
                               textAlign: detectTextDirection(replyText) === 'rtl' ? 'right' : 'left',
@@ -662,19 +785,47 @@ export default function GlobalChat({ onNewMessage, onOpenDM, onLoadBuild, isOpen
                       })()}
                       {msg.text && (
                         <div className={`${msg.imageUrl ? 'mb-2' : ''} ${isOwnMessage ? 'flex justify-end' : ''}`}>
-                          <div
-                            className={`px-3 py-2 max-w-[212px] break-words leading-relaxed shadow-md relative z-10 rounded-[18px] inline-block ${isOwnMessage ? 'bg-[#7835F7] !text-white' : isUserAdmin(msg.senderId) ? 'bg-yellow-50 dark:bg-gray-800 text-gray-900 dark:text-white border border-yellow-500' : 'bg-gray-200 dark:bg-[#3E4042] text-gray-900 dark:text-white'}`}
-                            style={{ 
-                              wordBreak: 'break-word', 
-                              overflowWrap: 'break-word', 
-                              direction: detectTextDirection(msg.text), 
-                              textAlign: detectTextDirection(msg.text) === 'rtl' ? 'right' : 'left', 
-                              fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
-                              ...(isUserAdmin(msg.senderId) && !isOwnMessage ? { boxShadow: '0 0 10px rgba(234, 179, 8, 0.3)' } : {})
-                            }}
-                          >
-                            {msg.text}
-                          </div>
+                          {/* Inline edit UI removed: editing happens in input field */}
+{false ? (
+                            <div className="flex flex-col gap-2">
+                              <textarea
+                                value={editingMessage?.text ?? ''}
+                                onChange={(e) => setEditingMessage({ id: msg.id!, text: e.target.value })}
+                                className="px-3 py-2 max-w-[212px] min-w-[212px] bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg border-2 border-blue-500 focus:outline-none resize-none"
+                                rows={3}
+                                autoFocus
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter' && !e.shiftKey) {
+                                    e.preventDefault();
+                                    handleSaveEdit();
+                                  } else if (e.key === 'Escape') {
+                                    setEditingMessage(null);
+                                  }
+                                }}
+                              />
+                              <div className="flex gap-2">
+                                <button onClick={handleSaveEdit} className="px-3 py-1 bg-blue-500 text-white rounded-lg text-sm hover:bg-blue-600">Save</button>
+                                <button onClick={() => setEditingMessage(null)} className="px-3 py-1 bg-gray-300 dark:bg-gray-600 text-gray-900 dark:text-white rounded-lg text-sm hover:bg-gray-400 dark:hover:bg-gray-500">Cancel</button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div
+                              className={`px-3 py-2 max-w-[212px] break-words leading-relaxed shadow-md relative z-10 rounded-[18px] inline-block ${isOwnMessage ? 'bg-[#7835F7] !text-white' : isUserAdmin(msg.senderId) ? 'bg-yellow-50 dark:bg-gray-800 text-gray-900 dark:text-white border border-yellow-500' : 'bg-gray-200 dark:bg-[#3E4042] text-gray-900 dark:text-white'}`}
+                              style={{ 
+                                wordBreak: 'break-word', 
+                                overflowWrap: 'break-word', 
+                                direction: detectTextDirection(msg.text), 
+                                textAlign: detectTextDirection(msg.text) === 'rtl' ? 'right' : 'left', 
+                                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+                                ...(isUserAdmin(msg.senderId) && !isOwnMessage ? { boxShadow: '0 0 10px rgba(234, 179, 8, 0.3)' } : {})
+                              }}
+                            >
+                              {msg.text}
+                              {msg.edited && (
+                                <span className="text-[10px] opacity-60 ml-2">(edited)</span>
+                              )}
+                            </div>
+                          )}
                         </div>
                       )}
                       {msg.imageUrl && (
@@ -706,7 +857,7 @@ export default function GlobalChat({ onNewMessage, onOpenDM, onLoadBuild, isOpen
                             title={`${totalReactions} ${totalReactions === 1 ? 'reaction' : 'reactions'}`}
                           >
                             <div className="flex items-center gap-0 flex-shrink-0">
-                              {uniqueEmojis.map(emoji => (<div key={emoji} className="flex-shrink-0"><Emoji emoji={emoji} size={16} /></div>))}
+                              {uniqueEmojis.map((emoji, idx) => (<div key={`${msg.id}-emoji-${idx}`} className="flex-shrink-0"><Emoji emoji={emoji} size={16} /></div>))}
                             </div>
                             {totalReactions > 1 && (<span className="text-white text-[12px] font-normal leading-none flex-shrink-0">{totalReactions}</span>)}
                           </button>
@@ -770,6 +921,36 @@ export default function GlobalChat({ onNewMessage, onOpenDM, onLoadBuild, isOpen
           </div>
         )}
       </div>
+
+      {/* Edit Bar (input-field editing like Facebook) */}
+      {editingMessage && (
+        <div className="px-4 py-2 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 flex items-center justify-between">
+          <div className="flex-1 min-w-0">
+            <div className="text-xs font-medium text-blue-600 dark:text-blue-400 mb-1">
+              Editing your message
+            </div>
+            <div className="text-sm text-gray-500 dark:text-gray-400 truncate">
+              {editingMessage.text}
+            </div>
+          </div>
+          <div className="flex items-center gap-2 ml-2">
+            <button
+              onClick={() => { setEditingMessage(null); setNewMessage(''); }}
+              className="px-3 py-1 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white rounded-full text-sm hover:bg-gray-300 dark:hover:bg-gray-600"
+              title="Cancel edit"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSaveEdit}
+              className="px-3 py-1 bg-blue-600 text-white rounded-full text-sm hover:bg-blue-700"
+              title="Save edit"
+            >
+              Save
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Reply Bar */}
       {replyingTo && (
@@ -847,7 +1028,7 @@ export default function GlobalChat({ onNewMessage, onOpenDM, onLoadBuild, isOpen
               value={newMessage}
               onChange={handleInputChange}
               onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendMessage(e); } }}
-              placeholder={imagePreview ? "Add a caption (optional)..." : "Type a message..."}
+              placeholder={editingMessage ? "Edit your message..." : imagePreview ? "Add a caption (optional)..." : "Type a message..."}
               rows={1}
               dir={inputDirection}
               className="w-full px-4 py-2 pr-10 bg-gray-100 dark:bg-gray-700 rounded-full focus:outline-none dark:text-white resize-none overflow-hidden"
@@ -953,7 +1134,10 @@ export default function GlobalChat({ onNewMessage, onOpenDM, onLoadBuild, isOpen
           <div className="fixed inset-0 z-40" onClick={() => setContextMenu(null)} />
           <div className="fixed z-50 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 py-1 min-w-[150px]" style={{ right: window.innerWidth - contextMenu.x + 10, top: contextMenu.y, left: 'auto' }}>
             {messages.find(m => m.id === contextMenu.messageId)?.senderId === auth.currentUser?.uid && (
-              <button onClick={() => handleDeleteMessage(contextMenu.messageId)} className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 text-red-600 dark:text-red-400"><Trash2 size={16} />Delete</button>
+              <>
+                <button onClick={() => handleEditMessage(contextMenu.messageId)} className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 text-gray-700 dark:text-gray-300"><Pencil size={16} />Edit</button>
+                <button onClick={() => handleDeleteMessage(contextMenu.messageId)} className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 text-red-600 dark:text-red-400"><Trash2 size={16} />Delete</button>
+              </>
             )}
             <button onClick={() => handleReportMessage(contextMenu.messageId)} className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 text-gray-700 dark:text-gray-300"><Flag size={16} />Report</button>
           </div>

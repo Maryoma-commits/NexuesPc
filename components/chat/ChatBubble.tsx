@@ -4,7 +4,7 @@ import { MessageCircle, X, Mail } from 'lucide-react';
 import { auth } from '../../firebase.config';
 import { useAuth } from '../../contexts/AuthContext';
 import { resendVerificationEmail } from '../../services/authService';
-import { BuildData } from '../../services/chatService';
+import { BuildData, setCurrentlyViewingGlobalChat } from '../../services/chatService';
 import AuthModal from '../auth/AuthModal';
 import ChatWindow from './ChatWindow';
 
@@ -50,6 +50,10 @@ export default function ChatBubble({ onLoadBuild }: ChatBubbleProps = {}) {
 
   const handleClose = () => {
     setIsOpen(false);
+    // Immediately clear viewing status when closing chat
+    if (auth.currentUser) {
+      setCurrentlyViewingGlobalChat(auth.currentUser.uid, false);
+    }
   };
 
   const handleResendVerification = async () => {
@@ -87,6 +91,7 @@ export default function ChatBubble({ onLoadBuild }: ChatBubbleProps = {}) {
 
         {/* Chat Bubble Button */}
         <button
+          data-chat-bubble
           onClick={handleBubbleClick}
           className="
             relative bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800

@@ -100,6 +100,7 @@ export default function ChatWindow({ onClose, onNewMessage, onLoadBuild, isOpen 
 
   return (
     <div 
+      data-chat-window
       onMouseEnter={() => { document.body.style.overflow = 'hidden'; }}
       onMouseLeave={() => { document.body.style.overflow = 'unset'; }}
       className="w-96 h-[750px] bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 flex flex-col overflow-hidden relative overscroll-contain"

@@ -1,6 +1,88 @@
 // Chat service for NexusPC Community
-import { ref, push, set, onValue, query, orderByChild, limitToLast, endBefore, get, remove, update, serverTimestamp } from 'firebase/database';
+import { ref, push, set, onValue, query, orderByChild, limitToLast, endBefore, get, remove, update, serverTimestamp, onDisconnect } from 'firebase/database';
 import { database } from '../firebase.config';
+import { createReplyNotification } from './notificationService';
+import { getUserProfile } from './authService';
+
+// Track which conversation the user is currently viewing in Firebase (to suppress notifications)
+export const setCurrentlyViewingGlobalChat = async (userId: string, isViewing: boolean) => {
+  try {
+    const viewingRef = ref(database, `viewingStatus/${userId}/globalChat`);
+    if (isViewing) {
+      await set(viewingRef, { viewing: true, timestamp: Date.now() });
+      // Auto-remove when user disconnects
+      await onDisconnect(viewingRef).remove();
+    } else {
+      await remove(viewingRef);
+    }
+  } catch (error) {
+    console.error('Error setting global chat viewing status:', error);
+  }
+};
+
+export const setCurrentlyViewingDMConversation = async (userId: string, conversationId: string | null) => {
+  try {
+    const viewingRef = ref(database, `viewingStatus/${userId}/dmConversation`);
+    if (conversationId) {
+      await set(viewingRef, { conversationId, timestamp: Date.now() });
+      // Auto-remove when user disconnects
+      await onDisconnect(viewingRef).remove();
+    } else {
+      await remove(viewingRef);
+    }
+  } catch (error) {
+    console.error('Error setting DM viewing status:', error);
+  }
+};
+
+export const isUserViewingGlobalChat = async (userId: string): Promise<boolean> => {
+  try {
+    const viewingRef = ref(database, `viewingStatus/${userId}/globalChat`);
+    const snapshot = await get(viewingRef);
+    
+    if (!snapshot.exists()) return false;
+    
+    // Check if timestamp is recent (within last 5 minutes)
+    const data = snapshot.val();
+    const fiveMinutesAgo = Date.now() - (5 * 60 * 1000);
+    
+    if (data.timestamp < fiveMinutesAgo) {
+      // Stale data, remove it and return false
+      await remove(viewingRef);
+      return false;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Error checking viewing status:', error);
+    return false;
+  }
+};
+
+export const isUserViewingDMConversation = async (userId: string, conversationId: string): Promise<boolean> => {
+  try {
+    const viewingRef = ref(database, `viewingStatus/${userId}/dmConversation`);
+    const snapshot = await get(viewingRef);
+    
+    if (!snapshot.exists()) return false;
+    
+    const data = snapshot.val();
+    
+    // Check if timestamp is recent (within last 5 minutes)
+    const fiveMinutesAgo = Date.now() - (5 * 60 * 1000);
+    
+    if (data.timestamp < fiveMinutesAgo) {
+      // Stale data, remove it and return false
+      await remove(viewingRef);
+      return false;
+    }
+    
+    return data.conversationId === conversationId;
+  } catch (error) {
+    console.error('Error checking DM viewing status:', error);
+    return false;
+  }
+};
 
 // PC Build data interface for sharing in chat
 export interface BuildData {
@@ -41,6 +123,8 @@ export interface Message {
   seenBy?: {
     [userId: string]: number; // userId -> timestamp when seen
   };
+  edited?: boolean; // Whether message was edited
+  editedAt?: number; // Timestamp of last edit
 }
 
 // Conversation interface (participants fetched dynamically)
@@ -93,6 +177,36 @@ export const sendGlobalMessage = async (
     };
     
     await set(newMessageRef, messageData);
+    
+    // Create notification if this is a reply (check if recipient is viewing chat)
+    if (replyTo && replyTo.senderId !== senderId) {
+      const recipientIsViewing = await isUserViewingGlobalChat(replyTo.senderId);
+      console.log('Recipient viewing status:', recipientIsViewing);
+      
+      if (!recipientIsViewing) {
+        console.log('Creating notification for reply:', { replyTo, senderId });
+        try {
+          const senderProfile = await getUserProfile(senderId);
+          console.log('Sender profile:', senderProfile);
+          await createReplyNotification(
+            replyTo.senderId, // recipient
+            senderId, // from
+            senderProfile?.displayName || 'User',
+            senderProfile?.photoURL || '',
+            newMessageRef.key!,
+            text,
+            replyTo.text,
+            'global'
+          );
+          console.log('Notification created successfully');
+        } catch (error) {
+          console.error('Failed to create notification:', error);
+        }
+      } else {
+        console.log('Skipping notification - recipient is viewing global chat');
+      }
+    }
+    
     return newMessageRef.key;
   } catch (error: any) {
     throw new Error(error.message);
@@ -198,6 +312,32 @@ export const sendDirectMessage = async (
     // Update conversation metadata
     const lastMessage = buildData ? '🖥️ PC Build' : imageUrl ? '📷 Photo' : text;
     await updateConversationMetadata(conversationId, senderId, recipientId, lastMessage);
+    
+    // Create notification if this is a reply (check if recipient is viewing this DM)
+    if (replyTo && replyTo.senderId !== senderId) {
+      const recipientIsViewing = await isUserViewingDMConversation(replyTo.senderId, conversationId);
+      
+      if (!recipientIsViewing) {
+        try {
+          const senderProfile = await getUserProfile(senderId);
+          await createReplyNotification(
+            replyTo.senderId, // recipient
+            senderId, // from
+            senderProfile?.displayName || 'User',
+            senderProfile?.photoURL || '',
+            newMessageRef.key!,
+            text,
+            replyTo.text,
+            'dm',
+            conversationId
+          );
+        } catch (error) {
+          console.error('Failed to create notification:', error);
+        }
+      } else {
+        console.log('Skipping notification - recipient is viewing this DM conversation');
+      }
+    }
     
     return newMessageRef.key;
   } catch (error: any) {
@@ -512,6 +652,69 @@ export const markConversationAsRead = async (conversationId: string, userId: str
   }
 };
 
+// Edit message (only sender can edit within 5 minutes)
+export const editGlobalMessage = async (messageId: string, senderId: string, newText: string): Promise<boolean> => {
+  try {
+    const messageRef = ref(database, `globalChat/messages/${messageId}`);
+    const snapshot = await get(messageRef);
+    
+    if (!snapshot.exists()) return false;
+    
+    const message = snapshot.val();
+    
+    // Check if user is the sender
+    if (message.senderId !== senderId) return false;
+    
+    // Check if message is within 5 minutes
+    const fiveMinutes = 5 * 60 * 1000;
+    if (Date.now() - message.timestamp > fiveMinutes) {
+      return false; // Too old to edit
+    }
+    
+    await update(messageRef, {
+      text: newText,
+      edited: true,
+      editedAt: serverTimestamp() as any
+    });
+    
+    return true;
+  } catch (error) {
+    console.error('Error editing message:', error);
+    return false;
+  }
+};
+
+export const editDirectMessage = async (conversationId: string, messageId: string, senderId: string, newText: string): Promise<boolean> => {
+  try {
+    const messageRef = ref(database, `directMessages/${conversationId}/messages/${messageId}`);
+    const snapshot = await get(messageRef);
+    
+    if (!snapshot.exists()) return false;
+    
+    const message = snapshot.val();
+    
+    // Check if user is the sender
+    if (message.senderId !== senderId) return false;
+    
+    // Check if message is within 5 minutes
+    const fiveMinutes = 5 * 60 * 1000;
+    if (Date.now() - message.timestamp > fiveMinutes) {
+      return false;
+    }
+    
+    await update(messageRef, {
+      text: newText,
+      edited: true,
+      editedAt: serverTimestamp() as any
+    });
+    
+    return true;
+  } catch (error) {
+    console.error('Error editing DM:', error);
+    return false;
+  }
+};
+
 // Delete message (only own messages)
 export const deleteMessage = async (messageId: string, messageType: 'global' | 'dm', conversationId?: string) => {
   try {
@@ -786,7 +989,7 @@ export const hasUserReacted = (
 export const markGlobalMessageAsSeen = async (messageId: string, userId: string) => {
   try {
     const seenRef = ref(database, `globalChat/messages/${messageId}/seenBy/${userId}`);
-    await set(seenRef, Date.now());
+    await set(seenRef, serverTimestamp() as any);
   } catch (error) {
     console.error('Failed to mark message as seen:', error);
   }
