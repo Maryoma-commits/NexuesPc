@@ -783,19 +783,19 @@ export const PCBuilder: React.FC<PCBuilderProps> = ({ products, onClose, initial
                 </select>
               </div>
               
-              {/* Grid Layout - 4 columns, compact cards */}
-              <div className="grid grid-cols-4 gap-4">
+              {/* Grid Layout - 4 columns, enhanced cards */}
+              <div className="grid grid-cols-4 gap-6">
               {Object.entries(currentBuild.components).map(([key, component]) => {
                 const Icon = componentIcons[component.category];
                 return (
                   <div
                     key={key}
-                    className={`p-4 rounded-xl border transition-all duration-200 cursor-pointer transform hover:scale-[1.03] active:scale-[0.97] ${
+                    className={`group relative p-6 rounded-2xl border transition-all duration-300 cursor-pointer transform hover:scale-[1.05] hover:-translate-y-1 active:scale-[0.98] shadow-lg hover:shadow-2xl ${
                       component.product
-                        ? 'bg-nexus-accent/10 border-nexus-accent/30 hover:bg-nexus-accent/15 active:bg-nexus-accent/20'
+                        ? 'bg-gradient-to-br from-nexus-accent/20 to-nexus-accent/10 border-nexus-accent/40 hover:border-nexus-accent/60 shadow-nexus-accent/20'
                         : component.required
-                        ? 'bg-white/5 border-white/20 hover:border-nexus-accent/50 hover:bg-white/10 active:bg-white/15'
-                        : 'bg-white/5 border-white/10 hover:border-white/20 hover:bg-white/10 active:bg-white/15'
+                        ? 'bg-gradient-to-br from-white/10 to-white/5 border-white/30 hover:border-nexus-accent/50 hover:from-nexus-accent/10 hover:to-nexus-accent/5 shadow-white/10'
+                        : 'bg-gradient-to-br from-white/5 to-white/2 border-white/20 hover:border-white/40 hover:from-white/10 hover:to-white/5 shadow-white/5'
                     }`}
                     onClick={() => {
                       setSelectedCategory(component.category);
@@ -807,56 +807,85 @@ export const PCBuilder: React.FC<PCBuilderProps> = ({ products, onClose, initial
                       setSearchQuery('');
                     }}
                   >
-                    <div className="flex flex-col items-center text-center">
+                    {/* Required Badge */}
+                    {component.required && !component.product && (
+                      <div className="absolute -top-2 -right-2 bg-red-500 text-white text-xs px-2 py-1 rounded-full font-medium shadow-lg">
+                        Required
+                      </div>
+                    )}
+                    
+                    {/* Selected Badge */}
+                    {component.product && (
+                      <div className="absolute -top-2 -right-2 bg-green-500 text-white text-xs px-2 py-1 rounded-full font-medium shadow-lg flex items-center gap-1">
+                        <CheckCircle className="w-3 h-3" />
+                        Selected
+                      </div>
+                    )}
+
+                    <div className="flex flex-col items-center text-center h-full">
                       {/* Component Info - Top (Category + Remove Button) */}
-                      <div className="w-full mb-3">
+                      <div className="w-full mb-4">
                         <div className="flex items-center justify-between">
-                          <span className="font-semibold text-white text-sm">{component.category}</span>
+                          <span className="font-bold text-white text-base tracking-wide">{component.category}</span>
                           {component.product && (
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
                                 handleComponentRemove(key as keyof typeof currentBuild.components);
                               }}
-                              className="p-1.5 rounded-lg bg-red-500/20 hover:bg-red-500/30 border border-red-500/30 transition-colors"
+                              className="p-2 rounded-xl bg-red-500/20 hover:bg-red-500/30 border border-red-500/30 hover:border-red-500/50 transition-all duration-200 hover:scale-110"
                               title="Remove component"
                             >
-                              <X className="w-3.5 h-3.5 text-red-400" />
+                              <X className="w-4 h-4 text-red-400" />
                             </button>
                           )}
                         </div>
                       </div>
                       
                       {/* Component Icon/Image - Middle */}
-                      <div className="mb-3 w-full flex items-center justify-center">
+                      <div className="mb-4 w-full flex items-center justify-center flex-1">
                         {component.product?.imageUrl ? (
-                          <img 
-                            src={component.product.imageUrl} 
-                            alt={component.product.title}
-                            className="w-24 h-24 object-contain rounded-lg"
-                          />
+                          <div className="relative">
+                            <img 
+                              src={component.product.imageUrl} 
+                              alt={component.product.title}
+                              className="w-28 h-28 object-contain rounded-xl shadow-lg group-hover:shadow-xl transition-shadow duration-300"
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                          </div>
                         ) : (
-                          <div className="w-24 h-24 bg-white/10 rounded-lg flex items-center justify-center">
-                            <Icon className="w-12 h-12 text-nexus-accent" />
+                          <div className="w-28 h-28 bg-gradient-to-br from-white/15 to-white/5 rounded-xl flex items-center justify-center border border-white/10 group-hover:border-nexus-accent/30 transition-all duration-300">
+                            <Icon className={`w-14 h-14 transition-all duration-300 ${
+                              component.required ? 'text-nexus-accent group-hover:text-nexus-accent/80' : 'text-gray-400 group-hover:text-gray-300'
+                            }`} />
                           </div>
                         )}
                       </div>
                       
                       {/* Product Info - Bottom */}
-                      <div className="w-full">
+                      <div className="w-full mt-auto">
                         {component.product ? (
                           <>
-                            <div className="text-xs text-gray-300 line-clamp-2 mb-2 h-8 leading-tight">
+                            <div className="text-sm text-gray-200 line-clamp-2 mb-3 h-10 leading-tight font-medium">
                               {component.product.title}
                             </div>
-                            <div className="text-base font-bold text-nexus-accent">
+                            <div className="bg-gradient-to-r from-nexus-accent to-blue-400 bg-clip-text text-transparent text-lg font-bold">
                               {component.product.price.toLocaleString()} IQD
+                            </div>
+                            <div className="text-xs text-gray-400 mt-1">
+                              {component.product.retailer}
                             </div>
                           </>
                         ) : (
-                          <div className="text-xs text-gray-500 h-8 flex items-center justify-center">
-                            Click to select
-                          </div>
+                          <>
+                            <div className="text-sm text-gray-400 h-10 flex items-center justify-center mb-3">
+                              Click to browse {component.category.toLowerCase()}
+                            </div>
+                            <div className="flex items-center justify-center gap-2 text-nexus-accent group-hover:text-nexus-accent/80 transition-colors">
+                              <Plus className="w-5 h-5" />
+                              <span className="font-medium">Add Component</span>
+                            </div>
+                          </>
                         )}
                       </div>
                     </div>
@@ -942,8 +971,8 @@ export const PCBuilder: React.FC<PCBuilderProps> = ({ products, onClose, initial
                   )}
                 </div>
 
-                {/* Products Grid - 3 Columns */}
-                <div className="grid grid-cols-3 gap-4">
+                {/* Products Grid - 3 Columns Enhanced */}
+                <div className="grid grid-cols-3 gap-6">
                   {visibleProducts.map((product) => {
                     // Check if this product is currently selected in any component
                     const isSelected = Object.values(currentBuild.components).some(
@@ -954,70 +983,113 @@ export const PCBuilder: React.FC<PCBuilderProps> = ({ products, onClose, initial
                       <div
                         key={product.id}
                         onClick={() => handleComponentSelect(product)}
-                        className={`p-4 rounded-xl border cursor-pointer transition-all transform hover:scale-[1.02] ${
+                        className={`group relative p-5 rounded-2xl border cursor-pointer transition-all duration-300 transform hover:scale-[1.03] hover:-translate-y-1 shadow-lg hover:shadow-2xl ${
                           isSelected 
-                            ? 'bg-nexus-accent/20 border-nexus-accent hover:bg-nexus-accent/25 hover:border-nexus-accent' 
-                            : 'bg-white/5 hover:bg-white/10 border-white/10 hover:border-nexus-accent/30'
+                            ? 'bg-gradient-to-br from-nexus-accent/25 to-nexus-accent/15 border-nexus-accent/50 hover:border-nexus-accent/70 shadow-nexus-accent/30' 
+                            : 'bg-gradient-to-br from-white/8 to-white/3 hover:from-white/12 hover:to-white/6 border-white/15 hover:border-nexus-accent/40 shadow-white/10'
                         }`}
                       >
-                      <div className="flex gap-3 h-full">
-                        {/* Product Image - Left */}
-                        <div className="flex-shrink-0">
-                          {product.imageUrl ? (
-                            <img 
-                              src={product.imageUrl} 
-                              alt={product.title}
-                              className="w-24 h-24 object-cover rounded-lg"
-                            />
-                          ) : (
-                            <div className="w-24 h-24 bg-white/10 rounded-lg flex items-center justify-center">
-                              <CircuitBoard className="w-10 h-10 text-gray-500" />
-                            </div>
-                          )}
-                        </div>
-                        
-                        {/* Product Info - Right */}
-                        <div className="flex-1 min-w-0 flex flex-col justify-between">
-                          <div>
-                            <div className="font-medium text-white text-sm mb-2 line-clamp-2 leading-tight">
-                              {product.title}
-                            </div>
-                            
-                            <div className="text-xs text-gray-400 mb-2">
-                              {product.brand} • {product.retailer}
-                            </div>
+                        {/* Selected Badge */}
+                        {isSelected && (
+                          <div className="absolute -top-2 -right-2 bg-nexus-accent text-white text-xs px-3 py-1 rounded-full font-medium shadow-lg flex items-center gap-1">
+                            <CheckCircle className="w-3 h-3" />
+                            Selected
+                          </div>
+                        )}
+
+                        {/* Discount Badge */}
+                        {product.compareAtPrice && product.compareAtPrice > product.price && (
+                          <div className="absolute -top-2 -left-2 bg-red-500 text-white text-xs px-2 py-1 rounded-full font-medium shadow-lg">
+                            -{Math.round(((product.compareAtPrice - product.price) / product.compareAtPrice) * 100)}%
+                          </div>
+                        )}
+
+                        <div className="flex gap-4 h-full">
+                          {/* Product Image - Left */}
+                          <div className="flex-shrink-0">
+                            {product.imageUrl ? (
+                              <div className="relative">
+                                <img 
+                                  src={product.imageUrl} 
+                                  alt={product.title}
+                                  className="w-28 h-28 object-contain rounded-xl shadow-md group-hover:shadow-lg transition-all duration-300"
+                                />
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                              </div>
+                            ) : (
+                              <div className="w-28 h-28 bg-gradient-to-br from-white/15 to-white/5 rounded-xl flex items-center justify-center border border-white/10 group-hover:border-nexus-accent/30 transition-all duration-300">
+                                <CircuitBoard className="w-12 h-12 text-gray-400 group-hover:text-gray-300 transition-colors" />
+                              </div>
+                            )}
                           </div>
                           
-                          <div className="mt-auto">
-                            <div className="flex items-end justify-between">
-                              <div>
-                                <div className="text-lg font-semibold text-nexus-accent">
-                                  {product.price.toLocaleString()} IQD
-                                </div>
-                                
-                                {/* Stock Status */}
-                                {product.inStock !== false && (
-                                  <div className="text-xs text-green-400 mt-1">In Stock</div>
-                                )}
+                          {/* Product Info - Right */}
+                          <div className="flex-1 min-w-0 flex flex-col justify-between">
+                            <div>
+                              <div className="font-semibold text-white text-sm mb-3 line-clamp-2 leading-tight group-hover:text-nexus-accent/90 transition-colors">
+                                {product.title}
                               </div>
+                              
+                              <div className="flex items-center gap-2 text-xs text-gray-400 mb-3">
+                                {product.brand && (
+                                  <span className="bg-white/10 px-2 py-1 rounded-md font-medium">
+                                    {product.brand}
+                                  </span>
+                                )}
+                                <span className="bg-blue-500/20 text-blue-300 px-2 py-1 rounded-md font-medium">
+                                  {product.retailer}
+                                </span>
+                              </div>
+                            </div>
+                            
+                            <div className="mt-auto">
+                              <div className="flex items-end justify-between">
+                                <div>
+                                  {/* Price Display */}
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <div className="text-lg font-bold bg-gradient-to-r from-nexus-accent to-blue-400 bg-clip-text text-transparent">
+                                      {product.price.toLocaleString()} IQD
+                                    </div>
+                                    {product.compareAtPrice && product.compareAtPrice > product.price && (
+                                      <div className="text-sm text-gray-500 line-through">
+                                        {product.compareAtPrice.toLocaleString()} IQD
+                                      </div>
+                                    )}
+                                  </div>
+                                  
+                                  {/* Stock Status */}
+                                  <div className="flex items-center gap-2">
+                                    {product.inStock !== false ? (
+                                      <div className="flex items-center gap-1 text-xs text-green-400">
+                                        <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                                        In Stock
+                                      </div>
+                                    ) : (
+                                      <div className="flex items-center gap-1 text-xs text-red-400">
+                                        <div className="w-2 h-2 bg-red-400 rounded-full"></div>
+                                        Out of Stock
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
 
-                              {/* View Product Button */}
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  window.open(product.link, '_blank', 'noopener,noreferrer');
-                                }}
-                                className="px-3 py-1.5 rounded-lg text-xs font-medium bg-white/5 text-gray-300 border border-white/10 hover:bg-white/10 hover:border-nexus-accent/30 transition-all transform hover:scale-[1.02] active:scale-[0.98] flex items-center gap-1"
-                                title="View on retailer website"
-                              >
-                                <ExternalLink className="w-3 h-3" />
-                                View
-                              </button>
+                                {/* View Product Button */}
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    window.open(product.link, '_blank', 'noopener,noreferrer');
+                                  }}
+                                  className="px-4 py-2 rounded-xl text-xs font-medium bg-gradient-to-r from-white/10 to-white/5 text-gray-300 border border-white/20 hover:from-nexus-accent/20 hover:to-nexus-accent/10 hover:border-nexus-accent/40 hover:text-white transition-all duration-200 transform hover:scale-105 active:scale-95 flex items-center gap-2 shadow-md hover:shadow-lg"
+                                  title="View on retailer website"
+                                >
+                                  <ExternalLink className="w-3 h-3" />
+                                  View
+                                </button>
+                              </div>
                             </div>
                           </div>
                         </div>
                       </div>
-                    </div>
                     );
                   })}
                 </div>
