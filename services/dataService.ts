@@ -38,7 +38,6 @@ export const loadProductsFromFile = async (): Promise<Product[]> => {
         compareAtPrice: product.old_price, // Map discount pricing
         discountPercentage: product.discount, // Map discount percentage
         category: product.category || 'Other', // Use scraper category if available
-        rawPrice: product.raw_price, // Map raw_price to rawPrice for price range display
       }));
       
       allProducts.push(...siteProducts);
