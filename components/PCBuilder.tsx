@@ -7,6 +7,8 @@ import LoadBuildsModal from './LoadBuildsModal';
 import ShareBuildModal from './ShareBuildModal';
 import { saveBuild, autoSaveBuild, SavedBuild, updateBuild, getAutoSavedBuild } from '../utils/buildStorage';
 import { parseBuildFromURL, matchComponentsWithProducts } from '../utils/buildEncoder';
+import { auth } from '../firebase.config';
+import toast from 'react-hot-toast';
 
 interface PCBuilderProps {
   products: Product[];
@@ -689,20 +691,32 @@ export const PCBuilder: React.FC<PCBuilderProps> = ({ products, onClose, initial
           {/* Action Buttons */}
           <div className="flex items-center gap-2">
             <button
-              onClick={() => setShowSaveModal(true)}
-              className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 !text-white rounded-lg 
-                       transition-colors text-sm flex items-center gap-2"
-              title="Save Build"
+              onClick={() => {
+                if (!auth.currentUser) {
+                  toast.error('Please log in to save builds');
+                  return;
+                }
+                setShowSaveModal(true);
+              }}
+              className={`px-3 py-1.5 bg-blue-600 hover:bg-blue-700 !text-white rounded-lg 
+                       transition-colors text-sm flex items-center gap-2 ${!auth.currentUser ? 'opacity-50' : ''}`}
+              title={auth.currentUser ? "Save Build" : "Log in to save builds"}
             >
               <Save className="w-4 h-4 !text-white" />
               <span className="hidden sm:inline">Save</span>
             </button>
             
             <button
-              onClick={() => setShowLoadModal(true)}
-              className="px-3 py-1.5 bg-white/5 hover:bg-white/10 rounded-lg border border-white/10 
-                       transition-colors text-sm flex items-center gap-2"
-              title="Load Build"
+              onClick={() => {
+                if (!auth.currentUser) {
+                  toast.error('Please log in to load builds');
+                  return;
+                }
+                setShowLoadModal(true);
+              }}
+              className={`px-3 py-1.5 bg-white/5 hover:bg-white/10 rounded-lg border border-white/10 
+                       transition-colors text-sm flex items-center gap-2 ${!auth.currentUser ? 'opacity-50' : ''}`}
+              title={auth.currentUser ? "Load Build" : "Log in to load builds"}
             >
               <FolderOpen className="w-4 h-4" />
               <span className="hidden sm:inline">Load</span>

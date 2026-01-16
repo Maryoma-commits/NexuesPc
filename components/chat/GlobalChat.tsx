@@ -590,7 +590,8 @@ const handleDeleteMessage = async (messageId: string) => {
 
   const handleAvatarClick = (e: React.MouseEvent, userId: string, userName: string, userPhoto: string) => {
     e.stopPropagation();
-    if (userId === auth.currentUser?.uid) return;
+    // Don't show menu for non-logged-in users or own avatar
+    if (!auth.currentUser || userId === auth.currentUser.uid) return;
     const rect = e.currentTarget.getBoundingClientRect();
     setUserMenu({ userId, userName, userPhoto, x: rect.right + 10, y: rect.top + rect.height / 2 });
   };
@@ -685,8 +686,8 @@ const handleDeleteMessage = async (messageId: string) => {
                       src={senderPhoto}
                       alt={senderName}
                       onClick={(e) => handleAvatarClick(e, msg.senderId, senderName, senderPhoto)}
-                      className={`w-8 h-8 rounded-full object-cover ${isUserAdmin(msg.senderId) ? 'ring-2 ring-yellow-500' : ''} ${!isOwnMessage ? 'cursor-pointer hover:ring-2 hover:ring-blue-500' : ''}`}
-                      title={!isOwnMessage ? 'Click for options' : ''}
+                      className={`w-8 h-8 rounded-full object-cover ${isUserAdmin(msg.senderId) ? 'ring-2 ring-yellow-500' : ''} ${!isOwnMessage && auth.currentUser ? 'cursor-pointer hover:ring-2 hover:ring-blue-500' : ''}`}
+                      title={!isOwnMessage && auth.currentUser ? 'Click for options' : ''}
                     />
                     {isUserOnline(msg.senderId) && (
                       <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border-2 border-white dark:border-gray-800 rounded-full" title="Online"></div>
