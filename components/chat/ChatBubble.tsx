@@ -21,23 +21,12 @@ export default function ChatBubble({ onLoadBuild }: ChatBubbleProps = {}) {
   const [resendLoading, setResendLoading] = useState(false);
   const [resendMessage, setResendMessage] = useState('');
 
-  useEffect(() => {
-    if (!user) {
-      setIsOpen(false);
-    }
-  }, [user]);
-
   const handleBubbleClick = () => {
     // Don't do anything if still loading auth state
     if (loading) return;
-    
-    if (!user) {
-      setShowAuthModal(true);
-      return;
-    }
 
     // Check if email is verified (for email/password users)
-    if (user.providerData[0]?.providerId === 'password' && !user.emailVerified) {
+    if (user && user.providerData[0]?.providerId === 'password' && !user.emailVerified) {
       setShowVerificationWarning(true);
       return;
     }
@@ -73,8 +62,8 @@ export default function ChatBubble({ onLoadBuild }: ChatBubbleProps = {}) {
     <>
       {/* Floating Chat Bubble */}
       <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
-        {/* Chat Window */}
-        {isOpen && user && (
+        {/* Chat Window - Show for all users (logged in or not) */}
+        {isOpen && (
           <div className="mb-4 animate-in slide-in-from-bottom-5 duration-300">
             <ChatWindow
               onClose={handleClose}
@@ -114,13 +103,13 @@ export default function ChatBubble({ onLoadBuild }: ChatBubbleProps = {}) {
           )}
         </button>
 
-        {/* Online indicator - only show when chat is closed */}
+        {/* Online indicator - only show when logged in and chat is closed */}
         {user && !isOpen && (
           <div className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 border-2 border-white dark:border-gray-900 rounded-full"></div>
         )}
       </div>
 
-      {/* Auth Modal */}
+      {/* Auth Modal - Keep for other auth needs */}
       <AuthModal
         isOpen={showAuthModal}
         onClose={() => setShowAuthModal(false)}

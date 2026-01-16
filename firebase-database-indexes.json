@@ -1,0 +1,58 @@
+{
+  "rules": {
+    "posts": {
+      ".indexOn": ["createdAt", "authorId", "privacy"]
+    },
+    "comments": {
+      "$postId": {
+        ".indexOn": ["createdAt", "authorId", "parentId"]
+      }
+    },
+    "likes": {
+      "$postId": {
+        ".indexOn": [".value"]
+      }
+    },
+    "reactions": {
+      "$postId": {
+        "$reactionType": {
+          ".indexOn": [".value"]
+        }
+      }
+    },
+    "userFollows": {
+      "$userId": {
+        "following": {
+          ".indexOn": [".value"]
+        },
+        "followers": {
+          ".indexOn": [".value"]
+        }
+      }
+    },
+    "userFeed": {
+      "$userId": {
+        ".indexOn": [".value"]
+      }
+    },
+    "communityNotifications": {
+      "$userId": {
+        ".indexOn": ["createdAt", "read", "type"]
+      }
+    },
+    "contentReports": {
+      ".indexOn": ["createdAt", "status", "reporterId"]
+    },
+    "moderationActions": {
+      ".indexOn": ["createdAt", "moderatorId", "targetType"]
+    },
+    "trendingTopics": {
+      ".indexOn": ["postCount", "lastUsed"]
+    },
+    "savedSearches": {
+      "$userId": {
+        ".indexOn": ["createdAt"]
+      }
+    }
+  }
+}

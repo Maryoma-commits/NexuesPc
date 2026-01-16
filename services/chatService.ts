@@ -345,14 +345,17 @@ export const sendDirectMessage = async (
   }
 };
 
-// Upload image to ImgBB (reuse from authService)
-export const uploadChatImage = async (file: File): Promise<string> => {
+// Image category types for naming convention
+export type ImageCategory = 'chat' | 'post' | 'profile' | 'comment';
+
+// Upload image to ImgBB with category naming
+export const uploadChatImage = async (file: File, category: ImageCategory = 'chat'): Promise<string> => {
   // Validate file
-  const maxSize = 5 * 1024 * 1024; // 5MB
+  const maxSize = 10 * 1024 * 1024; // 10MB
   const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
   
   if (file.size > maxSize) {
-    throw new Error('Image must be less than 5MB');
+    throw new Error('Image must be less than 10MB');
   }
   
   if (!allowedTypes.includes(file.type)) {
@@ -379,10 +382,10 @@ export const uploadChatImage = async (file: File): Promise<string> => {
       reader.readAsDataURL(file);
     });
 
-    // Upload to ImgBB
+    // Upload to ImgBB with category prefix in name
     const formData = new FormData();
     formData.append('image', base64);
-    formData.append('name', `chat_${Date.now()}`);
+    formData.append('name', `${category}_${Date.now()}_${Math.random().toString(36).substring(7)}`);
 
     const response = await fetch(`https://api.imgbb.com/1/upload?key=${apiKey}`, {
       method: 'POST',

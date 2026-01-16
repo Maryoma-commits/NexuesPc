@@ -55,7 +55,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, isFavorite = 
           {product.retailer.toLowerCase().includes('jokercenter') ? (
             <div className="flex items-center gap-2 bg-neutral-900 px-2 py-1 rounded backdrop-blur-sm border border-white/10">
               <img
-                src="/WebSitesLogo/jokercenter.webp"
+                src="/assets/logos/jokercenter.webp"
                 alt="JokerCenter"
                 className="h-6 w-auto object-contain"
               />
@@ -64,7 +64,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, isFavorite = 
           ) : product.retailer.toLowerCase().includes('almanjam') ? (
             <div className="inline-flex items-center justify-center bg-opacity-90 rounded-md px-2 py-1 h-9" style={{ backgroundColor: '#16232C' }}>
               <img
-                src="/WebSitesLogo/almanjam.png"
+                src="/assets/logos/almanjam.png"
                 alt="Almanjam"
                 className="h-7 w-auto object-contain"
                 onError={(e) => {
@@ -79,7 +79,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, isFavorite = 
           ) : product.retailer.toLowerCase().includes('altajit') ? (
             <div className="rounded-lg px-2 py-1 h-8 flex items-center justify-center">
               <img
-                src="/WebSitesLogo/altajit.png"
+                src="/assets/logos/altajit.png"
                 alt="Altajit"
                 className="h-12 w-auto max-w-48 object-contain"
                 onError={(e) => {
@@ -94,7 +94,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, isFavorite = 
           ) : product.retailer.toLowerCase().includes('galaxy') ? (
             <div className="rounded-lg px-2 py-1 h-8 flex items-center justify-center">
               <img
-                src="/WebSitesLogo/galaxyiq.png"
+                src="/assets/logos/galaxyiq.png"
                 alt="Galaxy IQ"
                 className="h-6 w-auto max-w-20 object-contain"
                 onError={(e) => {
@@ -109,7 +109,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, isFavorite = 
           ) : product.retailer.toLowerCase().includes('spniq') ? (
             <div className="backdrop-blur-sm rounded-lg px-2 py-1 h-8 flex items-center justify-center shadow-lg bg-[#1D1D25]">
               <img
-                src={`/WebSitesLogo/${product.retailer.toLowerCase().replace(/[-\s]/g, '').replace('3diraq', '3d-iraq').replace('spniq', 'SpiderNet')}.svg`}
+                src={`/assets/logos/${product.retailer.toLowerCase().replace(/[-\s]/g, '').replace('3diraq', '3d-iraq').replace('spniq', 'SpiderNet')}.svg`}
                 alt={product.retailer}
                 className="h-7 w-auto max-w-24 object-contain"
                 onError={(e) => {
@@ -127,7 +127,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, isFavorite = 
                 ? 'h-12' : 'h-10'
               }`}>
               <img
-                src={`/WebSitesLogo/${product.retailer.toLowerCase().replace(/[-\s]/g, '').replace('3diraq', '3d-iraq').replace('spniq', 'SpiderNet')}.svg`}
+                src={`/assets/logos/${product.retailer.toLowerCase().replace(/[-\s]/g, '').replace('3diraq', '3d-iraq').replace('spniq', 'SpiderNet')}.svg`}
                 alt={product.retailer}
                 className={`w-auto object-contain ${product.retailer.toLowerCase().includes('globaliraq') || product.retailer.toLowerCase().includes('global')
                   ? 'h-12 max-w-28' : product.retailer.toLowerCase().includes('alityan')

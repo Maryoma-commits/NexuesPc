@@ -6,6 +6,7 @@ import re
 import hashlib
 from price_utils import parse_price, calculate_discount
 import sys
+import logger
 
 BASE_URL_GLOBAL = "https://globaliraq.net"
 BASE_URL_ALITYAN = "https://alityan.com"
@@ -36,7 +37,7 @@ def get_scraper_session(base_url=None):
             # Visit homepage to establish session/cookies
             session.get(base_url, timeout=10)
         except Exception as e:
-            print(f"âš ï¸ Failed to visit homepage {base_url}: {e}")
+            pass  # Suppressed - non-critical
     return session
 
 # -------------------- GlobalIraq Parser --------------------
@@ -560,7 +561,7 @@ def get_headsets_from_globaliraq() -> List[Dict]:
 def get_products_from_globaliraq() -> List[Dict]:
     products = []
     
-    print("ðŸŒ GlobalIraq: Starting...")
+    logger.store_start("globaliraq")
     
     # Get all products from collections
     ram_products = get_ram_from_globaliraq()
@@ -983,7 +984,7 @@ def get_headsets_from_alityan(session) -> List[Dict]:
 def get_products_from_alityan() -> List[Dict]:
     products = []
     
-    print("ðŸ›’ Alityan: Starting...")
+    logger.store_start("alityan")
     
     # Initialize session with robust headers and visit homepage
     session = get_scraper_session(BASE_URL_ALITYAN)
@@ -1239,7 +1240,7 @@ def get_products_from_kolshzin() -> List[Dict]:
     products = []
     seen_links = set()
     
-    print("ðŸ”§ Kolshzin: Starting...")
+    logger.store_start("kolshzin")
     
     categories = [
         {"url": f"{BASE_URL_KOLSHZIN}/product-category/hardware-components/pc-components/", "force_category": None},
@@ -1451,7 +1452,7 @@ def parse_spniq_product(item: Dict, is_gpu: bool = False, is_ram: bool = False, 
         return product_data
 
     except Exception as e:
-        print(f"Error parsing spniq product: {e}")
+        logger.error(f"spniq parse error: {e}")
         return None
 
 def parse_jokercenter_product(item: Dict, is_gpu: bool = False, is_ram: bool = False, is_cpu: bool = False, is_motherboard: bool = False, is_mouse: bool = False, is_keyboard: bool = False, is_power_supply: bool = False, is_case: bool = False, is_storage: bool = False, is_cooler: bool = False, is_monitor: bool = False, is_headset: bool = False) -> Dict:
@@ -1532,7 +1533,7 @@ def parse_jokercenter_product(item: Dict, is_gpu: bool = False, is_ram: bool = F
         return product_data
 
     except Exception as e:
-        print(f"Error parsing JokerCenter product: {e}")
+        logger.error(f"JokerCenter parse error: {e}")
         return None
 
 # -------------------- JokerCenter Scrapers --------------------
@@ -1853,7 +1854,7 @@ def get_products_from_jokercenter() -> List[Dict]:
     """Main function to get all products from JokerCenter"""
     products = []
     
-    print("ðŸƒ JokerCenter: Starting...", flush=True)
+    logger.store_start("jokercenter")
     
     # Moved print statement to beginning of function
     
@@ -1904,12 +1905,12 @@ def get_gpu_from_spniq() -> List[Dict]:
         url = f"{BASE_URL_SPNIQ}/categories"
         res = requests.get(url, headers=HEADERS)
         if res.status_code != 200:
-            print(f"Error fetching spniq categories: HTTP {res.status_code}")
+            logger.warning(f"spniq categories: HTTP {res.status_code}")
             return []
         
         categories = res.json()
         if not isinstance(categories, list):
-            print("spniq API returned unexpected format")
+            logger.warning("spniq API: unexpected format")
             return []
         
         # Find the GPU category
@@ -1920,7 +1921,7 @@ def get_gpu_from_spniq() -> List[Dict]:
                 break
         
         if not gpu_category:
-            print("No Graphics Card category found in spniq API")
+            pass  # Category not found
             return []
         
         # Process GPU products
@@ -1936,7 +1937,7 @@ def get_gpu_from_spniq() -> List[Dict]:
         time.sleep(0.3)
         
     except Exception as e:
-        print(f"Error fetching spniq graphics cards: {e}")
+        logger.warning(f"spniq graphics cards: {e}")
     
     return gpu_products
 
@@ -1976,7 +1977,7 @@ def get_laptop_from_globaliraq() -> List[Dict]:
         url = "https://globaliraq.net/collections/laptop/products.json"
         res = requests.get(url, headers=HEADERS)
         if res.status_code != 200:
-            print(f"Error fetching Global Iraq laptops: HTTP {res.status_code}")
+            pass  # Suppressed
             return []
         
         data = res.json()
@@ -1988,11 +1989,11 @@ def get_laptop_from_globaliraq() -> List[Dict]:
                 if product:
                     laptop_products.append(product)
             except Exception as e:
-                print(f"Error parsing Global Iraq laptop product: {e}")
+                pass  # Suppressed
                 continue
                 
     except Exception as e:
-        print(f"Error fetching Global Iraq laptops: {e}")
+        pass  # Suppressed
         return []
     
     return laptop_products
@@ -2006,7 +2007,7 @@ def get_laptop_from_kolshzin() -> List[Dict]:
         url = "https://kolshzin.com/product-category/laptops/"
         res = requests.get(url, headers=HEADERS)
         if res.status_code != 200:
-            print(f"Error fetching Kolshzin laptops: HTTP {res.status_code}")
+            pass  # Suppressed
             return []
         
         soup = BeautifulSoup(res.content, 'html.parser')
@@ -2037,11 +2038,11 @@ def get_laptop_from_kolshzin() -> List[Dict]:
                         page_products = extract_kolshzin_products_from_page(page_soup, is_laptop=True)
                         laptop_products.extend(page_products)
                 except Exception as e:
-                    print(f"Error fetching Kolshzin laptops page {page}: {e}")
+                    pass  # Suppressed
                     continue
                 
     except Exception as e:
-        print(f"Error fetching Kolshzin laptops: {e}")
+        pass  # Suppressed
         return []
     
     return laptop_products
@@ -2112,12 +2113,12 @@ def get_spniq_category_products(category_name: str, **category_flags) -> List[Di
         url = f"{BASE_URL_SPNIQ}/categories"
         res = requests.get(url, headers=HEADERS)
         if res.status_code != 200:
-            print(f"Error fetching spniq categories: HTTP {res.status_code}")
+            logger.warning(f"spniq categories: HTTP {res.status_code}")
             return []
         
         categories = res.json()
         if not isinstance(categories, list):
-            print("spniq API returned unexpected format")
+            logger.warning("spniq API: unexpected format")
             return []
         
         # Find the target category
@@ -2128,7 +2129,7 @@ def get_spniq_category_products(category_name: str, **category_flags) -> List[Di
                 break
         
         if not target_category:
-            print(f"No {category_name} category found in spniq API")
+            pass  # Category not found
             return []
         
         # Process products
@@ -2140,11 +2141,11 @@ def get_spniq_category_products(category_name: str, **category_flags) -> List[Di
                 if product:
                     products.append(product)
             except Exception as e:
-                print(f"Error parsing spniq {category_name} product: {e}")
+                pass  # Suppressed
                 continue
                 
     except Exception as e:
-        print(f"Error fetching spniq {category_name} products: {e}")
+        pass  # Suppressed
         return []
     
     return products
@@ -2154,7 +2155,7 @@ def get_products_from_spniq() -> List[Dict]:
     """Main function to get all products from spniq"""
     products = []
     
-    print("ðŸ•¸ï¸ spniq: Starting...")
+    logger.store_start("spniq")
     
     # Get products from all categories
     gpu_products = get_gpu_from_spniq()
@@ -2181,7 +2182,7 @@ def get_products_from_spniq() -> List[Dict]:
     case_products = get_case_from_spniq()
     products.extend(case_products)
     
-    print(f"âœ… spniq: Completed - {len(products)} products")
+    logger.store_complete("spniq", len(products))
     return products
 
 # -------------------- Galaxy IQ Parser --------------------
@@ -2272,7 +2273,7 @@ def parse_galaxyiq_product(product_div, category: str) -> Dict:
             "category": category
         }
     except Exception as e:
-        print(f"âš ï¸ Error parsing Galaxy IQ product: {e}")
+        pass  # Suppressed
         return None
 
 
@@ -2281,7 +2282,7 @@ def get_products_from_galaxyiq() -> List[Dict]:
     """Scrape products from Galaxy IQ"""
     products = []
     
-    print("🌌 Galaxy IQ: Starting...")
+    logger.store_start("galaxyiq")
     
     # Category mappings: URL slug -> Our category name
     categories = {
@@ -2318,12 +2319,12 @@ def get_products_from_galaxyiq() -> List[Dict]:
         while consecutive_failures < max_consecutive_failures:
             try:
                 url = f"{BASE_URL_GALAXYIQ}/product-categories/{category_slug}?page={page}"
-                print(f"  ðŸ“„ Fetching {category_name} page {page}...")
+                pass  # Suppressed verbose output
                 
                 response = session.get(url, timeout=30)
                 
                 if response.status_code != 200:
-                    print(f"  âš ï¸ Status {response.status_code} for {category_name} page {page}")
+                    pass  # Suppressed verbose output
                     consecutive_failures += 1
                     break
                 
@@ -2333,7 +2334,7 @@ def get_products_from_galaxyiq() -> List[Dict]:
                 product_divs = soup.find_all('div', class_='product')
                 
                 if not product_divs:
-                    print(f"  âœ… {category_name}: No more products on page {page}")
+                    pass  # Suppressed verbose output
                     break
                 
                 page_product_count = 0
@@ -2343,7 +2344,7 @@ def get_products_from_galaxyiq() -> List[Dict]:
                         products.append(product)
                         page_product_count += 1
                 
-                print(f"  âœ… {category_name} page {page}: Found {page_product_count} products")
+                pass  # Suppressed
                 
                 if page_product_count == 0:
                     consecutive_failures += 1
@@ -2354,11 +2355,11 @@ def get_products_from_galaxyiq() -> List[Dict]:
                 time.sleep(0.5)  # Be polite
                 
             except Exception as e:
-                print(f"  âš ï¸ Error fetching {category_name} page {page}: {e}")
+                pass  # Suppressed verbose output
                 consecutive_failures += 1
                 time.sleep(1)
     
-    print(f"ðŸŒŒ Galaxy IQ: Completed - {len(products)} products")
+    logger.store_complete("galaxyiq", len(products))
     return products
 
 
@@ -2366,33 +2367,33 @@ def get_laptop_products() -> List[Dict]:
     """Get all laptop products from all sources"""
     all_laptops = []
     
-    print("ðŸ•¸ï¸ Laptops: Starting...")
+    logger.info("Fetching laptops from all sources...")
     
     # Global Iraq laptops
     try:
         globaliraq_laptops = get_laptop_from_globaliraq()
         all_laptops.extend(globaliraq_laptops)
-        print(f"âœ… Global Iraq: {len(globaliraq_laptops)} laptops")
+        pass  # Suppressed verbose output
     except Exception as e:
-        print(f"âŒ Global Iraq laptops failed: {e}")
+        pass  # Suppressed
     
     # Kolshzin laptops
     try:
         kolshzin_laptops = get_laptop_from_kolshzin()
         all_laptops.extend(kolshzin_laptops)
-        print(f"âœ… Kolshzin: {len(kolshzin_laptops)} laptops")
+        pass  # Suppressed verbose output
     except Exception as e:
-        print(f"âŒ Kolshzin laptops failed: {e}")
+        pass  # Suppressed
     
     # 3D Iraq laptops  
     try:
         diraq_laptops = get_laptop_from_3diraq()
         all_laptops.extend(diraq_laptops)
-        print(f"âœ… 3D Iraq: {len(diraq_laptops)} laptops")
+        pass  # Suppressed verbose output
     except Exception as e:
-        print(f"âŒ 3D Iraq laptops failed: {e}")
+        pass  # Suppressed
     
-    print(f"âœ… Laptops: Completed - {len(all_laptops)} products")
+    logger.info(f"Laptops: {len(all_laptops)} total")
     return all_laptops
 
 # -------------------- 3D-Iraq Parser --------------------
@@ -3244,7 +3245,7 @@ def get_headsets_from_3diraq() -> tuple[List[Dict], set]:
 def get_products_from_3diraq() -> List[Dict]:
     products = []
     
-    print("ðŸ–¥ï¸ 3D-Iraq: Starting...")
+    logger.store_start("3d-iraq")
     
     gpu_products, gpu_links = get_gpus_from_3diraq()
     products.extend(gpu_products)
@@ -3534,7 +3535,7 @@ def scrape_almanjam_category(category_type: str, **category_flags) -> List[Dict]
             time.sleep(0.5)
             
         except Exception as e:
-            print(f"Error scraping almanjam {category_type}: {e}")
+            logger.error(f"Almanjam scrape error: {e}")
             break
     
     return products
@@ -3543,64 +3544,63 @@ def get_products_from_almanjam() -> List[Dict]:
     """Scrape all categories from almanjam"""
     all_products = []
     
-    print("ðŸ›’ Almanjam: Starting...")
+    logger.store_start("almanjam")
     
     # GPU
     gpu_products = scrape_almanjam_category("gpu", is_gpu=True)
     all_products.extend(gpu_products)
-    print(f"  GPUs: {len(gpu_products)}")
+    pass  # Suppressed verbose output}")
     
     # Motherboards
     mb_products = scrape_almanjam_category("mb", is_motherboard=True)
     all_products.extend(mb_products)
-    print(f"  Motherboards: {len(mb_products)}")
+    pass  # Suppressed verbose output}")
     
     # CPU
     cpu_products = scrape_almanjam_category("cpu", is_cpu=True)
     all_products.extend(cpu_products)
-    print(f"  CPUs: {len(cpu_products)}")
+    pass  # Suppressed verbose output}")
     
     # RAM
     ram_products = scrape_almanjam_category("ram", is_ram=True)
     all_products.extend(ram_products)
-    print(f"  RAM: {len(ram_products)}")
+    pass  # Suppressed verbose output}")
     
     # Keyboards
     keyboard_products = scrape_almanjam_category("keyboard", is_keyboard=True)
     all_products.extend(keyboard_products)
-    print(f"  Keyboards: {len(keyboard_products)}")
+    pass  # Suppressed verbose output}")
     
     # Headsets
     headset_products = scrape_almanjam_category("headset", is_headset=True)
     all_products.extend(headset_products)
-    print(f"  Headsets: {len(headset_products)}")
+    pass  # Suppressed verbose output}")
     
     # Cases
     case_products = scrape_almanjam_category("case", is_case=True)
     all_products.extend(case_products)
-    print(f"  Cases: {len(case_products)}")
+    pass  # Suppressed verbose output}")
     
     # Power Supplies (PSU)
     psu_products = scrape_almanjam_category("psu", is_power_supply=True)
     all_products.extend(psu_products)
-    print(f"  Power Supplies: {len(psu_products)}")
+    pass  # Suppressed verbose output}")
     
     # Coolers
     cooler_products = scrape_almanjam_category("cooler", is_cooler=True)
     all_products.extend(cooler_products)
-    print(f"  Coolers: {len(cooler_products)}")
+    pass  # Suppressed verbose output}")
     
     # Storage
     storage_products = scrape_almanjam_category("storage", is_storage=True)
     all_products.extend(storage_products)
-    print(f"  Storage: {len(storage_products)}")
+    pass  # Suppressed verbose output}")
     
     # Mouse
     mouse_products = scrape_almanjam_category("mouse", is_mouse=True)
     all_products.extend(mouse_products)
-    print(f"  Mice: {len(mouse_products)}")
     
-    print(f"Almanjam scraped: {len(all_products)} products")
+    logger.store_complete("almanjam", len(all_products))
     return all_products
 
 # -------------------- Altajit Scraper (Shopify JSON API) --------------------
@@ -3613,7 +3613,7 @@ def scrape_altajit_collection(collection_handle: str, **category_flags) -> List[
     try:
         response = requests.get(url, headers=HEADERS, timeout=15)
         if response.status_code != 200:
-            print(f"Failed to fetch {collection_handle}: HTTP {response.status_code}")
+            pass  # Suppressed
             return products
         
         data = response.json()
@@ -3627,7 +3627,7 @@ def scrape_altajit_collection(collection_handle: str, **category_flags) -> List[
         return products
         
     except Exception as e:
-        print(f"Error scraping altajit collection {collection_handle}: {e}")
+        logger.error(f"Altajit scrape error: {e}")
         return products
 
 def get_products_from_altajit() -> List[Dict]:
@@ -3697,7 +3697,7 @@ def get_products_from_altajit() -> List[Dict]:
     headset_products = scrape_altajit_collection("headphones", is_headset=True)
     all_products.extend(headset_products)
     
-    print(f"Altajit scraped: {len(all_products)} products")
+    logger.store_complete("altajit", len(all_products))
     
     # Remove duplicates based on product ID
     seen_ids = set()
@@ -3753,40 +3753,37 @@ def scrape_all_products() -> List[Dict]:
         # Scrape JokerCenter
         jokercenter_products = []
         try:
-            print("📄 Attempting to start JokerCenter...")
+            pass  # Suppressed
             jokercenter_products = get_products_from_jokercenter()
             all_products.extend(jokercenter_products)
-            print(f"JokerCenter Completed - {len(jokercenter_products)} products")
         except Exception as e:
-            print(f"❌ JokerCenter FAILED: {e}")
+            logger.warning(f"JokerCenter failed: {e}")
             import traceback
-            print(traceback.format_exc())
+            pass  # Suppressed traceback
             # Still extend with empty array so safety check can work
             all_products.extend(jokercenter_products)
         
         # Scrape Almanjam
         try:
-            print("ðŸ”„ Attempting to start Almanjam...")
+            pass  # Suppressed
             almanjam_products = get_products_from_almanjam()
             all_products.extend(almanjam_products)
-            print(f"Almanjam Completed - {len(almanjam_products)} products")
         except Exception as e:
-            print(f"âŒ Almanjam FAILED: {e}")
+            logger.warning(f"Almanjam failed: {e}")
             import traceback
-            print(traceback.format_exc())
+            pass  # Suppressed traceback
         
         # Scrape Altajit
         try:
-            print("ðŸ”„ Attempting to start Altajit...")
+            pass  # Suppressed
             altajit_products = get_products_from_altajit()
             all_products.extend(altajit_products)
-            print(f"Altajit Completed - {len(altajit_products)} products")
         except Exception as e:
-            print(f"âŒ Altajit FAILED: {e}")
+            logger.warning(f"Altajit failed: {e}")
             import traceback
-            print(traceback.format_exc())
+            pass  # Suppressed traceback
         
     except Exception as e:
-        print(f"Error in scrape_all_products: {e}")
+        logger.error(f"scrape_all_products error: {e}")
     
     return all_products

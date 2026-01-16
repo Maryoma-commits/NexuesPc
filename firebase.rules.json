@@ -4,8 +4,8 @@
     ".write": false,
 
     "users": {
+      ".read": true,
       "$uid": {
-        ".read": "auth != null && (auth.uid === $uid || auth.token.admin === true)",
         ".write": "auth != null && auth.uid === $uid",
         "provider": { ".validate": "newData.val() === data.val() || newData.val() === 'google' || newData.val() === 'email'" }
       }
@@ -34,9 +34,9 @@
 
     "globalChat": {
       "messages": {
+        ".read": true,
         ".indexOn": ["timestamp"],
         "$msgId": {
-          ".read": "auth != null",
           ".write": "auth != null && ((auth.token.admin === true) || ((!data.exists() && newData.child('senderId').val() === auth.uid) || (data.exists() && data.child('senderId').val() === auth.uid)))",
           "senderId": { ".validate": "newData.val() === data.val() || (!data.exists() && newData.val() === auth.uid)" },
           "timestamp": { ".validate": "newData.isNumber()" },
@@ -103,8 +103,9 @@
     "notifications": {
       "$uid": {
         ".read": "auth != null && auth.uid === $uid",
+        ".write": "auth != null && auth.uid === $uid",
         "$notifId": {
-          "read": { ".write": "auth != null && auth.uid === $uid" }
+          ".write": "auth != null"
         }
       }
     },
@@ -137,6 +138,245 @@
         ".read": "auth != null && auth.uid === $toUid",
         "$reqId": {
           ".write": "auth != null && ((!data.exists() && newData.child('from').val() === auth.uid) || (data.exists() && auth.uid === $toUid))"
+        }
+      }
+    },
+
+    "posts": {
+      ".indexOn": ["createdAt", "authorId"],
+      "$postId": {
+        ".read": "auth != null",
+        ".write": "auth != null && ((auth.token.admin === true) || ((!data.exists() && newData.child('authorId').val() === auth.uid) || (data.exists() && data.child('authorId').val() === auth.uid)))",
+        "authorId": { ".validate": "newData.val() === data.val() || (!data.exists() && newData.val() === auth.uid)" },
+        "content": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 5000" },
+        "images": { ".validate": "newData.val() === null || newData.hasChildren()" },
+        "taggedProducts": { ".validate": "newData.val() === null || newData.hasChildren()" },
+        "privacy": { ".validate": "newData.val() === 'public' || newData.val() === 'friends' || newData.val() === 'private'" },
+        "createdAt": { ".validate": "newData.isNumber()" },
+        "editedAt": { ".validate": "newData.val() === null || newData.isNumber()" },
+        "likeCount": { 
+          ".write": "auth != null",
+          ".validate": "newData.isNumber() && newData.val() >= 0" 
+        },
+        "commentCount": { 
+          ".write": "auth != null",
+          ".validate": "newData.isNumber() && newData.val() >= 0" 
+        },
+        "reactionCounts": { 
+          ".write": "auth != null",
+          ".validate": "newData.val() === null || newData.hasChildren()" 
+        },
+        "reactions": {
+          "$userId": {
+            ".read": "auth != null",
+            ".write": "auth != null && auth.uid === $userId",
+            "type": {
+              ".validate": "newData.isString() && newData.val().matches(/^(like|love|haha|wow|sad|angry)$/)"
+            },
+            "updatedAt": {
+              ".validate": "newData.isNumber()"
+            }
+          }
+        }
+      }
+    },
+
+    "comments": {
+      "$postId": {
+        ".indexOn": ["createdAt"],
+        ".write": "auth != null && root.child('posts').child($postId).child('authorId').val() === auth.uid",
+        "$commentId": {
+          ".read": "auth != null",
+          ".write": "auth != null && ((auth.token.admin === true) || ((!data.exists() && newData.child('authorId').val() === auth.uid) || (data.exists() && data.child('authorId').val() === auth.uid)))",
+          "postId": { ".validate": "newData.val() === $postId" },
+          "authorId": { ".validate": "newData.val() === data.val() || (!data.exists() && newData.val() === auth.uid)" },
+          "content": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 1000" },
+          "parentId": { ".validate": "newData.val() === null || newData.isString()" },
+          "createdAt": { ".validate": "newData.isNumber()" },
+          "editedAt": { ".validate": "newData.val() === null || newData.isNumber()" },
+          "mentions": { ".validate": "newData.val() === null || newData.hasChildren()" },
+          "likeCount": { ".validate": "newData.isNumber() && newData.val() >= 0" },
+          "reactionCounts": { 
+            ".write": "auth != null",
+            ".validate": "newData.val() === null || newData.hasChildren()" 
+          }
+        }
+      }
+    },
+
+    "likes": {
+      "$postId": {
+        "$userId": {
+          ".read": "auth != null",
+          ".write": "auth != null && auth.uid === $userId",
+          ".validate": "newData.hasChildren(['userId', 'postId', 'createdAt']) && newData.child('userId').val() === auth.uid && newData.child('postId').val() === $postId && newData.child('createdAt').isNumber()"
+        }
+      }
+    },
+
+    "commentLikes": {
+      "$commentId": {
+        "$userId": {
+          ".read": "auth != null",
+          ".write": "auth != null && auth.uid === $userId",
+          ".validate": "newData.isNumber()"
+        }
+      }
+    },
+
+    "commentReactions": {
+      "$commentId": {
+        "$userId": {
+          ".read": "auth != null",
+          ".write": "auth != null && auth.uid === $userId",
+          "userId": { ".validate": "newData.val() === auth.uid" },
+          "commentId": { ".validate": "newData.val() === $commentId" },
+          "postId": { ".validate": "newData.isString()" },
+          "type": { ".validate": "newData.isString() && newData.val().matches(/^(like|love|haha|wow|sad|angry)$/)" },
+          "createdAt": { ".validate": "newData.isNumber()" }
+        }
+      }
+    },
+
+    "reactions": {
+      "$postId": {
+        "$reactionType": {
+          "$userId": {
+            ".read": "auth != null",
+            ".write": "auth != null && auth.uid === $userId",
+            ".validate": "newData.hasChildren(['userId', 'postId', 'type', 'createdAt']) && newData.child('userId').val() === auth.uid && newData.child('postId').val() === $postId && newData.child('createdAt').isNumber()"
+          }
+        }
+      }
+    },
+
+    "userFollows": {
+      "$userId": {
+        "following": {
+          "$followedUserId": {
+            ".read": "auth != null",
+            ".write": "auth != null && auth.uid === $userId",
+            ".validate": "newData.isNumber()"
+          }
+        },
+        "followers": {
+          "$followerId": {
+            ".read": "auth != null",
+            ".write": "auth != null && auth.uid === $followerId",
+            ".validate": "newData.isNumber()"
+          }
+        }
+      }
+    },
+
+    "userFeed": {
+      "$userId": {
+        ".read": "auth != null && auth.uid === $userId",
+        "$postId": {
+          ".write": "auth != null",
+          ".validate": "newData.isNumber()"
+        }
+      }
+    },
+
+    "communityNotifications": {
+      "$userId": {
+        ".read": "auth != null && auth.uid === $userId",
+        ".write": "auth != null && auth.uid === $userId",
+        "$notificationId": {
+          ".write": "auth != null",
+          "userId": { ".validate": "newData.val() === $userId" },
+          "type": { ".validate": "newData.isString()" },
+          "fromUserId": { ".validate": "newData.isString()" },
+          "postId": { ".validate": "newData.val() === null || newData.isString()" },
+          "commentId": { ".validate": "newData.val() === null || newData.isString()" },
+          "createdAt": { ".validate": "newData.isNumber()" },
+          "read": { ".validate": "newData.isBoolean()" },
+          "message": { ".validate": "newData.isString()" }
+        }
+      }
+    },
+
+    "contentReports": {
+      "$reportId": {
+        ".read": "auth != null && auth.token.admin === true",
+        ".write": "auth != null && ((!data.exists() && newData.child('reporterId').val() === auth.uid) || auth.token.admin === true)",
+        "reporterId": { ".validate": "newData.val() === data.val() || (!data.exists() && newData.val() === auth.uid)" },
+        "postId": { ".validate": "newData.val() === null || newData.isString()" },
+        "commentId": { ".validate": "newData.val() === null || newData.isString()" },
+        "reason": { ".validate": "newData.isString() && newData.val().length > 0" },
+        "description": { ".validate": "newData.val() === null || newData.isString()" },
+        "createdAt": { ".validate": "newData.isNumber()" },
+        "status": { ".validate": "newData.val() === 'pending' || newData.val() === 'reviewed' || newData.val() === 'dismissed'" },
+        "reviewedBy": { ".validate": "newData.val() === null || newData.isString()" },
+        "reviewedAt": { ".validate": "newData.val() === null || newData.isNumber()" }
+      }
+    },
+
+    "moderationActions": {
+      "$actionId": {
+        ".read": "auth != null && auth.token.admin === true",
+        ".write": "auth != null && auth.token.admin === true",
+        "moderatorId": { ".validate": "newData.val() === auth.uid" },
+        "targetType": { ".validate": "newData.val() === 'post' || newData.val() === 'comment' || newData.val() === 'user'" },
+        "targetId": { ".validate": "newData.isString()" },
+        "action": { ".validate": "newData.val() === 'hide' || newData.val() === 'delete' || newData.val() === 'ban' || newData.val() === 'warn'" },
+        "reason": { ".validate": "newData.isString() && newData.val().length > 0" },
+        "createdAt": { ".validate": "newData.isNumber()" }
+      }
+    },
+
+    "trendingTopics": {
+      "$hashtag": {
+        ".read": "auth != null",
+        ".write": "auth != null",
+        "postCount": { ".validate": "newData.isNumber() && newData.val() >= 0" },
+        "lastUsed": { ".validate": "newData.isNumber()" }
+      }
+    },
+
+    "savedSearches": {
+      "$userId": {
+        ".read": "auth != null && auth.uid === $userId",
+        "$searchId": {
+          ".write": "auth != null && auth.uid === $userId",
+          "userId": { ".validate": "newData.val() === $userId" },
+          "query": { ".validate": "newData.isString()" },
+          "filters": { ".validate": "newData.val() === null || newData.hasChildren()" },
+          "createdAt": { ".validate": "newData.isNumber()" },
+          "notificationsEnabled": { ".validate": "newData.isBoolean()" }
+        }
+      }
+    },
+
+    "notificationPreferences": {
+      "$userId": {
+        ".read": "auth != null && auth.uid === $userId",
+        ".write": "auth != null && auth.uid === $userId"
+      }
+    },
+
+    "trending": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    },
+
+    "userBlocks": {
+      "$userId": {
+        ".read": "auth != null && auth.uid === $userId",
+        "$blockedUserId": {
+          ".write": "auth != null && auth.uid === $userId",
+          ".validate": "newData.isNumber()"
+        }
+      }
+    },
+
+    "productRatings": {
+      "$productId": {
+        "$userId": {
+          ".read": "auth != null",
+          ".write": "auth != null && auth.uid === $userId",
+          ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 5"
         }
       }
     }

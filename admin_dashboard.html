@@ -179,6 +179,11 @@
             padding: 20px;
             text-align: center;
             transition: all 0.3s ease;
+            min-height: 200px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
         }
         
         .site-card:hover {
@@ -186,9 +191,20 @@
             transform: translateY(-2px);
         }
         
+        .site-card.site-disabled {
+            background: #f8f9fa;
+            border: 2px dashed #dc3545;
+            opacity: 0.7;
+        }
+        
+        .site-card.site-disabled:hover {
+            transform: none;
+            box-shadow: none;
+        }
+        
         .site-logo {
-            width: 60px;
-            height: 60px;
+            width: 80px;
+            height: 80px;
             margin: 0 auto 15px;
             background: #f8f9fa;
             border-radius: 10px;
@@ -198,14 +214,16 @@
             font-size: 20px;
             font-weight: bold;
             color: #667eea;
-            padding: 8px;
+            padding: 10px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
             transition: all 0.3s ease;
         }
         
         .site-logo img {
-            width: 100%;
-            height: 100%;
+            max-width: 100%;
+            max-height: 100%;
+            width: auto;
+            height: auto;
             object-fit: contain;
             border-radius: 6px;
         }
@@ -978,17 +996,41 @@
         }
         
         // Site Cards Management
-        function loadSiteCards() {
+        let scraperConfig = { sites: {} };
+        
+        async function loadScraperConfig() {
+            try {
+                const response = await fetch(`${API_BASE}/scraper-config`);
+                if (!response.ok) throw new Error('Config API failed');
+                const data = await response.json();
+                scraperConfig = data.config || { sites: {} };
+                return scraperConfig;
+            } catch (error) {
+                console.error('Failed to load scraper config:', error);
+                // Default all sites to enabled if config fails
+                scraperConfig = { sites: {} };
+                return scraperConfig;
+            }
+        }
+        
+        function isSiteEnabled(siteName) {
+            return scraperConfig.sites[siteName] !== false;
+        }
+        
+        async function loadSiteCards() {
+            // Load config first
+            await loadScraperConfig();
+            
             const sites = [
-                {name: 'globaliraq', display: 'GlobalIraq', logo: '/WebSitesLogo/globaliraq.svg'},
-                {name: 'alityan', display: 'Alityan', logo: '/WebSitesLogo/alityan.svg'},
-                {name: 'kolshzin', display: 'Kolshzin', logo: '/WebSitesLogo/kolshzin.svg'},
-                {name: '3d-iraq', display: '3D-Iraq', logo: '/WebSitesLogo/3d-iraq.svg'},
-                {name: 'jokercenter', display: 'JokerCenter', logo: '/WebSitesLogo/jokercenter.webp'},
-                {name: 'galaxyiq', display: 'Galaxy IQ', logo: 'WebSitesLogo/galaxyiq.png'},
-                {name: 'almanjam', display: 'Almanjam', logo: '/WebSitesLogo/almanjam.png'},
-                {name: 'spniq', display: 'SpiderNet', logo: '/WebSitesLogo/SpiderNet.svg'},
-                {name: 'altajit', display: 'AlTajit', logo: '/WebSitesLogo/altajit.png'}
+                {name: 'globaliraq', display: 'GlobalIraq', logo: '/assets/logos/globaliraq.svg'},
+                {name: 'alityan', display: 'Alityan', logo: '/assets/logos/alityan.svg'},
+                {name: 'kolshzin', display: 'Kolshzin', logo: '/assets/logos/kolshzin.svg'},
+                {name: '3d-iraq', display: '3D-Iraq', logo: '/assets/logos/3d-iraq.svg'},
+                {name: 'jokercenter', display: 'JokerCenter', logo: '/assets/logos/jokercenter.webp'},
+                {name: 'galaxyiq', display: 'Galaxy IQ', logo: '/assets/logos/galaxyiq.png'},
+                {name: 'almanjam', display: 'Almanjam', logo: '/assets/logos/almanjam.png'},
+                {name: 'spniq', display: 'SpiderNet', logo: '/assets/logos/SpiderNet.svg'},
+                {name: 'altajit', display: 'AlTajit', logo: '/assets/logos/altajit.png'}
             ];
             
             const grid = document.getElementById('site-grid');
@@ -996,22 +1038,30 @@
             
             sites.forEach(site => {
                 const card = document.createElement('div');
-                card.className = 'site-card';
+                const isEnabled = isSiteEnabled(site.name);
+                card.className = 'site-card' + (isEnabled ? '' : ' site-disabled');
                 
                 // Check if site logo is an image path or text
                 const logoContent = site.logo.includes('/') 
                     ? `<img src="${site.logo}" alt="${site.display}" onerror="this.parentElement.innerHTML='${site.display.substring(0,2)}'">`
                     : site.logo;
                 
+                // Determine button based on enabled status and site type
+                let buttonHtml;
+                if (!isEnabled) {
+                    buttonHtml = `<span class="btn btn-secondary btn-sm" style="cursor: default; opacity: 0.5;">🚫 Disabled</span>`;
+                } else if (site.name === 'galaxyiq') {
+                    buttonHtml = '<span class="btn btn-secondary btn-sm" style="cursor: default; opacity: 0.7;">📝 Manual Scrape</span>';
+                } else {
+                    buttonHtml = `<button class="btn btn-primary btn-sm" onclick="scrapeSingleSite('${site.name}')">Scrape Now</button>`;
+                }
+                
                 card.innerHTML = `
-                    <div class="site-logo">${logoContent}</div>
-                    <h5>${site.display}</h5>
+                    <div class="site-logo" ${!isEnabled ? 'style="opacity: 0.5;"' : ''}>${logoContent}</div>
+                    <h5>${site.display}${!isEnabled ? ' <span style="color: #dc3545; font-size: 10px;">(OFF)</span>' : ''}</h5>
                     <p id="${site.name}-count">Loading...</p>
                     <p id="${site.name}-status">Checking...</p>
-                    ${site.name === 'galaxyiq' 
-                        ? '<span class="btn btn-secondary btn-sm" style="cursor: default; opacity: 0.7;">📝 Manual Scrape</span>'
-                        : `<button class="btn btn-primary btn-sm" onclick="scrapeSingleSite('${site.name}')">Scrape Now</button>`
-                    }
+                    ${buttonHtml}
                 `;
                 grid.appendChild(card);
             });
@@ -1073,6 +1123,14 @@
         }
         
         async function scrapeSingleSite(siteName) {
+            // Check if site is enabled
+            if (!isSiteEnabled(siteName)) {
+                const logContent = document.getElementById('log-content');
+                logContent.innerHTML += `🚫 ${siteName} is disabled in config. Enable it first.\n`;
+                logContent.scrollTop = logContent.scrollHeight;
+                return;
+            }
+            
             const logContent = document.getElementById('log-content');
             logContent.innerHTML += `🔄 Scraping ${siteName}...\n`;
             

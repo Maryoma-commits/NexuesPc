@@ -1217,9 +1217,9 @@ export default function DirectMessages({ onNewMessage, preselectedUserId, onClea
               {uploadingImage ? (
                 <Loader2 size={24} className="animate-spin" />
               ) : newMessage.trim() || imagePreview ? (
-                <img src="/send-message.png" alt="Send" className="w-6 h-6" />
+                <img src="/assets/icons/send-message.png" alt="Send" className="w-6 h-6" />
               ) : (
-                <img src="/thumbsup.png" alt="Like" className="w-[32px] h-[32px]" />
+                <img src="/assets/icons/thumbsup.png" alt="Like" className="w-[32px] h-[32px]" />
               )}
           </button>
         </div>

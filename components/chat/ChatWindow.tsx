@@ -147,47 +147,51 @@ export default function ChatWindow({ onClose, onNewMessage, onLoadBuild, isOpen 
                 </span>
               )}
             </button>
-            <button
-              onClick={() => handleTabChange('dms')}
-              className={`
-                flex-1 flex items-center justify-center gap-2 py-3 font-medium transition-colors relative
-                ${activeTab === 'dms'
-                  ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400 bg-white dark:bg-gray-800'
-                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
-                }
-              `}
-            >
-              <Users size={18} />
-              Messages
-              {dmUnreadCount > 0 && (
-                <span className="absolute top-1 right-2 bg-red-500 text-white text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center">
-                  {dmUnreadCount > 9 ? '9+' : dmUnreadCount}
-                </span>
-              )}
-            </button>
-            <button
-              onClick={() => handleTabChange('friends')}
-              className={`
-                flex-1 flex items-center justify-center gap-2 py-3 font-medium transition-colors relative
-                ${activeTab === 'friends'
-                  ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400 bg-white dark:bg-gray-800'
-                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
-                }
-              `}
-            >
-              <UserPlus size={18} />
-              Friends
-              {friendRequestCount > 0 && (
-                <span className="absolute top-1 right-2 bg-red-500 text-white text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center">
-                  {friendRequestCount > 9 ? '9+' : friendRequestCount}
-                </span>
-              )}
-            </button>
+            {auth.currentUser && (
+              <>
+                <button
+                  onClick={() => handleTabChange('dms')}
+                  className={`
+                    flex-1 flex items-center justify-center gap-2 py-3 font-medium transition-colors relative
+                    ${activeTab === 'dms'
+                      ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400 bg-white dark:bg-gray-800'
+                      : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                    }
+                  `}
+                >
+                  <Users size={18} />
+                  Messages
+                  {dmUnreadCount > 0 && (
+                    <span className="absolute top-1 right-2 bg-red-500 text-white text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center">
+                      {dmUnreadCount > 9 ? '9+' : dmUnreadCount}
+                    </span>
+                  )}
+                </button>
+                <button
+                  onClick={() => handleTabChange('friends')}
+                  className={`
+                    flex-1 flex items-center justify-center gap-2 py-3 font-medium transition-colors relative
+                    ${activeTab === 'friends'
+                      ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400 bg-white dark:bg-gray-800'
+                      : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                    }
+                  `}
+                >
+                  <UserPlus size={18} />
+                  Friends
+                  {friendRequestCount > 0 && (
+                    <span className="absolute top-1 right-2 bg-red-500 text-white text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center">
+                      {friendRequestCount > 9 ? '9+' : friendRequestCount}
+                    </span>
+                  )}
+                </button>
+              </>
+            )}
           </div>
 
           {/* Content */}
           <div className="flex-1 overflow-hidden relative">
-            {/* Keep both tabs mounted, toggle visibility with CSS */}
+            {/* Global Chat - visible to all */}
             <div className={`absolute inset-0 ${activeTab === 'global' ? 'block' : 'hidden'}`}>
               <GlobalChat 
                 onNewMessage={handleGlobalMessage} 
@@ -196,21 +200,26 @@ export default function ChatWindow({ onClose, onNewMessage, onLoadBuild, isOpen 
                 isOpen={isOpen && activeTab === 'global'}
               />
             </div>
-            <div className={`absolute inset-0 ${activeTab === 'dms' ? 'block' : 'hidden'}`}>
-              <DirectMessages 
-                onNewMessage={handleDMMessage}
-                preselectedUserId={selectedUserId}
-                onClearPreselection={() => setSelectedUserId(null)}
-                onConversationChange={setSelectedConversationId}
-                onLoadBuild={onLoadBuild}
-                isOpen={activeTab === 'dms'}
-              />
-            </div>
-            <div className={`absolute inset-0 ${activeTab === 'friends' ? 'block' : 'hidden'}`}>
-              <Friends 
-                onOpenDM={handleOpenDM}
-              />
-            </div>
+            {/* DMs and Friends - only for logged in users */}
+            {auth.currentUser && (
+              <>
+                <div className={`absolute inset-0 ${activeTab === 'dms' ? 'block' : 'hidden'}`}>
+                  <DirectMessages 
+                    onNewMessage={handleDMMessage}
+                    preselectedUserId={selectedUserId}
+                    onClearPreselection={() => setSelectedUserId(null)}
+                    onConversationChange={setSelectedConversationId}
+                    onLoadBuild={onLoadBuild}
+                    isOpen={activeTab === 'dms'}
+                  />
+                </div>
+                <div className={`absolute inset-0 ${activeTab === 'friends' ? 'block' : 'hidden'}`}>
+                  <Friends 
+                    onOpenDM={handleOpenDM}
+                  />
+                </div>
+              </>
+            )}
           </div>
         </>
       )}

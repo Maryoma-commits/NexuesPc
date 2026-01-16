@@ -15,6 +15,8 @@ export interface Notification {
   conversationId?: string; // For DMs
   timestamp: number;
   read: boolean;
+  seen?: boolean; // Whether user has opened the notification panel since this arrived
+  seenAt?: number;
 }
 
 /**
@@ -125,6 +127,48 @@ export const deleteNotification = async (userId: string, notificationId: string)
     await remove(notificationRef);
   } catch (error) {
     console.error('Error deleting notification:', error);
+  }
+};
+
+/**
+ * Mark notification as seen (badge cleared but still shows as unread)
+ */
+export const markNotificationAsSeen = async (userId: string, notificationId: string) => {
+  try {
+    const notificationRef = ref(database, `notifications/${userId}/${notificationId}`);
+    await set(ref(database, `notifications/${userId}/${notificationId}/seen`), true);
+    await set(ref(database, `notifications/${userId}/${notificationId}/seenAt`), Date.now());
+  } catch (error) {
+    console.error('Error marking notification as seen:', error);
+  }
+};
+
+/**
+ * Mark all notifications as seen
+ */
+export const markAllNotificationsAsSeen = async (userId: string) => {
+  try {
+    const notificationsRef = ref(database, `notifications/${userId}`);
+    const snapshot = await get(notificationsRef);
+    
+    if (!snapshot.exists()) return;
+    
+    const notifications = snapshot.val();
+    const now = Date.now();
+    
+    const updatePromises = Object.keys(notifications).map(notifId => {
+      if (!notifications[notifId].seen) {
+        return Promise.all([
+          set(ref(database, `notifications/${userId}/${notifId}/seen`), true),
+          set(ref(database, `notifications/${userId}/${notifId}/seenAt`), now)
+        ]);
+      }
+      return Promise.resolve();
+    });
+    
+    await Promise.all(updatePromises);
+  } catch (error) {
+    console.error('Error marking all as seen:', error);
   }
 };
 

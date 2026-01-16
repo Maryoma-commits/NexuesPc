@@ -74,3 +74,6 @@ export interface FilterState {
   maxPrice: number | null;
   retailers: string[];
 }
+
+// Re-export community posts types
+export * from './types/community-posts';

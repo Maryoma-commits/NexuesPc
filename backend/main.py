@@ -23,9 +23,35 @@ app.add_middleware(
 
 # Frontend public JSON file path
 FRONTEND_JSON_FILE = "../public/data/products.json"
+SCRAPER_CONFIG_FILE = "scraper_config.json"
 
 # Ensure frontend data directory exists
 os.makedirs("../public/data", exist_ok=True)
+
+# All available sites
+ALL_SITES = ["globaliraq", "alityan", "kolshzin", "3d-iraq", "jokercenter", "spniq", "galaxyiq", "almanjam", "altajit"]
+
+def load_scraper_config() -> Dict[str, Any]:
+    """Load scraper configuration from JSON file"""
+    try:
+        with open(SCRAPER_CONFIG_FILE, 'r') as f:
+            return json.load(f)
+    except FileNotFoundError:
+        # Return default config with all sites enabled
+        return {"sites": {site: True for site in ALL_SITES}}
+    except Exception as e:
+        print(f"Error loading scraper config: {e}")
+        return {"sites": {site: True for site in ALL_SITES}}
+
+def get_enabled_sites() -> List[str]:
+    """Get list of enabled sites from config"""
+    config = load_scraper_config()
+    return [site for site in ALL_SITES if config.get("sites", {}).get(site, True)]
+
+def is_site_enabled(site_name: str) -> bool:
+    """Check if a specific site is enabled"""
+    config = load_scraper_config()
+    return config.get("sites", {}).get(site_name.lower(), True)
 
 
 @app.post("/scrape")
@@ -42,10 +68,11 @@ def manual_scrape():
 def scrape_single_site_endpoint(site_name: str):
     """Scrape a single site and merge with existing data"""
     try:
-        valid_sites = ["globaliraq", "alityan", "kolshzin", "3d-iraq", "jokercenter", "galaxyiq", "almanjam", "spniq", "altajit"]
+        if site_name.lower() not in ALL_SITES:
+            return {"status": "error", "message": f"Invalid site name. Valid sites: {', '.join(ALL_SITES)}"}
         
-        if site_name.lower() not in valid_sites:
-            return {"status": "error", "message": f"Invalid site name. Valid sites: {', '.join(valid_sites)}"}
+        if not is_site_enabled(site_name):
+            return {"status": "error", "message": f"{site_name} is disabled in scraper_config.json"}
         
         print(f"🌐 Manual scrape requested for {site_name}...")
         scrape_and_save_single_site(site_name.lower())
@@ -62,11 +89,31 @@ def admin_dashboard():
     except FileNotFoundError:
         return HTMLResponse(content="<h1>Admin Dashboard Not Found</h1><p>Please ensure admin_dashboard.html exists in the project root.</p>", status_code=404)
 
-@app.get("/WebSitesLogo/{filename}")
+@app.get("/scraper-config")
+def get_scraper_config():
+    """Get current scraper configuration"""
+    config = load_scraper_config()
+    return {
+        "config": config,
+        "enabled_sites": get_enabled_sites(),
+        "all_sites": ALL_SITES
+    }
+
+@app.post("/scraper-config")
+def update_scraper_config(config: Dict[str, Any]):
+    """Update scraper configuration"""
+    try:
+        with open(SCRAPER_CONFIG_FILE, 'w') as f:
+            json.dump(config, f, indent=2)
+        return {"status": "success", "message": "Config updated", "enabled_sites": get_enabled_sites()}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.get("/assets/logos/{filename}")
 def serve_logo(filename: str):
     """Serve website logo files"""
     import os
-    logo_path = f"../WebSitesLogo/{filename}"
+    logo_path = f"../public/assets/logos/{filename}"
     if os.path.exists(logo_path):
         return FileResponse(logo_path)
     else:
@@ -388,88 +435,210 @@ def update_products_cache():
 
 def scrape_single_site(site):
     """Scrape a single site - used for parallel execution with clean output"""
+    import time as t
+    start = t.time()
+    
     try:
-        # Map site names to display names
-        display_names = {
-            "globaliraq": "GlobalIraq",
-            "alityan": "Alityan", 
-            "kolshzin": "Kolshzin",
-            "3d-iraq": "3D-Iraq",
-            "jokercenter": "JokerCenter",
-            "spniq": "Spniq",
-            "galaxyiq": "Galaxy IQ",
-            "almanjam": "Almanjam",
-            "altajit": "Altajit",
-            # "spniq": "spniq"  # TEMPORARILY DISABLED
-        }
-        
-        display_name = display_names.get(site, site)
-        
         products = scrape_site_individually(site)
+        duration = t.time() - start
         
-        print(f"{display_name} Completed - {len(products)} products")
-        print()
-        
-        return {site: products}
+        return {site: {"products": products, "duration": duration, "success": True}}
     except Exception as e:
-        display_name = display_names.get(site, site)
-        print(f"{display_name} Failed - {e}")
-        return {site: []}
+        return {site: {"products": [], "duration": 0, "success": False, "error": str(e)}}
 
 def scrape_and_save_single_site(site_name: str):
     """Scrape a single site and merge with existing data"""
-    print(f"\n🔄 Scraping {site_name}...")
+    import sys
+    
+    display_names = {
+        "globaliraq": "GlobalIraq",
+        "alityan": "Alityan", 
+        "kolshzin": "Kolshzin",
+        "3d-iraq": "3D-Iraq",
+        "jokercenter": "JokerCenter",
+        "spniq": "Spniq",
+        "galaxyiq": "Galaxy IQ",
+        "almanjam": "Almanjam",
+        "altajit": "Altajit",
+    }
+    
+    store_icons = {
+        "globaliraq": "🌐",
+        "alityan": "🛒",
+        "kolshzin": "🔧",
+        "3d-iraq": "🖥️",
+        "jokercenter": "🃏",
+        "spniq": "🕸️",
+        "galaxyiq": "🌌",
+        "almanjam": "⛏️",
+        "altajit": "🏪",
+    }
+    
+    icon = store_icons.get(site_name.lower(), "📦")
+    name = display_names.get(site_name.lower(), site_name)
+    
+    print()
+    print("─" * 50)
+    print(f"  {icon} Scraping {name}...")
+    print("─" * 50)
+    
     start_time = time.time()
     
+    # Suppress stdout during scraping
+    class SuppressOutput:
+        def __enter__(self):
+            self._original_stdout = sys.stdout
+            sys.stdout = open('nul' if sys.platform == 'win32' else '/dev/null', 'w')
+            return self
+        def __exit__(self, *args):
+            sys.stdout.close()
+            sys.stdout = self._original_stdout
+    
     try:
-        products = scrape_site_individually(site_name)
+        with SuppressOutput():
+            products = scrape_site_individually(site_name)
+        
+        duration = round(time.time() - start_time, 2)
         
         # Save with merge
         all_sites_data = {site_name: products}
         save_all_products_to_frontend(all_sites_data, merge=True)
         
-        duration = round(time.time() - start_time, 2)
-        print(f"✅ {site_name} completed in {duration}s - {len(products)} products")
+        print(f"  ✓ {len(products)} products scraped in {duration}s")
+        print("─" * 50)
+        print()
         
     except Exception as e:
-        print(f"❌ {site_name} failed: {e}")
+        print(f"  ✗ Failed: {e}")
+        print("─" * 50)
+        print()
         # Still try to save with empty array to trigger safety check
         all_sites_data = {site_name: []}
         save_all_products_to_frontend(all_sites_data, merge=True)
 
 def scrape_and_save_all_sites():
     """Scrape all sites in parallel with clean output and save to frontend JSON file"""
+    import sys
     start_time = time.time()
     
-    sites = ["globaliraq", "alityan", "kolshzin", "3d-iraq", "jokercenter", "almanjam", "spniq", "altajit"]
+    # Get only enabled sites from config
+    sites = get_enabled_sites()
     all_sites_data = {}
+    results = {}
     
-    # Use ThreadPoolExecutor to scrape sites in parallel with clean output
+    # Store display names
+    display_names = {
+        "globaliraq": "GlobalIraq",
+        "alityan": "Alityan", 
+        "kolshzin": "Kolshzin",
+        "3d-iraq": "3D-Iraq",
+        "jokercenter": "JokerCenter",
+        "spniq": "Spniq",
+        "galaxyiq": "Galaxy IQ",
+        "almanjam": "Almanjam",
+        "altajit": "Altajit",
+    }
+    
+    store_icons = {
+        "globaliraq": "🌐",
+        "alityan": "�",
+        "kolshzin": "�",
+        "3d-iraq": "🖥️",
+        "jokercenter": "🃏",
+        "spniq": "🕸️",
+        "galaxyiq": "🌌",
+        "almanjam": "⛏️",
+        "altajit": "🏪",
+    }
+    
+    # Print header
+    print()
+    print("=" * 60)
+    print("  🚀 NexusPC Scraper - Starting All Sites")
+    print("=" * 60)
+    print()
+    
+    # Show sites being scraped
+    disabled_count = len(ALL_SITES) - len(sites)
+    print(f"📋 Scraping {len(sites)} retailers in parallel...")
+    if disabled_count > 0:
+        print(f"   ({disabled_count} sites disabled in config)")
+    print()
+    
+    # Suppress stdout during scraping to avoid messy output
+    class SuppressOutput:
+        def __enter__(self):
+            self._original_stdout = sys.stdout
+            sys.stdout = open('nul' if sys.platform == 'win32' else '/dev/null', 'w')
+            return self
+        def __exit__(self, *args):
+            sys.stdout.close()
+            sys.stdout = self._original_stdout
+    
+    # Use ThreadPoolExecutor to scrape sites in parallel
     with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
         # Submit all scraping tasks
         future_to_site = {executor.submit(scrape_single_site, site): site for site in sites}
         
         # Collect results as they complete
-        for future in concurrent.futures.as_completed(future_to_site):
-            site = future_to_site[future]
-            try:
-                result = future.result()
-                all_sites_data.update(result)
-            except Exception as e:
-                print(f"❌ {site}: Exception occurred - {e}")
-                all_sites_data[site] = []
+        with SuppressOutput():
+            for future in concurrent.futures.as_completed(future_to_site):
+                site = future_to_site[future]
+                try:
+                    result = future.result()
+                    results.update(result)
+                except Exception as e:
+                    results[site] = {"products": [], "duration": 0, "success": False, "error": str(e)}
+    
+    # Print results in order
+    print("─" * 60)
+    print("  RESULTS")
+    print("─" * 60)
+    print()
+    
+    successful = 0
+    failed = 0
+    
+    for site in sites:
+        result = results.get(site, {"products": [], "success": False})
+        icon = store_icons.get(site, "📦")
+        name = display_names.get(site, site)
+        
+        if result.get("success", False):
+            products = result.get("products", [])
+            duration = result.get("duration", 0)
+            all_sites_data[site] = products
+            successful += 1
+            print(f"  {icon} {name:<15} ✓ {len(products):>4} products  ({duration:.1f}s)")
+        else:
+            all_sites_data[site] = []
+            failed += 1
+            error = result.get("error", "Unknown error")
+            print(f"  {icon} {name:<15} ✗ Failed: {error[:30]}")
     
     # Calculate total time
     end_time = time.time()
     total_duration = round(end_time - start_time, 2)
     
     # Save all data to frontend JSON file (merge mode to preserve manual retailers)
+    print()
+    print("─" * 60)
     save_all_products_to_frontend(all_sites_data, merge=True)
-    print(f"✅ Parallel scraping completed in {total_duration}s")
     
     # Show summary
     total_products = sum(len(products) for products in all_sites_data.values())
-    print(f"📊 Total: {total_products} products from all retailers")
+    
+    print()
+    print("─" * 60)
+    print("  📊 SUMMARY")
+    print("─" * 60)
+    print(f"  Total Products: {total_products:,}")
+    print(f"  Successful:     {successful}/{len(sites)} stores")
+    if failed > 0:
+        print(f"  Failed:         {failed} stores")
+    print(f"  Duration:       {total_duration}s")
+    print("=" * 60)
+    print()
 
 # Periodic scraping function
 def periodic_scrape():
@@ -492,9 +661,10 @@ def periodic_scrape():
 
 def interactive_menu():
     """Interactive CLI menu for scraping"""
-    print("\n" + "="*60)
-    print("🛒 NexusPC Scraper - Interactive Menu")
-    print("="*60)
+    print()
+    print("=" * 60)
+    print("  🛒 NexusPC Scraper - Interactive Mode")
+    print("=" * 60)
     
     sites = {
         "1": "globaliraq",
@@ -508,35 +678,66 @@ def interactive_menu():
         "9": "altajit"
     }
     
+    store_icons = {
+        "globaliraq": "🌐",
+        "alityan": "🛒",
+        "kolshzin": "🔧",
+        "3d-iraq": "🖥️",
+        "jokercenter": "🃏",
+        "spniq": "🕸️",
+        "galaxyiq": "🌌",
+        "almanjam": "⛏️",
+        "altajit": "🏪",
+    }
+    
+    display_names = {
+        "globaliraq": "GlobalIraq",
+        "alityan": "Alityan", 
+        "kolshzin": "Kolshzin",
+        "3d-iraq": "3D-Iraq",
+        "jokercenter": "JokerCenter",
+        "spniq": "Spniq",
+        "galaxyiq": "Galaxy IQ",
+        "almanjam": "Almanjam",
+        "altajit": "Altajit",
+    }
+    
     while True:
-        print("\n📋 Choose an option:")
-        print("  1. GlobalIraq")
-        print("  2. Alityan")
-        print("  3. Kolshzin")
-        print("  4. 3D-Iraq")
-        print("  5. JokerCenter")
-        print("  6. Spniq")
-        print("  7. Galaxy IQ")
-        print("  8. Almanjam")
-        print("  9. Altajit")
-        print(" 10. Scrape ALL sites")
-        print("  0. Exit")
+        # Reload config each iteration to pick up changes
+        enabled_sites = get_enabled_sites()
+        
+        print()
+        print("  Select a retailer to scrape:")
+        print()
+        for key, site in sites.items():
+            icon = store_icons.get(site, "📦")
+            name = display_names.get(site, site)
+            status = "" if site in enabled_sites else " (disabled)"
+            print(f"    {key}. {icon} {name}{status}")
+        print()
+        print("   10. 🚀 Scrape ALL enabled sites")
+        print("    0. 👋 Exit")
         print()
         
-        choice = input("Enter your choice (0-10): ").strip()
+        choice = input("  Enter choice (0-10): ").strip()
         
         if choice == "0":
-            print("\n👋 Goodbye!")
+            print()
+            print("  👋 Goodbye!")
+            print()
             break
         elif choice == "10":
-            print("\n🔄 Scraping ALL sites...")
             scrape_and_save_all_sites()
-            print("\n✅ All sites scraped successfully!")
         elif choice in sites:
             site_name = sites[choice]
-            scrape_and_save_single_site(site_name)
+            if site_name not in enabled_sites:
+                print()
+                print(f"  ⚠️  {display_names[site_name]} is disabled in scraper_config.json")
+            else:
+                scrape_and_save_single_site(site_name)
         else:
-            print("\n❌ Invalid choice. Please try again.")
+            print()
+            print("  ⚠️  Invalid choice. Please try again.")
 
 # Check if running in CLI mode or server mode
 if __name__ == "__main__":

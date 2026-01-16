@@ -9,6 +9,8 @@ import ChatBubble from './components/chat/ChatBubble';
 import AdminDashboard from './components/admin/AdminDashboard';
 import OnboardingModal from './components/auth/OnboardingModal';
 import NotificationsPanel from './components/NotificationsPanel';
+import CommunityView from './components/community/CommunityView';
+import PostDetailModal from './components/community/PostDetailModal';
 import { Navbar } from './components/Navbar';
 import { Notification, listenToNotifications } from './services/notificationService';
 import { auth } from './firebase.config';
@@ -71,6 +73,14 @@ const MainAppContent: React.FC = () => {
   const [selectedRetailer, setSelectedRetailer] = useState<string>('All');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const [currentView, setCurrentView] = useState<'products' | 'community'>('products');
+  const [triggerPostCreator, setTriggerPostCreator] = useState(false);
+  const [scrollToPostId, setScrollToPostId] = useState<string | undefined>(undefined);
+  const [scrollToCommentId, setScrollToCommentId] = useState<string | undefined>(undefined);
+  const [scrollTrigger, setScrollTrigger] = useState<number | undefined>(undefined);
+  
+  // Post Detail Modal state (for comment notifications)
+  const [postDetailModal, setPostDetailModal] = useState<{ postId: string; commentId?: string } | null>(null);
 
   const [showOutOfStock, setShowOutOfStock] = useState(true);
   const [showOnDiscountOnly, setShowOnDiscountOnly] = useState(false);
@@ -374,6 +384,21 @@ const MainAppContent: React.FC = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  const handleOpenCommunity = () => {
+    setCurrentView('community');
+  };
+
+  const handleCreatePost = () => {
+    setCurrentView('community');
+    setTriggerPostCreator(true);
+  };
+
+  const handleProductClick = (product: any) => {
+    // Handle product clicks from community posts
+    // Could open product details or add to PC builder
+    console.log('Product clicked from community:', product);
+  };
+
   useEffect(() => {
     const observer = new IntersectionObserver(
       entries => {
@@ -442,7 +467,19 @@ const MainAppContent: React.FC = () => {
               window.dispatchEvent(event);
             }, isChatOpen ? 0 : 300);
           }}
+          onCommunityNotificationClick={(notification) => {
+            // Always open post in a modal (Facebook-style) for all post notifications
+            if (notification.postId) {
+              setPostDetailModal({
+                postId: notification.postId,
+                commentId: notification.commentId // Will be undefined for like notifications
+              });
+            }
+          }}
           onNotificationCountChange={(count) => setNotificationCount(count)}
+          onOpenCommunity={handleOpenCommunity}
+          onCreatePost={handleCreatePost}
+          currentView={currentView}
         />
 
         <FavoritesPanel
@@ -452,8 +489,19 @@ const MainAppContent: React.FC = () => {
           onRemoveFavorite={removeFavorite}
         />
 
-
-      <main className="flex-grow max-w-8xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Conditional Main Content */}
+        {currentView === 'community' ? (
+          <CommunityView 
+            onClose={() => setCurrentView('products')}
+            onProductClick={handleProductClick}
+            openPostCreator={triggerPostCreator}
+            onPostCreatorOpened={() => setTriggerPostCreator(false)}
+            scrollToPostId={scrollToPostId}
+            scrollToCommentId={scrollToCommentId}
+            scrollTrigger={scrollTrigger}
+          />
+        ) : (
+          <main className="flex-grow max-w-8xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Category Navigation */}
           <CategoryNav
             selectedCategory={selectedCategory}
@@ -604,6 +652,7 @@ const MainAppContent: React.FC = () => {
             </div>
           </div>
         </main>
+        )}
 
         <footer className="border-t border-white/5 mt-auto py-6 text-center bg-black/20 backdrop-blur-lg">
           <p className="text-gray-500 text-xs">
@@ -621,6 +670,15 @@ const MainAppContent: React.FC = () => {
             setInitialBuildData(null);
           }}
           initialBuildData={initialBuildData}
+        />
+      )}
+
+      {/* Post Detail Modal (for comment notifications) */}
+      {postDetailModal && (
+        <PostDetailModal
+          postId={postDetailModal.postId}
+          commentId={postDetailModal.commentId}
+          onClose={() => setPostDetailModal(null)}
         />
       )}
 

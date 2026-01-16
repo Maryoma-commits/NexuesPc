@@ -1,7 +1,7 @@
 // Global Chat Room Component
 import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { Send, Smile, MoreVertical, Flag, Trash2, Loader2, Reply, X, Heart, Image as ImageIcon, Monitor, ThumbsUp, Pencil } from 'lucide-react';
+import { Send, Smile, MoreVertical, Flag, Trash2, Loader2, Reply, X, Heart, Image as ImageIcon, Monitor, ThumbsUp, Pencil, MessageSquare } from 'lucide-react';
 import EmojiPicker, { EmojiClickData } from 'emoji-picker-react';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../contexts/AuthContext';
@@ -79,15 +79,13 @@ export default function GlobalChat({ onNewMessage, onOpenDM, onLoadBuild, isOpen
   };
 
   useEffect(() => {
-    if (!auth.currentUser) return;
-
     let isFirstLoad = true;
     let previousMessageCount = 0;
 
     const unsubscribe = listenToGlobalChat(async (msgs) => {
       if (!isFirstLoad && msgs.length > previousMessageCount) {
         const newestMessage = msgs[msgs.length - 1];
-        if (newestMessage.senderId !== auth.currentUser?.uid) {
+        if (auth.currentUser && newestMessage.senderId !== auth.currentUser?.uid) {
           onNewMessage();
         }
       }
@@ -100,7 +98,7 @@ export default function GlobalChat({ onNewMessage, onOpenDM, onLoadBuild, isOpen
       setMessagesLoading(false);
       isFirstLoad = false;
       
-      // Mark messages as seen if chat is open (only if not already seen)
+      // Mark messages as seen if chat is open (only if logged in and not already seen)
       if (isOpen && auth.currentUser) {
         msgs.forEach(msg => {
           if (msg.id && msg.senderId !== auth.currentUser?.uid) {
@@ -864,6 +862,8 @@ const handleDeleteMessage = async (messageId: string) => {
                         );
                       })()}
                     </div>
+                    {/* Action buttons - only show for logged in users */}
+                    {auth.currentUser && (
                     <div className={`absolute ${isOwnMessage ? 'right-full mr-2' : 'left-full ml-2'} top-1/2 -translate-y-1/2 ${(reactionPickerOpen === msg.id || fullEmojiPickerOpen?.messageId === msg.id) ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} pointer-events-none z-10`}>
                       <div className="flex gap-1 pointer-events-auto mt-1">
                         <button onClick={(e) => { e.stopPropagation(); if (reactionPickerOpen === msg.id) { setReactionPickerOpen(null); setReactionPickerPosition(null); } else { const rect = e.currentTarget.getBoundingClientRect(); setReactionPickerPosition({ x: rect.left, y: rect.top }); setReactionPickerOpen(msg.id!); } }} className="p-1.5 hover:bg-gray-700/50 rounded-full transition-colors" title="React"><Smile size={16} className="text-white" /></button>
@@ -871,6 +871,7 @@ const handleDeleteMessage = async (messageId: string) => {
                         <button onClick={(e) => { e.stopPropagation(); setContextMenu({ messageId: msg.id!, x: e.clientX, y: e.clientY }); }} className="p-1.5 hover:bg-gray-700/50 rounded-full transition-colors" title="More"><MoreVertical size={16} className="text-white" /></button>
                       </div>
                     </div>
+                    )}
                   </div>
                   
                   {/* Seen by count - only on last message (outside relative container) */}
@@ -953,7 +954,7 @@ const handleDeleteMessage = async (messageId: string) => {
       )}
 
       {/* Reply Bar */}
-      {replyingTo && (
+      {replyingTo && auth.currentUser && (
         <div className="px-4 py-2 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 flex items-center justify-between">
           <div className="flex-1 min-w-0">
             <div className="text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">
@@ -973,7 +974,18 @@ const handleDeleteMessage = async (messageId: string) => {
         </div>
       )}
 
-      {/* Input Form */}
+      {/* Login prompt for non-authenticated users */}
+      {!auth.currentUser && (
+        <div className="p-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
+          <div className="flex items-center justify-center gap-2 py-2 px-4 bg-gray-100 dark:bg-gray-700 rounded-full text-gray-500 dark:text-gray-400 text-sm">
+            <MessageSquare size={18} />
+            <span>Log in to join the conversation</span>
+          </div>
+        </div>
+      )}
+
+      {/* Input Form - Only show for logged in users */}
+      {auth.currentUser && (
       <form onSubmit={handleSendMessage} className="p-4 border-t border-gray-200 dark:border-gray-700">
         {/* Image Preview */}
         {imagePreview && (
@@ -1098,13 +1110,14 @@ const handleDeleteMessage = async (messageId: string) => {
               {uploadingImage ? (
                 <Loader2 size={24} className="animate-spin" />
               ) : newMessage.trim() || imagePreview ? (
-                <img src="/send-message.png" alt="Send" className="w-6 h-6" />
+                <img src="/assets/icons/send-message.png" alt="Send" className="w-6 h-6" />
               ) : (
-                <img src="/thumbsup.png" alt="Like" className="w-[32px] h-[32px]" />
+                <img src="/assets/icons/thumbsup.png" alt="Like" className="w-[32px] h-[32px]" />
               )}
           </button>
         </div>
       </form>
+      )}
       
       {/* Image Lightbox */}
       {imageLightbox && createPortal(

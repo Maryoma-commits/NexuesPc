@@ -331,10 +331,10 @@ export const uploadProfilePicture = async (file: File): Promise<string> => {
       reader.readAsDataURL(file);
     });
 
-    // Upload to ImgBB
+    // Upload to ImgBB with profile prefix
     const formData = new FormData();
     formData.append('image', base64);
-    formData.append('name', `${auth.currentUser.uid}_${Date.now()}`);
+    formData.append('name', `profile_${auth.currentUser.uid}_${Date.now()}`);
 
     const response = await fetch(`https://api.imgbb.com/1/upload?key=${apiKey}`, {
       method: 'POST',
