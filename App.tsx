@@ -16,7 +16,6 @@ import { Notification, listenToNotifications } from './services/notificationServ
 import { auth } from './firebase.config';
 import { Sidebar } from './components/Sidebar';
 import { ProductCard } from './components/ProductCard';
-import { FavoritesPanel } from './components/FavoritesPanel';
 import { PCBuilder } from './components/PCBuilder';
 
 import { CategoryNav } from './components/CategoryNav';
@@ -89,18 +88,6 @@ const MainAppContent: React.FC = () => {
     const savedTheme = localStorage.getItem('theme');
     return savedTheme ? savedTheme === 'dark' : true;
   });
-
-  // Favorites State
-  const [favorites, setFavorites] = useState<string[]>(() => {
-    try {
-      const saved = localStorage.getItem('nexus_favorites');
-      return saved ? JSON.parse(saved) : [];
-    } catch (e) {
-      console.error("Failed to load favorites", e);
-      return [];
-    }
-  });
-  const [isFavoritesOpen, setIsFavoritesOpen] = useState(false);
   
   // PC Builder State
   const [isPCBuilderOpen, setIsPCBuilderOpen] = useState(false);
@@ -139,32 +126,9 @@ const MainAppContent: React.FC = () => {
     }
   }, [isDarkMode]);
 
-  // Save favorites to localStorage
-  useEffect(() => {
-    try {
-      localStorage.setItem('nexus_favorites', JSON.stringify(favorites));
-    } catch (e) {
-      console.error("Failed to save favorites", e);
-    }
-  }, [favorites]);
-
   const toggleTheme = () => {
     setIsDarkMode(prev => !prev);
   };
-
-  const toggleFavorite = useCallback((productId: string) => {
-    setFavorites(prev => {
-      if (prev.includes(productId)) {
-        return prev.filter(id => id !== productId);
-      } else {
-        return [...prev, productId];
-      }
-    });
-  }, []);
-
-  const removeFavorite = useCallback((productId: string) => {
-    setFavorites(prev => prev.filter(id => id !== productId));
-  }, []);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -370,11 +334,6 @@ const MainAppContent: React.FC = () => {
     return counts;
   }, [allProducts]);
 
-  // Get full product objects for favorites
-  const favoriteProducts = useMemo(() => {
-    return allProducts.filter(p => favorites.includes(p.id));
-  }, [allProducts, favorites]);
-
   const displayedProducts = processedProducts.slice(0, visibleCount);
   const hasMore = visibleCount < processedProducts.length;
 
@@ -438,8 +397,6 @@ const MainAppContent: React.FC = () => {
           isLoading={loading}
           isDarkMode={isDarkMode}
           onToggleTheme={toggleTheme}
-          favoritesCount={favorites.length}
-          onOpenFavorites={() => setIsFavoritesOpen(true)}
           onOpenPCBuilder={() => setIsPCBuilderOpen(true)}
           notificationCount={notificationCount}
           onNotificationClick={(notification) => {
@@ -480,13 +437,6 @@ const MainAppContent: React.FC = () => {
           onOpenCommunity={handleOpenCommunity}
           onCreatePost={handleCreatePost}
           currentView={currentView}
-        />
-
-        <FavoritesPanel
-          isOpen={isFavoritesOpen}
-          onClose={() => setIsFavoritesOpen(false)}
-          favorites={favoriteProducts}
-          onRemoveFavorite={removeFavorite}
         />
 
         {/* Conditional Main Content */}
@@ -621,8 +571,6 @@ const MainAppContent: React.FC = () => {
                       <ProductCard
                         key={product.id}
                         product={product}
-                        isFavorite={favorites.includes(product.id)}
-                        onToggleFavorite={toggleFavorite}
                       />
                     ))}
                   </div>

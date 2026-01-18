@@ -32,7 +32,7 @@ export default function UserMenu() {
       <>
         <button
           onClick={() => setShowAuthModal(true)}
-          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-medium"
+          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 !text-white rounded-lg transition-colors font-medium"
         >
           Sign In
         </button>

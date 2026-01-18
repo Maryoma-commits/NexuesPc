@@ -3,15 +3,12 @@ import { Product } from '../types';
 import { ExternalLink, ImageOff } from 'lucide-react';
 import { formatPrice, calculateSavings } from '../services/priceUtils';
 import { getProductImageUrl } from '../services/imageUtils';
-import { FavoriteButton } from './ui/FavoriteButton';
 
 interface ProductCardProps {
   product: Product;
-  isFavorite?: boolean;
-  onToggleFavorite?: (productId: string) => void;
 }
 
-export const ProductCard: React.FC<ProductCardProps> = ({ product, isFavorite = false, onToggleFavorite }) => {
+export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   // Get the smart image URL (processed or original based on configuration)
   const imageResult = getProductImageUrl(product);
   const hasImage = Boolean(imageResult.url && imageResult.url !== '/placeholder.jpg');
@@ -185,18 +182,6 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, isFavorite = 
 
         {/* Hover Overlay */}
         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors duration-300" />
-
-        {/* Favorite Button - Bottom Right */}
-        {onToggleFavorite && (
-          <div className="absolute bottom-3 right-3 z-30">
-            <div className="bg-white/90 backdrop-blur-sm rounded-full p-1 shadow-lg hover:scale-[0.55] transition-transform duration-200 scale-50">
-              <FavoriteButton
-                isFavorite={isFavorite}
-                onToggle={() => onToggleFavorite(product.id)}
-              />
-            </div>
-          </div>
-        )}
       </a>
 
       {/* Details Section */}
@@ -242,10 +227,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, isFavorite = 
             href={product.url}
             target="_blank"
             rel="noopener noreferrer"
-            className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all duration-300 ${isOutOfStock || hasNoPrice
-              ? 'bg-gray-700/50 text-gray-400 cursor-not-allowed'
-              : 'bg-gradient-to-r from-nexus-accent to-blue-500 text-white shadow-lg shadow-cyan-500/25 hover:shadow-cyan-500/40 hover:scale-105'
-              }`}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all duration-300 bg-gradient-to-r from-nexus-accent to-blue-500 text-white shadow-lg shadow-cyan-500/25 hover:shadow-cyan-500/40 hover:scale-105"
           >
             <ExternalLink size={14} />
             <span>View</span>

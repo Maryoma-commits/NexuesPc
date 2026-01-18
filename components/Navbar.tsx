@@ -13,8 +13,6 @@ interface NavbarProps {
   isLoading: boolean;
   isDarkMode: boolean;
   onToggleTheme: () => void;
-  favoritesCount?: number;
-  onOpenFavorites?: () => void;
   onOpenPCBuilder?: () => void;
   notificationCount?: number;
   onNotificationClick?: (notification: Notification) => void;
@@ -30,8 +28,6 @@ export const Navbar: React.FC<NavbarProps> = ({
   isLoading,
   isDarkMode,
   onToggleTheme,
-  favoritesCount = 0,
-  onOpenFavorites,
   onOpenPCBuilder,
   notificationCount = 0,
   onNotificationClick,
@@ -163,30 +159,10 @@ export const Navbar: React.FC<NavbarProps> = ({
               />
             </button>
 
-            {/* Favorites Button */}
-            <button
-              onClick={onOpenFavorites}
-              className="relative p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-rose-500/30 transition-all duration-200 group"
-              aria-label="Open favorites"
-            >
-              <Heart
-                className={`h-5 w-5 transition-all duration-200 ${favoritesCount > 0
-                    ? 'text-rose-400 fill-rose-400'
-                    : 'text-gray-400 group-hover:text-rose-400'
-                  }`}
-              />
-              {favoritesCount > 0 && (
-                <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] flex items-center justify-center px-1 text-[10px] font-bold text-white bg-gradient-to-r from-rose-500 to-pink-500 rounded-full shadow-lg">
-                  {favoritesCount > 99 ? '99+' : favoritesCount}
-                </span>
-              )}
-            </button>
-
             {/* Unified Notifications Button */}
             <UnifiedNotificationBadge
               onChatNotificationClick={onNotificationClick}
               onCommunityNotificationClick={onCommunityNotificationClick}
-              className="relative p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-yellow-500/30 transition-all duration-200"
             />
 
             {/* Theme Toggle */}

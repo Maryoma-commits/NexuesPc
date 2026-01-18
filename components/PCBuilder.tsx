@@ -675,21 +675,33 @@ export const PCBuilder: React.FC<PCBuilderProps> = ({ products, onClose, initial
   return (
     <div className="fixed inset-0 bg-nexus-900 z-50 overflow-hidden">
         {/* Header */}
-        <div className="p-4 border-b border-white/10 flex items-center justify-between">
-          <div>
-            <h2 className="text-xl font-bold text-white flex items-center gap-2">
-              PC Builder
-              {buildName && buildName !== 'My PC Build' && (
-                <span className="text-sm font-normal text-nexus-accent">
-                  • {buildName}
-                </span>
-              )}
-            </h2>
-            <p className="text-gray-400 text-xs">Build your PC</p>
+        <div className="p-3 sm:p-4 border-b border-white/10">
+          <div className="flex items-center justify-between mb-2 sm:mb-0">
+            <div className="flex-1 min-w-0">
+              <h2 className="text-lg sm:text-xl font-bold text-white flex items-center gap-2 truncate">
+                PC Builder
+                {buildName && buildName !== 'My PC Build' && (
+                  <span className="text-xs sm:text-sm font-normal text-nexus-accent truncate">
+                    • {buildName}
+                  </span>
+                )}
+              </h2>
+              <p className="text-gray-400 text-xs hidden sm:block">Build your PC</p>
+            </div>
+            
+            {/* Close button - always visible on mobile */}
+            <button
+              onClick={onClose}
+              className="ml-2 p-2 sm:hidden bg-white/5 hover:bg-white/10 rounded-lg border border-white/10 
+                       transition-colors flex-shrink-0"
+              aria-label="Close"
+            >
+              <X className="w-5 h-5" />
+            </button>
           </div>
           
           {/* Action Buttons */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2 mt-2 sm:mt-0 sm:absolute sm:top-4 sm:right-4">
             <button
               onClick={() => {
                 if (!auth.currentUser) {
@@ -698,8 +710,8 @@ export const PCBuilder: React.FC<PCBuilderProps> = ({ products, onClose, initial
                 }
                 setShowSaveModal(true);
               }}
-              className={`px-3 py-1.5 bg-blue-600 hover:bg-blue-700 !text-white rounded-lg 
-                       transition-colors text-sm flex items-center gap-2 ${!auth.currentUser ? 'opacity-50' : ''}`}
+              className={`px-2 sm:px-3 py-1.5 sm:py-2 bg-blue-600 hover:bg-blue-700 !text-white rounded-lg 
+                       transition-colors text-xs sm:text-sm flex items-center gap-1 sm:gap-2 ${!auth.currentUser ? 'opacity-50' : ''}`}
               title={auth.currentUser ? "Save Build" : "Log in to save builds"}
             >
               <Save className="w-4 h-4 !text-white" />
@@ -714,8 +726,8 @@ export const PCBuilder: React.FC<PCBuilderProps> = ({ products, onClose, initial
                 }
                 setShowLoadModal(true);
               }}
-              className={`px-3 py-1.5 bg-white/5 hover:bg-white/10 rounded-lg border border-white/10 
-                       transition-colors text-sm flex items-center gap-2 ${!auth.currentUser ? 'opacity-50' : ''}`}
+              className={`px-2 sm:px-3 py-1.5 sm:py-2 bg-white/5 hover:bg-white/10 rounded-lg border border-white/10 
+                       transition-colors text-xs sm:text-sm flex items-center gap-1 sm:gap-2 ${!auth.currentUser ? 'opacity-50' : ''}`}
               title={auth.currentUser ? "Load Build" : "Log in to load builds"}
             >
               <FolderOpen className="w-4 h-4" />
@@ -724,8 +736,8 @@ export const PCBuilder: React.FC<PCBuilderProps> = ({ products, onClose, initial
             
             <button
               onClick={handleShareBuild}
-              className="px-3 py-1.5 bg-white/5 hover:bg-white/10 rounded-lg border border-white/10 
-                       transition-colors text-sm flex items-center gap-2"
+              className="px-2 sm:px-3 py-1.5 sm:py-2 bg-white/5 hover:bg-white/10 rounded-lg border border-white/10 
+                       transition-colors text-xs sm:text-sm flex items-center gap-1 sm:gap-2"
               title="Share Build"
             >
               <Share2 className="w-4 h-4" />
@@ -734,9 +746,9 @@ export const PCBuilder: React.FC<PCBuilderProps> = ({ products, onClose, initial
             
             <button
               onClick={handleResetBuild}
-              className="px-3 py-1.5 bg-red-600/20 hover:bg-red-600/30 text-red-400 rounded-lg 
-                       border border-red-600/30 hover:border-red-600/50 transition-colors text-sm 
-                       flex items-center gap-2"
+              className="px-2 sm:px-3 py-1.5 sm:py-2 bg-red-600/20 hover:bg-red-600/30 text-red-400 rounded-lg 
+                       border border-red-600/30 hover:border-red-600/50 transition-colors text-xs sm:text-sm 
+                       flex items-center gap-1 sm:gap-2"
               title="Reset Build"
             >
               <RotateCcw className="w-4 h-4" />
@@ -745,7 +757,7 @@ export const PCBuilder: React.FC<PCBuilderProps> = ({ products, onClose, initial
             
             <button
               onClick={onClose}
-              className="px-3 py-1.5 bg-white/5 hover:bg-white/10 rounded-lg border border-white/10 
+              className="hidden sm:block px-3 py-2 bg-white/5 hover:bg-white/10 rounded-lg border border-white/10 
                        transition-colors text-sm"
             >
               Close
@@ -754,8 +766,8 @@ export const PCBuilder: React.FC<PCBuilderProps> = ({ products, onClose, initial
         </div>
 
         {/* Combined Stats Bar + Compatibility Status */}
-        <div className="px-4 py-2 bg-white/5 border-b border-white/10 text-sm">
-          <div className="flex items-center justify-between gap-4">
+        <div className="px-3 sm:px-4 py-2 bg-white/5 border-b border-white/10 text-xs sm:text-sm">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-4">
             {/* Left: Total Price */}
             <div className="flex items-center gap-2">
               <span className="text-gray-400">Total:</span>
@@ -764,9 +776,9 @@ export const PCBuilder: React.FC<PCBuilderProps> = ({ products, onClose, initial
 
             {/* Right: Compatibility Warnings/Errors Only */}
             {(!compatibilityCheck.isCompatible || compatibilityCheck.warnings.length > 0) && (
-              <div className="flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4 text-yellow-400 flex-shrink-0" />
-                <span className="text-yellow-400 text-xs max-w-2xl">
+              <div className="flex items-start sm:items-center gap-2">
+                <AlertTriangle className="w-4 h-4 text-yellow-400 flex-shrink-0 mt-0.5 sm:mt-0" />
+                <span className="text-yellow-400 text-xs line-clamp-2 sm:line-clamp-1">
                   {compatibilityCheck.errors.map(e => e.message).concat(compatibilityCheck.warnings.map(w => w.message)).join(' • ')}
                 </span>
               </div>
@@ -777,16 +789,16 @@ export const PCBuilder: React.FC<PCBuilderProps> = ({ products, onClose, initial
         <div className="h-[calc(100vh-140px)] overflow-hidden">
           {!selectedCategory ? (
             /* Components View - Full Width */
-            <div className="w-full h-full p-6 overflow-y-auto">
-              <div className="mb-6">
-                <h3 className="text-2xl font-bold text-white mb-2">Select Components</h3>
-                <p className="text-gray-400 text-sm mb-4">Click on a component category to browse and select products</p>
+            <div className="w-full h-full p-3 sm:p-4 md:p-6 overflow-y-auto">
+              <div className="mb-4 sm:mb-6">
+                <h3 className="text-xl sm:text-2xl font-bold text-white mb-2">Select Components</h3>
+                <p className="text-gray-400 text-xs sm:text-sm mb-3 sm:mb-4">Click on a component category to browse and select products</p>
                 
                 {/* Global Store Filter */}
                 <select
                   value={storeFilter}
                   onChange={(e) => setStoreFilter(e.target.value)}
-                  className="w-full max-w-xs px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full sm:max-w-xs px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="">🌐 All Stores</option>
                   {availableStores.map(store => (
@@ -797,20 +809,14 @@ export const PCBuilder: React.FC<PCBuilderProps> = ({ products, onClose, initial
                 </select>
               </div>
               
-              {/* Grid Layout - 4 columns, enhanced cards */}
-              <div className="grid grid-cols-4 gap-6">
+              {/* Grid Layout - Responsive: 1 col mobile, 2 cols tablet, 4 cols desktop */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
               {Object.entries(currentBuild.components).map(([key, component]) => {
                 const Icon = componentIcons[component.category];
                 return (
                   <div
                     key={key}
-                    className={`group relative p-6 rounded-2xl border transition-all duration-300 cursor-pointer transform hover:scale-[1.05] hover:-translate-y-1 active:scale-[0.98] shadow-lg hover:shadow-2xl ${
-                      component.product
-                        ? 'bg-gradient-to-br from-nexus-accent/20 to-nexus-accent/10 border-nexus-accent/40 hover:border-nexus-accent/60 shadow-nexus-accent/20'
-                        : component.required
-                        ? 'bg-gradient-to-br from-white/10 to-white/5 border-white/30 hover:border-nexus-accent/50 hover:from-nexus-accent/10 hover:to-nexus-accent/5 shadow-white/10'
-                        : 'bg-gradient-to-br from-white/5 to-white/2 border-white/20 hover:border-white/40 hover:from-white/10 hover:to-white/5 shadow-white/5'
-                    }`}
+                    className="group relative p-4 sm:p-5 md:p-6 rounded-xl sm:rounded-2xl border transition-all duration-300 cursor-pointer transform active:scale-[0.98] sm:hover:scale-[1.05] sm:hover:-translate-y-1 shadow-lg sm:hover:shadow-2xl bg-gradient-to-br from-white/10 to-white/5 border-white/20 hover:border-nexus-accent/50 hover:from-nexus-accent/10 hover:to-nexus-accent/5"
                     onClick={() => {
                       setSelectedCategory(component.category);
                       // Reset filters when switching categories (but keep store filter)
@@ -821,87 +827,90 @@ export const PCBuilder: React.FC<PCBuilderProps> = ({ products, onClose, initial
                       setSearchQuery('');
                     }}
                   >
-                    {/* Required Badge */}
-                    {component.required && !component.product && (
-                      <div className="absolute -top-2 -right-2 bg-red-500 text-white text-xs px-2 py-1 rounded-full font-medium shadow-lg">
-                        Required
-                      </div>
-                    )}
-                    
                     {/* Selected Badge */}
                     {component.product && (
-                      <div className="absolute -top-2 -right-2 bg-green-500 text-white text-xs px-2 py-1 rounded-full font-medium shadow-lg flex items-center gap-1">
+                      <div className="absolute -top-2 -right-2 bg-green-500 text-white text-xs px-2 py-0.5 sm:py-1 rounded-full font-medium shadow-lg flex items-center gap-1">
                         <CheckCircle className="w-3 h-3" />
-                        Selected
+                        <span className="hidden sm:inline">Selected</span>
                       </div>
                     )}
 
                     <div className="flex flex-col items-center text-center h-full">
                       {/* Component Info - Top (Category + Remove Button) */}
-                      <div className="w-full mb-4">
+                      <div className="w-full mb-2 sm:mb-4">
                         <div className="flex items-center justify-between">
-                          <span className="font-bold text-white text-base tracking-wide">{component.category}</span>
+                          <span className="font-bold text-white text-sm sm:text-base tracking-wide">{component.category}</span>
                           {component.product && (
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
                                 handleComponentRemove(key as keyof typeof currentBuild.components);
                               }}
-                              className="p-2 rounded-xl bg-red-500/20 hover:bg-red-500/30 border border-red-500/30 hover:border-red-500/50 transition-all duration-200 hover:scale-110"
+                              className="p-1.5 sm:p-2 rounded-lg sm:rounded-xl bg-red-500/20 hover:bg-red-500/30 border border-red-500/30 hover:border-red-500/50 transition-all duration-200 hover:scale-110"
                               title="Remove component"
                             >
-                              <X className="w-4 h-4 text-red-400" />
+                              <X className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-red-400" />
                             </button>
                           )}
                         </div>
                       </div>
                       
-                      {/* Component Icon/Image - Middle */}
-                      <div className="mb-4 w-full flex items-center justify-center flex-1">
-                        {component.product?.imageUrl ? (
-                          <div className="relative">
-                            <img 
-                              src={component.product.imageUrl} 
-                              alt={component.product.title}
-                              className="w-28 h-28 object-contain rounded-xl shadow-lg group-hover:shadow-xl transition-shadow duration-300"
-                            />
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                      {component.product ? (
+                        /* Selected Product - Horizontal layout */
+                        <div className="w-full flex items-center gap-3">
+                          {/* Product Image */}
+                          <div className="flex-shrink-0">
+                            {component.product.imageUrl ? (
+                              <div className="relative">
+                                <img 
+                                  src={component.product.imageUrl} 
+                                  alt={component.product.title}
+                                  className="w-16 h-16 sm:w-24 md:w-28 sm:h-24 md:h-28 object-contain rounded-lg sm:rounded-xl shadow-lg group-hover:shadow-xl transition-shadow duration-300"
+                                />
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent rounded-lg sm:rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                              </div>
+                            ) : (
+                              <div className="w-16 h-16 sm:w-24 md:w-28 sm:h-24 md:h-28 bg-gradient-to-br from-white/15 to-white/5 rounded-lg sm:rounded-xl flex items-center justify-center border border-white/10 group-hover:border-nexus-accent/30 transition-all duration-300">
+                                <Icon className="w-8 h-8 sm:w-12 md:w-14 text-nexus-accent group-hover:text-nexus-accent/80 transition-all duration-300" />
+                              </div>
+                            )}
                           </div>
-                        ) : (
-                          <div className="w-28 h-28 bg-gradient-to-br from-white/15 to-white/5 rounded-xl flex items-center justify-center border border-white/10 group-hover:border-nexus-accent/30 transition-all duration-300">
-                            <Icon className={`w-14 h-14 transition-all duration-300 ${
-                              component.required ? 'text-nexus-accent group-hover:text-nexus-accent/80' : 'text-gray-400 group-hover:text-gray-300'
-                            }`} />
-                          </div>
-                        )}
-                      </div>
-                      
-                      {/* Product Info - Bottom */}
-                      <div className="w-full mt-auto">
-                        {component.product ? (
-                          <>
-                            <div className="text-sm text-gray-200 line-clamp-2 mb-3 h-10 leading-tight font-medium">
+                          
+                          {/* Product Info */}
+                          <div className="flex-1 min-w-0 text-left sm:text-center">
+                            <div className="text-xs sm:text-sm text-gray-200 line-clamp-2 mb-1 sm:mb-2 leading-tight font-medium">
                               {component.product.title}
                             </div>
-                            <div className="bg-gradient-to-r from-nexus-accent to-blue-400 bg-clip-text text-transparent text-lg font-bold">
+                            <div className="bg-gradient-to-r from-nexus-accent to-blue-400 bg-clip-text text-transparent text-sm sm:text-base md:text-lg font-bold">
                               {component.product.price.toLocaleString()} IQD
                             </div>
-                            <div className="text-xs text-gray-400 mt-1">
+                            <div className="text-xs text-gray-400 mt-0.5 sm:mt-1">
                               {component.product.retailer}
                             </div>
-                          </>
-                        ) : (
-                          <>
-                            <div className="text-sm text-gray-400 h-10 flex items-center justify-center mb-3">
+                          </div>
+                        </div>
+                      ) : (
+                        /* Empty State - Horizontal layout on mobile, vertical on desktop */
+                        <div className="w-full flex sm:flex-col items-center gap-3 sm:gap-0">
+                          {/* Component Icon */}
+                          <div className="flex-shrink-0 sm:mb-3 sm:w-full sm:flex sm:items-center sm:justify-center">
+                            <div className="w-16 h-16 sm:w-24 md:w-28 sm:h-24 md:h-28 bg-gradient-to-br from-white/15 to-white/5 rounded-lg sm:rounded-xl flex items-center justify-center border border-white/10 group-hover:border-nexus-accent/30 transition-all duration-300">
+                              <Icon className="w-8 h-8 sm:w-12 md:w-14 sm:h-12 md:h-14 text-nexus-accent group-hover:text-nexus-accent/80 transition-all duration-300" />
+                            </div>
+                          </div>
+                          
+                          {/* Empty State Text */}
+                          <div className="flex-1 min-w-0 sm:w-full text-left sm:text-center">
+                            <div className="text-xs sm:text-sm text-gray-400 mb-1.5 sm:mb-2">
                               Click to browse {component.category.toLowerCase()}
                             </div>
-                            <div className="flex items-center justify-center gap-2 text-nexus-accent group-hover:text-nexus-accent/80 transition-colors">
-                              <Plus className="w-5 h-5" />
-                              <span className="font-medium">Add Component</span>
+                            <div className="flex items-center justify-start sm:justify-center gap-2 text-nexus-accent group-hover:text-nexus-accent/80 transition-colors">
+                              <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
+                              <span className="font-medium text-sm sm:text-base">Add Component</span>
                             </div>
-                          </>
-                        )}
-                      </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 );
@@ -910,20 +919,20 @@ export const PCBuilder: React.FC<PCBuilderProps> = ({ products, onClose, initial
             </div>
           ) : (
             /* Product Selection View - Full Width */
-            <div className="w-full h-full overflow-y-auto p-6" ref={productsPanelRef}>
+            <div className="w-full h-full overflow-y-auto p-3 sm:p-4 md:p-6" ref={productsPanelRef}>
               <div>
                 {/* Header */}
-                <div className="mb-6">
+                <div className="mb-4 sm:mb-6">
                   <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-lg font-semibold text-white">
+                    <h3 className="text-base sm:text-lg font-semibold text-white truncate flex-1">
                       Select {selectedCategory}
-                      <span className="ml-2 text-sm text-gray-400">
+                      <span className="ml-2 text-xs sm:text-sm text-gray-400">
                         ({visibleProducts.length} of {availableProducts.length})
                       </span>
                     </h3>
                     <button
                       onClick={() => setSelectedCategory(null)}
-                      className="px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-gray-400 hover:text-white transition-colors text-sm"
+                      className="px-2 sm:px-3 py-1.5 sm:py-2 bg-white/5 border border-white/10 rounded-lg text-gray-400 hover:text-white transition-colors text-xs sm:text-sm ml-2 flex-shrink-0"
                     >
                       ← Back
                     </button>
@@ -933,18 +942,18 @@ export const PCBuilder: React.FC<PCBuilderProps> = ({ products, onClose, initial
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder={`Search ${selectedCategory.toLowerCase()}...`}
-                    className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-nexus-accent/50"
+                    className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-nexus-accent/50 text-sm"
                   />
                   
                   {/* Sorting options */}
                   {selectedCategory && (
-                    <div className="flex gap-3 mt-3">
+                    <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 mt-3">
                       {/* Socket Filter - For Motherboards and CPU */}
                       {(selectedCategory === 'Motherboards' || selectedCategory === 'CPU') && (
                         <select
                           value={socketFilter}
                           onChange={(e) => setSocketFilter(e.target.value)}
-                          className="px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="w-full sm:flex-1 px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                         >
                           <option value="">All Sockets</option>
                           {availableSockets.map(socket => (
@@ -960,7 +969,7 @@ export const PCBuilder: React.FC<PCBuilderProps> = ({ products, onClose, initial
                         <select
                           value={ramTypeFilter}
                           onChange={(e) => setRamTypeFilter(e.target.value)}
-                          className="px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="w-full sm:flex-1 px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                         >
                           <option value="">All RAM Types</option>
                           {availableRamTypes.map(ramType => (
@@ -975,7 +984,7 @@ export const PCBuilder: React.FC<PCBuilderProps> = ({ products, onClose, initial
                       <select
                         value={priceSort}
                         onChange={(e) => setPriceSort(e.target.value)}
-                        className="px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full sm:flex-1 px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                       >
                         <option value="">Sort by Price</option>
                         <option value="price-low-high">Price: Low to High</option>
@@ -985,8 +994,8 @@ export const PCBuilder: React.FC<PCBuilderProps> = ({ products, onClose, initial
                   )}
                 </div>
 
-                {/* Products Grid - 3 Columns Enhanced */}
-                <div className="grid grid-cols-3 gap-6">
+                {/* Products Grid - Responsive: 1 col mobile, 2 cols tablet, 3 cols desktop */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
                   {visibleProducts.map((product) => {
                     // Check if this product is currently selected in any component
                     const isSelected = Object.values(currentBuild.components).some(
@@ -997,7 +1006,7 @@ export const PCBuilder: React.FC<PCBuilderProps> = ({ products, onClose, initial
                       <div
                         key={product.id}
                         onClick={() => handleComponentSelect(product)}
-                        className={`group relative p-5 rounded-2xl border cursor-pointer transition-all duration-300 transform hover:scale-[1.03] hover:-translate-y-1 shadow-lg hover:shadow-2xl ${
+                        className={`group relative p-3 sm:p-4 md:p-5 rounded-xl sm:rounded-2xl border cursor-pointer transition-all duration-300 transform active:scale-[0.98] sm:hover:scale-[1.03] sm:hover:-translate-y-1 shadow-lg sm:hover:shadow-2xl ${
                           isSelected 
                             ? 'bg-gradient-to-br from-nexus-accent/25 to-nexus-accent/15 border-nexus-accent/50 hover:border-nexus-accent/70 shadow-nexus-accent/30' 
                             : 'bg-gradient-to-br from-white/8 to-white/3 hover:from-white/12 hover:to-white/6 border-white/15 hover:border-nexus-accent/40 shadow-white/10'
@@ -1005,87 +1014,83 @@ export const PCBuilder: React.FC<PCBuilderProps> = ({ products, onClose, initial
                       >
                         {/* Selected Badge */}
                         {isSelected && (
-                          <div className="absolute -top-2 -right-2 bg-nexus-accent text-white text-xs px-3 py-1 rounded-full font-medium shadow-lg flex items-center gap-1">
+                          <div className="absolute -top-2 -right-2 bg-nexus-accent text-white text-xs px-2 sm:px-3 py-0.5 sm:py-1 rounded-full font-medium shadow-lg flex items-center gap-1">
                             <CheckCircle className="w-3 h-3" />
-                            Selected
+                            <span className="hidden sm:inline">Selected</span>
                           </div>
                         )}
 
                         {/* Discount Badge */}
                         {product.compareAtPrice && product.compareAtPrice > product.price && (
-                          <div className="absolute -top-2 -left-2 bg-red-500 text-white text-xs px-2 py-1 rounded-full font-medium shadow-lg">
+                          <div className="absolute -top-2 -left-2 bg-red-500 text-white text-xs px-2 py-0.5 sm:py-1 rounded-full font-medium shadow-lg">
                             -{Math.round(((product.compareAtPrice - product.price) / product.compareAtPrice) * 100)}%
                           </div>
                         )}
 
-                        <div className="flex gap-4 h-full">
-                          {/* Product Image - Left */}
+                        <div className="flex gap-3 sm:gap-4 h-full">
+                          {/* Product Image - Left side on all screens */}
                           <div className="flex-shrink-0">
                             {product.imageUrl ? (
                               <div className="relative">
                                 <img 
                                   src={product.imageUrl} 
                                   alt={product.title}
-                                  className="w-28 h-28 object-contain rounded-xl shadow-md group-hover:shadow-lg transition-all duration-300"
+                                  className="w-20 h-20 sm:w-28 sm:h-28 object-contain rounded-lg sm:rounded-xl shadow-md group-hover:shadow-lg transition-all duration-300"
                                 />
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent rounded-lg sm:rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                               </div>
                             ) : (
-                              <div className="w-28 h-28 bg-gradient-to-br from-white/15 to-white/5 rounded-xl flex items-center justify-center border border-white/10 group-hover:border-nexus-accent/30 transition-all duration-300">
-                                <CircuitBoard className="w-12 h-12 text-gray-400 group-hover:text-gray-300 transition-colors" />
+                              <div className="w-20 h-20 sm:w-28 sm:h-28 bg-gradient-to-br from-white/15 to-white/5 rounded-lg sm:rounded-xl flex items-center justify-center border border-white/10 group-hover:border-nexus-accent/30 transition-all duration-300">
+                                <CircuitBoard className="w-8 h-8 sm:w-12 sm:h-12 text-gray-400 group-hover:text-gray-300 transition-colors" />
                               </div>
                             )}
                           </div>
                           
-                          {/* Product Info - Right */}
+                          {/* Product Info - Right side */}
                           <div className="flex-1 min-w-0 flex flex-col justify-between">
                             <div>
-                              <div className="font-semibold text-white text-sm mb-3 line-clamp-2 leading-tight group-hover:text-nexus-accent/90 transition-colors">
+                              <div className="font-semibold text-white text-sm sm:text-sm mb-2 sm:mb-3 line-clamp-2 leading-tight group-hover:text-nexus-accent/90 transition-colors">
                                 {product.title}
                               </div>
                               
-                              <div className="flex items-center gap-2 text-xs text-gray-400 mb-3">
+                              <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 text-xs mb-2 sm:mb-3">
                                 {product.brand && (
-                                  <span className="bg-white/10 px-2 py-1 rounded-md font-medium">
+                                  <span className="bg-white/10 px-2 py-0.5 sm:py-1 rounded-md font-medium text-gray-300">
                                     {product.brand}
                                   </span>
                                 )}
-                                <span className="bg-blue-500/20 text-blue-300 px-2 py-1 rounded-md font-medium">
+                                <span className="bg-blue-500/20 text-blue-300 px-2 py-0.5 sm:py-1 rounded-md font-medium">
                                   {product.retailer}
                                 </span>
                               </div>
                             </div>
                             
-                            <div className="mt-auto">
-                              <div className="flex items-end justify-between">
-                                <div>
-                                  {/* Price Display */}
-                                  <div className="flex items-center gap-2 mb-2">
-                                    <div className="text-lg font-bold bg-gradient-to-r from-nexus-accent to-blue-400 bg-clip-text text-transparent">
-                                      {product.price.toLocaleString()} IQD
-                                    </div>
-                                    {product.compareAtPrice && product.compareAtPrice > product.price && (
-                                      <div className="text-sm text-gray-500 line-through">
-                                        {product.compareAtPrice.toLocaleString()} IQD
-                                      </div>
-                                    )}
-                                  </div>
-                                  
-                                  {/* Stock Status */}
-                                  <div className="flex items-center gap-2">
-                                    {product.inStock !== false ? (
-                                      <div className="flex items-center gap-1 text-xs text-green-400">
-                                        <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                                        In Stock
-                                      </div>
-                                    ) : (
-                                      <div className="flex items-center gap-1 text-xs text-red-400">
-                                        <div className="w-2 h-2 bg-red-400 rounded-full"></div>
-                                        Out of Stock
-                                      </div>
-                                    )}
-                                  </div>
+                            <div className="mt-auto space-y-2">
+                              {/* Price Display */}
+                              <div className="flex items-center gap-2">
+                                <div className="text-base sm:text-lg font-bold bg-gradient-to-r from-nexus-accent to-blue-400 bg-clip-text text-transparent">
+                                  {product.price.toLocaleString()} IQD
                                 </div>
+                                {product.compareAtPrice && product.compareAtPrice > product.price && (
+                                  <div className="text-xs sm:text-sm text-gray-500 line-through">
+                                    {product.compareAtPrice.toLocaleString()}
+                                  </div>
+                                )}
+                              </div>
+                              
+                              {/* Stock Status & View Button Row */}
+                              <div className="flex items-center justify-between gap-2">
+                                {product.inStock !== false ? (
+                                  <div className="flex items-center gap-1 text-xs text-green-400">
+                                    <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                                    In Stock
+                                  </div>
+                                ) : (
+                                  <div className="flex items-center gap-1 text-xs text-red-400">
+                                    <div className="w-2 h-2 bg-red-400 rounded-full"></div>
+                                    Out of Stock
+                                  </div>
+                                )}
 
                                 {/* View Product Button */}
                                 <button
@@ -1093,7 +1098,7 @@ export const PCBuilder: React.FC<PCBuilderProps> = ({ products, onClose, initial
                                     e.stopPropagation();
                                     window.open(product.link, '_blank', 'noopener,noreferrer');
                                   }}
-                                  className="px-4 py-2 rounded-xl text-xs font-medium bg-gradient-to-r from-white/10 to-white/5 text-gray-300 border border-white/20 hover:from-nexus-accent/20 hover:to-nexus-accent/10 hover:border-nexus-accent/40 hover:text-white transition-all duration-200 transform hover:scale-105 active:scale-95 flex items-center gap-2 shadow-md hover:shadow-lg"
+                                  className="px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg sm:rounded-xl text-xs font-medium bg-gradient-to-r from-white/10 to-white/5 text-gray-300 border border-white/20 hover:from-nexus-accent/20 hover:to-nexus-accent/10 hover:border-nexus-accent/40 hover:text-white transition-all duration-200 transform active:scale-95 sm:hover:scale-105 flex items-center gap-1.5 shadow-md hover:shadow-lg"
                                   title="View on retailer website"
                                 >
                                   <ExternalLink className="w-3 h-3" />

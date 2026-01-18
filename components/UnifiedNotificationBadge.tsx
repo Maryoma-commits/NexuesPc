@@ -303,18 +303,18 @@ export default function UnifiedNotificationBadge({
 
 
   return (
-    <div className={`relative ${className}`}>
+    <div className="relative">
       {/* Bell Button */}
       <button
         onClick={() => setShowNotifications(!showNotifications)}
-        className={`relative p-2 rounded-full transition-all duration-200 ${
+        className={`relative p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-yellow-500/30 transition-all duration-200 ${
           showNotifications
-            ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
-            : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400'
+            ? 'bg-yellow-500/10 border-yellow-500/30'
+            : ''
         }`}
         title={`Notifications${totalUnreadCount > 0 ? ` (${totalUnreadCount} unread)` : ''}`}
       >
-        <Bell className="w-5 h-5" />
+        <Bell className="w-5 h-5 text-gray-400 hover:text-yellow-400 transition-colors" />
         {badgeCount > 0 && (
           <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] flex items-center justify-center text-xs font-bold text-white bg-blue-500 rounded-full">
             {badgeCount > 99 ? '99+' : badgeCount}

@@ -2403,11 +2403,12 @@ def parse_3diraq_product(title: str, new_price_text: str, old_price_text: str, i
         if not price_str:
             return price_str
         price_str = str(price_str).strip()
-        price_str = price_str.replace('Ø¹.Ø¯', '').replace('Ø¯.Ø¹', '').strip()
+        # Remove currency symbols
+        price_str = price_str.replace('ع.د', '').replace('ع.Ø¯', '').replace('Ø¹.Ø¯', '').replace('Ø¯.Ø¹', '').strip()
+        # In 3D-Iraq, dot is thousands separator: "1.031" = 1031
+        # Remove dots to get the actual number
         if '.' in price_str:
-            parts = price_str.split('.')
-            if len(parts) == 2 and len(parts[1]) == 3:
-                return parts[0] + parts[1]
+            price_str = price_str.replace('.', '')
         return price_str
     
     fixed_price = fix_3diraq_price(new_price_text)
@@ -2416,16 +2417,20 @@ def parse_3diraq_product(title: str, new_price_text: str, old_price_text: str, i
     price_data = parse_price(fixed_price)
     compare_price_data = parse_price(fixed_compare) if fixed_compare else None
     
+    # 3D-Iraq prices are in thousands format (54 = 54,000 IQD)
+    # Multiply by 1000 to get actual price
+    actual_price = price_data['numeric_value'] * 1000
+    
     normalized_compare_price = None
     if compare_price_data and compare_price_data['numeric_value'] > price_data['numeric_value']:
-        normalized_compare_price = compare_price_data['numeric_value']
+        normalized_compare_price = compare_price_data['numeric_value'] * 1000
     
-    discount = calculate_discount(normalized_compare_price or 0, price_data['numeric_value']) if normalized_compare_price else 0
+    discount = calculate_discount(normalized_compare_price or 0, actual_price) if normalized_compare_price else 0
 
     product_data = {
         "id": f"3diraq-{hashlib.md5(f'{title}_3diraq'.encode()).hexdigest()[:16]}",
         "title": title,
-        "price": price_data['numeric_value'],
+        "price": actual_price,
         "old_price": normalized_compare_price,
         "raw_price": price_data['raw_value'],
         "raw_old_price": compare_price_data['raw_value'] if normalized_compare_price else None,
@@ -2645,12 +2650,17 @@ def get_gpus_from_3diraq() -> tuple[List[Dict], set]:
                 in_stock = True
                 
                 title_el = p.select_one("h3.product-title a")
+                title = title_el.text.strip() if title_el else "Unknown"
+                
                 new_price_el = p.select_one(".product-price .text-primary")
                 old_price_el = p.select_one(".product-price del")
-
-                title = title_el.text.strip() if title_el else "Unknown"
-                new_price_text = new_price_el.text if new_price_el and new_price_el.text else "0"
-                old_price_text = old_price_el.text if old_price_el and old_price_el.text else None
+                
+                new_price_text = new_price_el.text.strip() if new_price_el and new_price_el.text else None
+                old_price_text = old_price_el.text.strip() if old_price_el and old_price_el.text else None
+                
+                # Skip if no price found
+                if not new_price_text:
+                    continue
 
                 img_el = p.select_one("img")
                 img_src = img_el.get("data-src") or img_el.get("src") if img_el else ""
