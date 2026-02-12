@@ -31,6 +31,13 @@ os.makedirs("../public/data", exist_ok=True)
 # All available sites
 ALL_SITES = ["globaliraq", "alityan", "kolshzin", "3d-iraq", "jokercenter", "spniq", "galaxyiq", "almanjam", "altajit"]
 
+# Cache for status endpoint to avoid repeated file reads
+_status_cache = {
+    "data": None,
+    "timestamp": 0,
+    "cache_duration": 5  # Cache for 5 seconds
+}
+
 def load_scraper_config() -> Dict[str, Any]:
     """Load scraper configuration from JSON file"""
     try:
@@ -143,29 +150,116 @@ def root():
 
 @app.get("/status")
 def get_status():
-    """Get status of frontend JSON file"""
+    """Get status of frontend JSON file - optimized with line-by-line metadata extraction"""
     try:
-        frontend_data = load_frontend_data()
+        # Check cache first
+        current_time = time.time()
+        if (_status_cache["data"] is not None and 
+            current_time - _status_cache["timestamp"] < _status_cache["cache_duration"]):
+            return _status_cache["data"]
+        
         file_exists = os.path.exists(FRONTEND_JSON_FILE)
         
-        if file_exists:
-            file_size_kb = round(os.path.getsize(FRONTEND_JSON_FILE) / 1024, 2)
-        else:
-            file_size_kb = 0
+        if not file_exists:
+            result = {
+                "file_exists": False,
+                "last_updated": "Never",
+                "total_products": 0,
+                "file_size_kb": 0,
+                "sites": {}
+            }
+            _status_cache["data"] = result
+            _status_cache["timestamp"] = current_time
+            return result
+        
+        file_size_kb = round(os.path.getsize(FRONTEND_JSON_FILE) / 1024, 2)
+        
+        # Fast metadata extraction: Read line by line until we have all metadata
+        sites_metadata = {}
+        total_products = 0
+        last_updated = "Never"
+        current_site = None
+        sites_found = 0
+        expected_sites = len(ALL_SITES)  # We know how many sites to expect
+        
+        try:
+            import re
             
-        return {
-            "file_exists": file_exists,
-            "last_updated": frontend_data.get('last_updated', 'Never'),
-            "total_products": frontend_data.get('total_products', 0),
-            "file_size_kb": file_size_kb,
-            "sites": {
-                site_name: {
+            with open(FRONTEND_JSON_FILE, 'r', encoding='utf-8') as f:
+                for line_num, line in enumerate(f):
+                    # Stop after reading enough lines (metadata should be in first ~100 lines)
+                    if line_num > 200:
+                        break
+                    
+                    # Extract top-level total_products
+                    if '"total_products"' in line and total_products == 0:
+                        match = re.search(r'"total_products":\s*(\d+)', line)
+                        if match:
+                            total_products = int(match.group(1))
+                    
+                    # Extract top-level last_updated
+                    if '"last_updated"' in line and last_updated == "Never" and '"sites"' not in line:
+                        match = re.search(r'"last_updated":\s*"([^"]+)"', line)
+                        if match:
+                            last_updated = match.group(1)
+                    
+                    # Detect site name
+                    if '"sites"' not in line and current_site is None:
+                        for site in ALL_SITES:
+                            if f'"{site}"' in line and '{' in line:
+                                current_site = site
+                                break
+                    
+                    # Extract site metadata
+                    if current_site and current_site not in sites_metadata:
+                        if '"last_updated"' in line:
+                            match = re.search(r'"last_updated":\s*"([^"]+)"', line)
+                            if match:
+                                site_updated = match.group(1)
+                                if current_site not in sites_metadata:
+                                    sites_metadata[current_site] = {"last_updated": site_updated}
+                        
+                        if '"product_count"' in line:
+                            match = re.search(r'"product_count":\s*(\d+)', line)
+                            if match:
+                                site_count = int(match.group(1))
+                                if current_site in sites_metadata:
+                                    sites_metadata[current_site]["product_count"] = site_count
+                                    sites_found += 1
+                                    current_site = None  # Reset for next site
+                    
+                    # Early exit if we found all sites
+                    if sites_found >= expected_sites:
+                        break
+        
+        except Exception as parse_error:
+            # Fallback: Load full JSON if line-by-line parsing fails
+            print(f"⚠️ Line-by-line parsing failed, falling back to full JSON load: {parse_error}")
+            with open(FRONTEND_JSON_FILE, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            
+            total_products = data.get('total_products', 0)
+            last_updated = data.get('last_updated', 'Never')
+            
+            for site_name, site_data in data.get("sites", {}).items():
+                sites_metadata[site_name] = {
                     "product_count": site_data.get("product_count", 0),
                     "last_updated": site_data.get("last_updated", "Never")
                 }
-                for site_name, site_data in frontend_data.get("sites", {}).items()
-            }
+        
+        result = {
+            "file_exists": True,
+            "last_updated": last_updated,
+            "total_products": total_products,
+            "file_size_kb": file_size_kb,
+            "sites": sites_metadata
         }
+        
+        # Cache the result
+        _status_cache["data"] = result
+        _status_cache["timestamp"] = current_time
+        
+        return result
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
@@ -186,6 +280,9 @@ def save_products_endpoint(products_data: Dict[str, Any]):
         # Save with proper formatting
         with open(FRONTEND_JSON_FILE, 'w', encoding='utf-8') as f:
             json.dump(products_data, f, indent=2, ensure_ascii=False)
+        
+        # Invalidate status cache
+        _status_cache["data"] = None
         
         total_products = products_data.get('total_products', 0)
         print(f"✅ Saved {total_products} products to main database via API")
@@ -356,6 +453,9 @@ def save_all_products_to_frontend(all_sites_data: Dict[str, List[Dict[str, Any]]
     try:
         with open(FRONTEND_JSON_FILE, 'w', encoding='utf-8') as f:
             json.dump(data, f, indent=2, ensure_ascii=False)
+        
+        # Invalidate status cache after saving
+        _status_cache["data"] = None
         
         total_products = data["total_products"]
         print(f"✅ {'Merged' if merge else 'Saved'} {total_products} total products to frontend file")

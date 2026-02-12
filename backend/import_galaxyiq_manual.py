@@ -45,27 +45,25 @@ def import_galaxyiq_manual():
         existing_galaxyiq = existing_data["sites"]["galaxyiq"].get("products", [])
         print(f"🔄 Found {len(existing_galaxyiq)} existing Galaxy IQ products")
     
-    # Smart merge logic
-    print("\n🧠 Starting smart merge...")
+    # Smart merge logic with user-edited field preservation
+    print("\n🧠 Starting smart merge (replacing all products, preserving user edits)...")
     
     # Create ID mapping for existing products
     existing_by_id = {prod['id']: prod for prod in existing_galaxyiq}
-    manual_by_id = {prod['id']: prod for prod in manual_products}
     
     merged_products = []
     updated_count = 0
     added_count = 0
-    preserved_count = 0
+    removed_count = len(existing_galaxyiq) - len([p for p in manual_products if p['id'] in existing_by_id])
     
-    # Process manual products (update or add)
+    # Process manual products (these are the ONLY products that will remain)
     for manual_prod in manual_products:
         prod_id = manual_prod['id']
         
         if prod_id in existing_by_id:
-            # Product exists - merge with preservation
+            # Product exists - preserve user-edited fields only
             existing_prod = existing_by_id[prod_id]
             
-            # Preserve user-edited fields (specs, category if manually changed, etc.)
             merged_prod = manual_prod.copy()
             
             # Keep compatibility specs if they exist
@@ -88,17 +86,14 @@ def import_galaxyiq_manual():
             added_count += 1
             print(f"  ➕ Added: {manual_prod['title'][:50]}...")
     
-    # Keep existing products that are NOT in manual.json
-    for existing_prod in existing_galaxyiq:
-        prod_id = existing_prod['id']
-        if prod_id not in manual_by_id:
-            merged_products.append(existing_prod)
-            preserved_count += 1
+    # Products NOT in manual scrape are removed (Galaxy IQ deleted them)
+    if removed_count > 0:
+        print(f"  🗑️  Removed: {removed_count} products (no longer on Galaxy IQ)")
     
     print(f"\n📊 Merge Summary:")
     print(f"  ✏️  Updated: {updated_count} products")
     print(f"  ➕ Added: {added_count} new products")
-    print(f"  💾 Preserved: {preserved_count} existing products")
+    print(f"  🗑️  Removed: {removed_count} products")
     print(f"  📦 Total: {len(merged_products)} products")
     
     # Update Galaxy IQ data

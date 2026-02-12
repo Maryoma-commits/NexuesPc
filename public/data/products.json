@@ -1,6 +1,6 @@
 {
-  "last_updated": "2026-01-18T16:45:53.301857",
-  "total_products": 6401,
+  "last_updated": "2026-01-18T19:22:03.368282",
+  "total_products": 6394,
   "sites": {
     "alityan": {
       "last_updated": "2026-01-16T19:02:32.581380",
@@ -74130,8 +74130,8 @@
       ]
     },
     "galaxyiq": {
-      "last_updated": "2026-01-18T16:45:53.301838",
-      "product_count": 363,
+      "last_updated": "2026-01-18T19:22:03.368250",
+      "product_count": 356,
       "products": [
         {
           "category": "Motherboards",
@@ -74174,7 +74174,7 @@
         },
         {
           "category": "Motherboards",
-          "id": "galaxyiq-f1b14dde32249aaf",
+          "id": "galaxyiq-8a37b7c29508bf6c",
           "image": "https://images.weserv.nl/?url=galaxy-iq.com/storage/motherbord/1-14.webp",
           "in_stock": true,
           "old_price": 240000,
@@ -74182,7 +74182,7 @@
           "raw_price": "ع.د240,000",
           "retailer": "galaxyiq",
           "site": "galaxyiq",
-          "title": "Z790 GIGABYTE D",
+          "title": "Z790 GIGABYTE D DDR5",
           "url": "https://galaxy-iq.com/products/z790-gigabyte-d"
         },
         {
@@ -75188,6 +75188,149 @@
         },
         {
           "category": "Case",
+          "id": "galaxyiq-c62cd9b0625d14ed",
+          "image": "https://images.weserv.nl/?url=galaxy-iq.com/storage/cases/61-2.jpg",
+          "in_stock": true,
+          "old_price": 200000,
+          "price": 200000,
+          "raw_price": "ع.د200,000",
+          "retailer": "galaxyiq",
+          "site": "galaxyiq",
+          "title": "Lian Li Aluminium Q58W4 White",
+          "url": "https://galaxy-iq.com/products/lian-li-aluminium-q58w4-white"
+        },
+        {
+          "category": "Case",
+          "id": "galaxyiq-75caf44ce989f497",
+          "image": "https://images.weserv.nl/?url=galaxy-iq.com/storage/cases/51.jpg",
+          "in_stock": true,
+          "old_price": 490000,
+          "price": 490000,
+          "raw_price": "ع.د490,000",
+          "retailer": "galaxyiq",
+          "site": "galaxyiq",
+          "title": "LIAN LI O11 Odyssey X Black",
+          "url": "https://galaxy-iq.com/products/lian-li-o11-odyssey-x-black"
+        },
+        {
+          "category": "Case",
+          "id": "galaxyiq-d5cc24b32e433c18",
+          "image": "https://images.weserv.nl/?url=galaxy-iq.com/storage/cases/41-1.webp",
+          "in_stock": true,
+          "old_price": 490000,
+          "price": 490000,
+          "raw_price": "ع.د490,000",
+          "retailer": "galaxyiq",
+          "site": "galaxyiq",
+          "title": "LIAN LI O11 Odyssey X Silver",
+          "url": "https://galaxy-iq.com/products/lian-li-o11-odyssey-x-silver"
+        },
+        {
+          "category": "Case",
+          "id": "galaxyiq-9ce78c231b78f8a6",
+          "image": "https://images.weserv.nl/?url=galaxy-iq.com/storage/cases/32-2.webp",
+          "in_stock": true,
+          "old_price": 210000,
+          "price": 210000,
+          "raw_price": "ع.د210,000",
+          "retailer": "galaxyiq",
+          "site": "galaxyiq",
+          "title": "LIAN LI O11 Vision Black",
+          "url": "https://galaxy-iq.com/products/lian-li-o11-vision-black"
+        },
+        {
+          "category": "Case",
+          "id": "galaxyiq-d8677ed35598dac3",
+          "image": "https://images.weserv.nl/?url=galaxy-iq.com/storage/cases/21-3.webp",
+          "in_stock": true,
+          "old_price": 250000,
+          "price": 250000,
+          "raw_price": "ع.د250,000",
+          "retailer": "galaxyiq",
+          "site": "galaxyiq",
+          "title": "LIAN LI O11 Dynamic XL ROG SILVER",
+          "url": "https://galaxy-iq.com/products/lian-li-o11-dynamic-xl-rog-silver"
+        },
+        {
+          "category": "Case",
+          "id": "galaxyiq-c15300efd548333f",
+          "image": "https://images.weserv.nl/?url=galaxy-iq.com/storage/cases/11-6.jpg",
+          "in_stock": true,
+          "old_price": 180000,
+          "price": 180000,
+          "raw_price": "ع.د180,000",
+          "retailer": "galaxyiq",
+          "site": "galaxyiq",
+          "title": "LIAN LI O11 Dynamic WHITE",
+          "url": "https://galaxy-iq.com/products/lian-li-o11-dynamic-white"
+        },
+        {
+          "category": "Case",
+          "id": "galaxyiq-7273ae1383736383",
+          "image": "https://images.weserv.nl/?url=galaxy-iq.com/storage/cases/41.webp",
+          "in_stock": true,
+          "old_price": 275000,
+          "price": 275000,
+          "raw_price": "ع.د275,000",
+          "retailer": "galaxyiq",
+          "site": "galaxyiq",
+          "title": "LIAN LI O11 Dynamic EVO BLACK XL",
+          "url": "https://galaxy-iq.com/products/lian-li-o11-dynamic-evo-black-xl"
+        },
+        {
+          "category": "Case",
+          "id": "galaxyiq-6fd3390ee8a22aa4",
+          "image": "https://images.weserv.nl/?url=galaxy-iq.com/storage/cases/31-1.webp",
+          "in_stock": true,
+          "old_price": 285000,
+          "price": 285000,
+          "raw_price": "ع.د285,000",
+          "retailer": "galaxyiq",
+          "site": "galaxyiq",
+          "title": "LIAN LI O11 Dynamic EVO WHITE XL",
+          "url": "https://galaxy-iq.com/products/lian-li-o11-dynamic-evo-white-xl"
+        },
+        {
+          "category": "Case",
+          "id": "galaxyiq-a63ca8841a60964e",
+          "image": "https://images.weserv.nl/?url=galaxy-iq.com/storage/cases/11-5.webp",
+          "in_stock": true,
+          "old_price": 210000,
+          "price": 210000,
+          "raw_price": "ع.د210,000",
+          "retailer": "galaxyiq",
+          "site": "galaxyiq",
+          "title": "LIAN LI O11 Dynamic EVO GREY",
+          "url": "https://galaxy-iq.com/products/lian-li-o11-dynamic-evo-grey"
+        },
+        {
+          "category": "Case",
+          "id": "galaxyiq-b6972cf5822a2283",
+          "image": "https://images.weserv.nl/?url=galaxy-iq.com/storage/cases/11-4.webp",
+          "in_stock": true,
+          "old_price": 140000,
+          "price": 140000,
+          "raw_price": "ع.د140,000",
+          "retailer": "galaxyiq",
+          "site": "galaxyiq",
+          "title": "LIAN LI O11 AIR MINI BLACK",
+          "url": "https://galaxy-iq.com/products/lian-li-o11-air-mini-black"
+        },
+        {
+          "category": "Case",
+          "id": "galaxyiq-e37be97795b7212b",
+          "image": "https://images.weserv.nl/?url=galaxy-iq.com/storage/cases/31.webp",
+          "in_stock": true,
+          "old_price": 110000,
+          "price": 110000,
+          "raw_price": "ع.د110,000",
+          "retailer": "galaxyiq",
+          "site": "galaxyiq",
+          "title": "LIAN LI O11 AIR BLACK",
+          "url": "https://galaxy-iq.com/products/lian-li-o11-air-black"
+        },
+        {
+          "category": "Case",
           "id": "galaxyiq-9facabdd9611c8d4",
           "image": "https://images.weserv.nl/?url=galaxy-iq.com/storage/cases/1-3.jpg",
           "in_stock": true,
@@ -75565,6 +75708,19 @@
         },
         {
           "category": "Case",
+          "id": "galaxyiq-6e5e203d44ffa620",
+          "image": "https://images.weserv.nl/?url=galaxy-iq.com/storage/cases/21-2.webp",
+          "in_stock": false,
+          "old_price": 210000,
+          "price": 210000,
+          "raw_price": "ع.د210,000",
+          "retailer": "galaxyiq",
+          "site": "galaxyiq",
+          "title": "LIAN LI O11 Dynamic EVO WHITE",
+          "url": "https://galaxy-iq.com/products/lian-li-o11-dynamic-evo-white"
+        },
+        {
+          "category": "Case",
           "id": "galaxyiq-c7e81d760cc5857f",
           "image": "https://images.weserv.nl/?url=galaxy-iq.com/storage/ktaa-alkombyotr/420f-scaled.jpg",
           "in_stock": false,
@@ -75750,16 +75906,13 @@
           "id": "galaxyiq-49182e59bed14a0e",
           "image": "https://images.weserv.nl/?url=galaxy-iq.com/storage/krot-shash/w800-6-2.png",
           "in_stock": true,
-          "old_price": 665000,
-          "price": 665000,
-          "raw_price": "ع.د665,000",
+          "old_price": 725000,
+          "price": 725000,
+          "raw_price": "ع.د725,000",
           "retailer": "galaxyiq",
           "site": "galaxyiq",
           "title": "ASUS Dual GeForce RTX™ 5060 Ti 8GB GDDR7 OC Edition",
-          "url": "https://galaxy-iq.com/products/asus-dual-geforce-rtx-5060-ti-8gb-gddr7-oc-edition",
-          "compatibility_specs": {
-            "recommended_psu": "600"
-          }
+          "url": "https://galaxy-iq.com/products/asus-dual-geforce-rtx-5060-ti-8gb-gddr7-oc-edition"
         },
         {
           "category": "GPU",
@@ -75993,10 +76146,7 @@
           "retailer": "galaxyiq",
           "site": "galaxyiq",
           "title": "GeForce RTX™ 5060 AERO OC 8G",
-          "url": "https://galaxy-iq.com/products/geforce-rtx-5060-aero-oc-8g",
-          "compatibility_specs": {
-            "recommended_psu": "550"
-          }
+          "url": "https://galaxy-iq.com/products/geforce-rtx-5060-aero-oc-8g"
         },
         {
           "category": "GPU",
@@ -76178,10 +76328,7 @@
           "retailer": "galaxyiq",
           "site": "galaxyiq",
           "title": "ASUS PRIME GeForce RTX™ 5060 8GB GDDR7 OC Edition",
-          "url": "https://galaxy-iq.com/products/asus-prime-geforce-rtx-5060-8gb-gddr7-oc-edition",
-          "compatibility_specs": {
-            "recommended_psu": "550"
-          }
+          "url": "https://galaxy-iq.com/products/asus-prime-geforce-rtx-5060-8gb-gddr7-oc-edition"
         },
         {
           "category": "GPU",
@@ -76311,10 +76458,7 @@
           "retailer": "galaxyiq",
           "site": "galaxyiq",
           "title": "ASUS Dual GeForce RTX 5060 Ti 16GB GDDR7 OC Edition",
-          "url": "https://galaxy-iq.com/products/asus-dual-geforce-rtx-5060-ti-16gb-gddr7-oc-edition",
-          "compatibility_specs": {
-            "recommended_psu": "600"
-          }
+          "url": "https://galaxy-iq.com/products/asus-dual-geforce-rtx-5060-ti-16gb-gddr7-oc-edition"
         },
         {
           "category": "GPU",
@@ -76379,10 +76523,7 @@
           "retailer": "galaxyiq",
           "site": "galaxyiq",
           "title": "XIGMATEK THOR 750W BRONZE FULLY MODULAR ATX 3.1 PCIE 5.1 Arctic White",
-          "url": "https://galaxy-iq.com/products/xigmatek-thor-750w-bronze-fully-modular-atx-31-pcie-51-452",
-          "compatibility_specs": {
-            "wattage": "750"
-          }
+          "url": "https://galaxy-iq.com/products/xigmatek-thor-750w-bronze-fully-modular-atx-31-pcie-51-452"
         },
         {
           "category": "Power Supply",
@@ -76395,10 +76536,7 @@
           "retailer": "galaxyiq",
           "site": "galaxyiq",
           "title": "XIGMATEK THOR 750W BRONZE FULLY MODULAR ATX 3.1 PCIE 5.1",
-          "url": "https://galaxy-iq.com/products/xigmatek-thor-750w-bronze-fully-modular-atx-31-pcie-51",
-          "compatibility_specs": {
-            "wattage": "750"
-          }
+          "url": "https://galaxy-iq.com/products/xigmatek-thor-750w-bronze-fully-modular-atx-31-pcie-51"
         },
         {
           "category": "Power Supply",
@@ -76411,10 +76549,7 @@
           "retailer": "galaxyiq",
           "site": "galaxyiq",
           "title": "Deepcool PQ1000G 1000W GOLD FULLY MODULAR",
-          "url": "https://galaxy-iq.com/products/deepcool-pq1000g-1000w-gold-fully-modular",
-          "compatibility_specs": {
-            "wattage": "1000"
-          }
+          "url": "https://galaxy-iq.com/products/deepcool-pq1000g-1000w-gold-fully-modular"
         },
         {
           "category": "Power Supply",
@@ -76427,10 +76562,7 @@
           "retailer": "galaxyiq",
           "site": "galaxyiq",
           "title": "ASUS ROG STRIX 1200P PLATINUM FULLY MODULAR ATX 3.1 PCIE 5.1",
-          "url": "https://galaxy-iq.com/products/asus-rog-strix-1200p-platinum-fully-modular-atx-31-pcie-51",
-          "compatibility_specs": {
-            "wattage": "1200"
-          }
+          "url": "https://galaxy-iq.com/products/asus-rog-strix-1200p-platinum-fully-modular-atx-31-pcie-51"
         },
         {
           "category": "Power Supply",
@@ -76443,10 +76575,7 @@
           "retailer": "galaxyiq",
           "site": "galaxyiq",
           "title": "Be quiet! Straight Power 12 1500W +80 PLUS Platinum",
-          "url": "https://galaxy-iq.com/products/be-quiet-straight-power-12-1500w-80-plus-platinum",
-          "compatibility_specs": {
-            "wattage": "500"
-          }
+          "url": "https://galaxy-iq.com/products/be-quiet-straight-power-12-1500w-80-plus-platinum"
         },
         {
           "category": "Power Supply",
@@ -76459,10 +76588,7 @@
           "retailer": "galaxyiq",
           "site": "galaxyiq",
           "title": "FSP Hydro PRO 700W BRONZE",
-          "url": "https://galaxy-iq.com/products/fsp-1",
-          "compatibility_specs": {
-            "wattage": "700"
-          }
+          "url": "https://galaxy-iq.com/products/fsp-1"
         },
         {
           "category": "Power Supply",
@@ -76475,10 +76601,7 @@
           "retailer": "galaxyiq",
           "site": "galaxyiq",
           "title": "FSP HYPER K 700W",
-          "url": "https://galaxy-iq.com/products/fsp",
-          "compatibility_specs": {
-            "wattage": "700"
-          }
+          "url": "https://galaxy-iq.com/products/fsp"
         },
         {
           "category": "Power Supply",
@@ -76491,10 +76614,7 @@
           "retailer": "galaxyiq",
           "site": "galaxyiq",
           "title": "MSI MAG 1250GL PCIE 5 Gaming Power Supply - ATX 3.1 & PCIE 5.1 Ready",
-          "url": "https://galaxy-iq.com/products/msi-mag-1250gl-pcie-5-gaming-power-supply-atx-31-pcie-51-ready",
-          "compatibility_specs": {
-            "wattage": "1250"
-          }
+          "url": "https://galaxy-iq.com/products/msi-mag-1250gl-pcie-5-gaming-power-supply-atx-31-pcie-51-ready"
         },
         {
           "category": "Power Supply",
@@ -76507,10 +76627,7 @@
           "retailer": "galaxyiq",
           "site": "galaxyiq",
           "title": "MSI MAG A1000GL PCIE 5 Gaming Power Supply - ATX 3.1 & PCIE 5.1",
-          "url": "https://galaxy-iq.com/products/msi-mag-a1000gl-pcie-5-gaming-power-supply-atx-31-pcie-51",
-          "compatibility_specs": {
-            "wattage": "1000"
-          }
+          "url": "https://galaxy-iq.com/products/msi-mag-a1000gl-pcie-5-gaming-power-supply-atx-31-pcie-51"
         },
         {
           "category": "Power Supply",
@@ -76523,10 +76640,7 @@
           "retailer": "galaxyiq",
           "site": "galaxyiq",
           "title": "Segotep 850W White PCIe 5.1 Full Modular 80 Plus Gold PSU ATX 3.1",
-          "url": "https://galaxy-iq.com/products/segotep-850w-white-pcie-51-full-modular-80-plus-gold-psu-atx-31",
-          "compatibility_specs": {
-            "wattage": "850"
-          }
+          "url": "https://galaxy-iq.com/products/segotep-850w-white-pcie-51-full-modular-80-plus-gold-psu-atx-31"
         },
         {
           "category": "Power Supply",
@@ -76539,10 +76653,7 @@
           "retailer": "galaxyiq",
           "site": "galaxyiq",
           "title": "PSU DEEPCOOL PQ1000P 1000W 80+ PLATINUIM FULLY MODULAR",
-          "url": "https://galaxy-iq.com/products/psu-deepcool-pq1000p-1000w-80-platinuim-fully-modular",
-          "compatibility_specs": {
-            "wattage": "1000"
-          }
+          "url": "https://galaxy-iq.com/products/psu-deepcool-pq1000p-1000w-80-platinuim-fully-modular"
         },
         {
           "category": "Power Supply",
@@ -76555,10 +76666,7 @@
           "retailer": "galaxyiq",
           "site": "galaxyiq",
           "title": "MSI MAG A850GL GOLD ATX 3.1 PCIE 5.1 WHITE",
-          "url": "https://galaxy-iq.com/products/msi-mag-a850gl-gold-atx-31-pcie-51-white",
-          "compatibility_specs": {
-            "wattage": "850"
-          }
+          "url": "https://galaxy-iq.com/products/msi-mag-a850gl-gold-atx-31-pcie-51-white"
         },
         {
           "category": "Power Supply",
@@ -76571,10 +76679,7 @@
           "retailer": "galaxyiq",
           "site": "galaxyiq",
           "title": "MSI MAG A850GL PCIE 5.1 & ATX 3.1 Gaming Power Supply - Full Modular",
-          "url": "https://galaxy-iq.com/products/msi-mag-a850gl-pcie-51-atx-31-gaming-power-supply-full-modular",
-          "compatibility_specs": {
-            "wattage": "850"
-          }
+          "url": "https://galaxy-iq.com/products/msi-mag-a850gl-pcie-51-atx-31-gaming-power-supply-full-modular"
         },
         {
           "category": "Power Supply",
@@ -76587,10 +76692,7 @@
           "retailer": "galaxyiq",
           "site": "galaxyiq",
           "title": "DARK FLASH Aigo AT750 Power Supply 750W, 80 Plus Bronze",
-          "url": "https://galaxy-iq.com/products/dark-flash-aigo-at750-power-supply-750w-80-plus-bronze",
-          "compatibility_specs": {
-            "wattage": "750"
-          }
+          "url": "https://galaxy-iq.com/products/dark-flash-aigo-at750-power-supply-750w-80-plus-bronze"
         },
         {
           "category": "RAM",
@@ -78658,283 +78760,6 @@
           "site": "galaxyiq",
           "title": "Attack Shark X6 Wireless Black",
           "url": "https://galaxy-iq.com/products/attack-shark-x6-wireless"
-        },
-        {
-          "category": "Motherboards",
-          "id": "galaxyiq-8a6819db816d510b",
-          "image": "https://images.weserv.nl/?url=galaxy-iq.com/storage/motherbord/lenovoloq16irh8-alnabaacom-9c242714-fbcf-453e-a03f-f72eebf7dc00-1000x.webp",
-          "in_stock": true,
-          "old_price": 100000,
-          "price": 100000,
-          "raw_price": "ع.د100,000",
-          "retailer": "galaxyiq",
-          "site": "galaxyiq",
-          "title": "ASUS PRIME H610M-K ARGB",
-          "url": "https://galaxy-iq.com/products/asus-prime-h610m-k-argb"
-        },
-        {
-          "category": "GPU",
-          "id": "galaxyiq-91aad13bb24e9cce",
-          "image": "https://images.weserv.nl/?url=galaxy-iq.com/storage/krot-shash/zt-b50600e-10m-image01.jpg",
-          "in_stock": true,
-          "old_price": 460000,
-          "price": 460000,
-          "raw_price": "ع.د460,000",
-          "retailer": "galaxyiq",
-          "site": "galaxyiq",
-          "title": "RTX 5060 ZOTAC GAMING Twin Edge",
-          "url": "https://galaxy-iq.com/products/rtx-5060-zotac-gaming-twin-edge",
-          "compatibility_specs": {
-            "recommended_psu": "550"
-          }
-        },
-        {
-          "category": "GPU",
-          "id": "galaxyiq-b9472dbbb9f390aa",
-          "image": "https://images.weserv.nl/?url=galaxy-iq.com/storage/krot-shash/5060-twin-x2-oc-box.png",
-          "in_stock": true,
-          "old_price": 490000,
-          "price": 485000,
-          "raw_price": "ع.د485,000",
-          "retailer": "galaxyiq",
-          "site": "galaxyiq",
-          "title": "INNO3D GeForce RTX™ 5060 TWIN X2 OC",
-          "url": "https://galaxy-iq.com/products/inno3d-geforce-rtx-5060-twin-x2-oc",
-          "compatibility_specs": {
-            "recommended_psu": "550"
-          }
-        },
-        {
-          "category": "GPU",
-          "id": "galaxyiq-472bb95b75cb963f",
-          "image": "https://images.weserv.nl/?url=galaxy-iq.com/storage/krot-shash/w800-7-1.png",
-          "in_stock": true,
-          "old_price": 490000,
-          "price": 490000,
-          "raw_price": "ع.د490,000",
-          "retailer": "galaxyiq",
-          "site": "galaxyiq",
-          "title": "ASUS Dual GeForce RTX™ 5060 8GB GDDR7 OC Edition",
-          "url": "https://galaxy-iq.com/products/asus-dual-geforce-rtx-5060-8gb-gddr7-oc-edition",
-          "compatibility_specs": {
-            "recommended_psu": "550"
-          }
-        },
-        {
-          "category": "GPU",
-          "id": "galaxyiq-88c01561af93f4bf",
-          "image": "https://images.weserv.nl/?url=galaxy-iq.com/storage/cooler/2000-9.webp",
-          "in_stock": true,
-          "old_price": 4800000,
-          "price": 4800000,
-          "raw_price": "ع.د4,800,000",
-          "retailer": "galaxyiq",
-          "site": "galaxyiq",
-          "title": "AORUS GeForce RTX™ 5090 MASTER ICE 32G",
-          "url": "https://galaxy-iq.com/products/aorus-geforce-rtx-5090-master-ice-32g"
-        },
-        {
-          "category": "GPU",
-          "id": "galaxyiq-7ac2927be779a035",
-          "image": "https://images.weserv.nl/?url=galaxy-iq.com/storage/krot-shash/11-3.png",
-          "in_stock": false,
-          "old_price": 850000,
-          "price": 850000,
-          "raw_price": "ع.د850,000",
-          "retailer": "galaxyiq",
-          "site": "galaxyiq",
-          "title": "RTX 5070 PNY TRIPLE FAN OC 12GB RGB",
-          "url": "https://galaxy-iq.com/products/rtx-5070-pny-triple-fan-oc-12gb-rgb"
-        },
-        {
-          "category": "GPU",
-          "id": "galaxyiq-cab9dc3c7ebca4bc",
-          "image": "https://images.weserv.nl/?url=galaxy-iq.com/storage/krot-shash/1-10.jpg",
-          "in_stock": false,
-          "old_price": 1300000,
-          "price": 1250000,
-          "raw_price": "ع.د1,250,000",
-          "retailer": "galaxyiq",
-          "site": "galaxyiq",
-          "title": "RTX 5070TI MSI VENTUS X3 OC 16GB",
-          "url": "https://galaxy-iq.com/products/rtx-5070ti-msi-ventus-x3-oc-16gb"
-        },
-        {
-          "category": "GPU",
-          "id": "galaxyiq-3866dee7b0b198c1",
-          "image": "https://images.weserv.nl/?url=galaxy-iq.com/storage/krot-shash/1-5.webp",
-          "in_stock": false,
-          "old_price": 1200000,
-          "price": 1200000,
-          "raw_price": "ع.د1,200,000",
-          "retailer": "galaxyiq",
-          "site": "galaxyiq",
-          "title": "RTX 5070TI MSI SHADOW X3 OC 16GB",
-          "url": "https://galaxy-iq.com/products/rtx-5070ti-msi-shadow-x3-oc-16gb"
-        },
-        {
-          "category": "GPU",
-          "id": "galaxyiq-d996ca31e7e8c9d2",
-          "image": "https://images.weserv.nl/?url=galaxy-iq.com/storage/krot-shash/1-4.jpg",
-          "in_stock": false,
-          "old_price": 1375000,
-          "price": 1375000,
-          "raw_price": "ع.د1,375,000",
-          "retailer": "galaxyiq",
-          "site": "galaxyiq",
-          "title": "RTX 5070TI MSI GAMING TRIO OC 16GB",
-          "url": "https://galaxy-iq.com/products/rtx-5070ti-msi-gaming-trio-oc-16gb"
-        },
-        {
-          "category": "GPU",
-          "id": "galaxyiq-4e173fcffd311bd1",
-          "image": "https://images.weserv.nl/?url=galaxy-iq.com/storage/krot-shash/1-3.webp",
-          "in_stock": false,
-          "old_price": 825000,
-          "price": 825000,
-          "raw_price": "ع.د825,000",
-          "retailer": "galaxyiq",
-          "site": "galaxyiq",
-          "title": "RTX 5070 MSI SHADOW X2 OC 12GB",
-          "url": "https://galaxy-iq.com/products/rtx-5070-msi-shadow-x2-oc-12gb"
-        },
-        {
-          "category": "GPU",
-          "id": "galaxyiq-082a575396528cbd",
-          "image": "https://images.weserv.nl/?url=galaxy-iq.com/storage/krot-shash/1-1f7f0d89-a7d0-4eb6-8b87-f17a8299e9e8-2048x2048.webp",
-          "in_stock": false,
-          "old_price": 810000,
-          "price": 810000,
-          "raw_price": "ع.د810,000",
-          "retailer": "galaxyiq",
-          "site": "galaxyiq",
-          "title": "Palit GeForce RTX 5070 Infinity 3X - 12GB",
-          "url": "https://galaxy-iq.com/products/palit-geforce-rtx-5070-infinity-3x-12gb"
-        },
-        {
-          "category": "GPU",
-          "id": "galaxyiq-8fbc4ffceff35e95",
-          "image": "https://images.weserv.nl/?url=galaxy-iq.com/storage/krot-shash/5060ti-twin-x2-16gb-box.png",
-          "in_stock": false,
-          "old_price": 685000,
-          "price": 685000,
-          "raw_price": "ع.د685,000",
-          "retailer": "galaxyiq",
-          "site": "galaxyiq",
-          "title": "INNO3D GeForce RTX™ 5060 Ti 16GB TWIN X2",
-          "url": "https://galaxy-iq.com/products/inno3d-geforce-rtx-5060-ti-16gb-twin-x2",
-          "compatibility_specs": {
-            "recommended_psu": "600"
-          }
-        },
-        {
-          "category": "GPU",
-          "id": "galaxyiq-20ff9e8e3f2412b3",
-          "image": "https://images.weserv.nl/?url=galaxy-iq.com/storage/krot-shash/geforce-rtx-5060-windforce-8g-01.png",
-          "in_stock": false,
-          "old_price": 520000,
-          "price": 520000,
-          "raw_price": "ع.د520,000",
-          "retailer": "galaxyiq",
-          "site": "galaxyiq",
-          "title": "GeForce RTX™ 5060 WINDFORCE 8G",
-          "url": "https://galaxy-iq.com/products/geforce-rtx-5060-windforce-8g",
-          "compatibility_specs": {
-            "recommended_psu": "550"
-          }
-        },
-        {
-          "category": "GPU",
-          "id": "galaxyiq-d0126f0ee009d231",
-          "image": "https://images.weserv.nl/?url=galaxy-iq.com/storage/krot-shash/download-1-1.png",
-          "in_stock": false,
-          "old_price": 550000,
-          "price": 540000,
-          "raw_price": "ع.د540,000",
-          "retailer": "galaxyiq",
-          "site": "galaxyiq",
-          "title": "GeForce RTX™ 5060 8G VENTUS 2X OC",
-          "url": "https://galaxy-iq.com/products/geforce-rtx-5060-8g-ventus-2x-oc",
-          "compatibility_specs": {
-            "recommended_psu": "550"
-          }
-        },
-        {
-          "category": "GPU",
-          "id": "galaxyiq-525ab91ab22b213c",
-          "image": "https://images.weserv.nl/?url=galaxy-iq.com/storage/krot-shash/81anw8d4gl-ac-sl1500.jpg",
-          "in_stock": false,
-          "old_price": 750000,
-          "price": 750000,
-          "raw_price": "ع.د750,000",
-          "retailer": "galaxyiq",
-          "site": "galaxyiq",
-          "title": "ASUS PRIME GeForce RTX™ 5060 Ti 16GB GDDR7 OC Edition",
-          "url": "https://galaxy-iq.com/products/asus-prime-geforce-rtx-5060-ti-16gb-gddr7-oc-edition",
-          "compatibility_specs": {
-            "recommended_psu": "600"
-          }
-        },
-        {
-          "category": "GPU",
-          "id": "galaxyiq-77cd2147bca17edd",
-          "image": "https://images.weserv.nl/?url=galaxy-iq.com/storage/krot-shash/71nyqeszl0l-ac-sl1500.jpg",
-          "in_stock": false,
-          "old_price": 700000,
-          "price": 700000,
-          "raw_price": "ع.د700,000",
-          "retailer": "galaxyiq",
-          "site": "galaxyiq",
-          "title": "GIGABYTE GeForce RTX 5060 Ti Gaming OC 8G",
-          "url": "https://galaxy-iq.com/products/gigabyte-geforce-rtx-5060-ti-gaming-oc-8g",
-          "compatibility_specs": {
-            "recommended_psu": "600"
-          }
-        },
-        {
-          "category": "GPU",
-          "id": "galaxyiq-9e8bc3396566b559",
-          "image": "https://images.weserv.nl/?url=galaxy-iq.com/storage/krot-shash/71nevqkq4xl-ac-sl1500.jpg",
-          "in_stock": false,
-          "old_price": 670000,
-          "price": 670000,
-          "raw_price": "ع.د670,000",
-          "retailer": "galaxyiq",
-          "site": "galaxyiq",
-          "title": "GIGABYTE GeForce RTX 5060 Ti WINDFORCE 8G",
-          "url": "https://galaxy-iq.com/products/gigabyte-geforce-rtx-5060-ti-windforce-8g",
-          "compatibility_specs": {
-            "recommended_psu": "600"
-          }
-        },
-        {
-          "category": "GPU",
-          "id": "galaxyiq-37f191e382afa88e",
-          "image": "https://images.weserv.nl/?url=galaxy-iq.com/storage/krot-shash/716mtkqa0cl-ac-sl1500.jpg",
-          "in_stock": false,
-          "old_price": 680000,
-          "price": 680000,
-          "raw_price": "ع.د680,000",
-          "retailer": "galaxyiq",
-          "site": "galaxyiq",
-          "title": "Gigabyte GeForce RTX 5060 Ti Eagle OC 8G",
-          "url": "https://galaxy-iq.com/products/gigabyte-geforce-rtx-5060-ti-eagle-oc-8g",
-          "compatibility_specs": {
-            "recommended_psu": "600"
-          }
-        },
-        {
-          "category": "Monitor",
-          "id": "galaxyiq-1e5ddbeb8a0f0536",
-          "image": "https://images.weserv.nl/?url=galaxy-iq.com/storage/shashat/ls49cg934smxue/71lzl7oecjl-ac-sl1500.jpg",
-          "in_stock": true,
-          "old_price": 1400000,
-          "price": 1350000,
-          "raw_price": "ع.د1,350,000",
-          "retailer": "galaxyiq",
-          "site": "galaxyiq",
-          "title": "LS49CG934SMXUE",
-          "url": "https://galaxy-iq.com/products/ls49cg934smxue"
         }
       ]
     },
