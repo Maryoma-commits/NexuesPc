@@ -5,6 +5,7 @@ import { Analytics } from "@vercel/analytics/react";
 import { Toaster } from 'react-hot-toast';
 import toast from 'react-hot-toast';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { LanguageProvider, useLanguage } from './contexts/LanguageContext';
 import ChatBubble from './components/chat/ChatBubble';
 import AdminDashboard from './components/admin/AdminDashboard';
 import OnboardingModal from './components/auth/OnboardingModal';
@@ -41,20 +42,24 @@ const App: React.FC = () => {
   // If admin page, render admin dashboard
   if (currentPage === '/admin') {
     return (
-      <AuthProvider>
-        <AdminDashboard />
-        <Toaster position="top-center" />
-        <SpeedInsights />
-        <Analytics />
-      </AuthProvider>
+      <LanguageProvider>
+        <AuthProvider>
+          <AdminDashboard />
+          <Toaster position="top-center" />
+          <SpeedInsights />
+          <Analytics />
+        </AuthProvider>
+      </LanguageProvider>
     );
   }
 
   // Otherwise render main app
   return (
-    <AuthProvider>
-      <MainApp />
-    </AuthProvider>
+    <LanguageProvider>
+      <AuthProvider>
+        <MainApp />
+      </AuthProvider>
+    </LanguageProvider>
   );
 };
 
@@ -64,6 +69,7 @@ const MainApp: React.FC = () => {
 
 const MainAppContent: React.FC = () => {
   const { needsOnboarding, setNeedsOnboarding } = useAuth();
+  const { t } = useLanguage();
   const [query, setQuery] = useState('');
   const [allProducts, setAllProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -494,9 +500,9 @@ const MainAppContent: React.FC = () => {
                     value={sortOption}
                     onChange={(e) => setSortOption(e.target.value as SortOption)}
                   >
-                    <option value="best-selling">Best Selling</option>
-                    <option value="price-asc">Price: Low to High</option>
-                    <option value="price-desc">Price: High to Low</option>
+                    <option value="best-selling">{t('filter.bestSelling')}</option>
+                    <option value="price-asc">{t('filter.priceLowHigh')}</option>
+                    <option value="price-desc">{t('filter.priceHighLow')}</option>
                   </select>
                 </div>
               </div>
@@ -514,7 +520,7 @@ const MainAppContent: React.FC = () => {
                       <span>Results for <span className="text-transparent bg-clip-text bg-gradient-to-r from-nexus-accent to-white">"{query}"</span></span>
                     </>
                   ) : (
-                    "Featured Components"
+                    t('featured.title')
                   )}
                 </h2>
                 
@@ -525,9 +531,9 @@ const MainAppContent: React.FC = () => {
                     value={sortOption}
                     onChange={(e) => setSortOption(e.target.value as SortOption)}
                   >
-                    <option value="best-selling">Best Selling</option>
-                    <option value="price-asc">Price: Low to High</option>
-                    <option value="price-desc">Price: High to Low</option>
+                    <option value="best-selling">{t('filter.bestSelling')}</option>
+                    <option value="price-asc">{t('filter.priceLowHigh')}</option>
+                    <option value="price-desc">{t('filter.priceHighLow')}</option>
                   </select>
                   
                   {query && (
@@ -604,7 +610,7 @@ const MainAppContent: React.FC = () => {
 
         <footer className="border-t border-white/5 mt-auto py-6 text-center bg-black/20 backdrop-blur-lg">
           <p className="text-gray-500 text-xs">
-            © {new Date().getFullYear()} <span className="text-gray-300 font-semibold">NexusPC</span>. All rights reserved.
+            © {new Date().getFullYear()} <span className="text-gray-300 font-semibold">Component Aggregator</span>. {t('footer.copyright')}.
           </p>
         </footer>
       </div>

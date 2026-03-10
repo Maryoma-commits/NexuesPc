@@ -107,7 +107,7 @@ export async function getBuildAsync(id: string): Promise<SavedBuild | null> {
 }
 
 // Auto-save current build (for recovery) - localStorage only
-const AUTOSAVE_KEY = 'nexuspc_autosave';
+const AUTOSAVE_KEY = 'autosave';
 
 export function autoSaveBuild(components: SavedBuild['components'], totalPrice: number): void {
   try {

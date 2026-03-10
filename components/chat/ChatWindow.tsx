@@ -107,7 +107,7 @@ export default function ChatWindow({ onClose, onNewMessage, onLoadBuild, isOpen 
     >
       {/* Header */}
       <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-4 flex items-center justify-between">
-        <h3 className="font-bold text-lg">NexusPC Chat</h3>
+        <h3 className="font-bold text-lg">Chat</h3>
         <button
           onClick={onClose}
           className="p-1.5 hover:bg-white/20 rounded-lg transition-colors"

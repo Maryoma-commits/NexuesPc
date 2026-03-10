@@ -17,6 +17,7 @@ import {
   Headphones,
   Gamepad2
 } from 'lucide-react';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface CategoryNavProps {
   selectedCategory: string | null;
@@ -31,6 +32,7 @@ export const CategoryNav: React.FC<CategoryNavProps> = ({
 }) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState<string | null>(null);
   const [hoveredCategory, setHoveredCategory] = useState<string | null>(null);
+  const { t } = useLanguage();
 
   const handleDropdownClick = useCallback((categoryId: string) => {
     if (isDropdownOpen === categoryId) {
@@ -65,29 +67,29 @@ export const CategoryNav: React.FC<CategoryNavProps> = ({
   };
 
   const categories = [
-    { id: null, label: 'All', count: Object.values(productCounts).reduce((a: number, b: number) => a + b, 0) },
-    { id: 'GPU', label: 'GPUs', count: productCounts['GPU'] || 0 },
-    { id: 'RAM', label: 'RAM', count: productCounts['RAM'] || 0 },
-    { id: 'CPU', label: 'CPUs', count: productCounts['CPU'] || 0 },
-    { id: 'Motherboards', label: 'Motherboards', count: productCounts['Motherboards'] || 0 },
-    { id: 'Power Supply', label: 'PSUs', count: productCounts['Power Supply'] || 0 },
-    { id: 'Case', label: 'Cases', count: productCounts['Case'] || 0 },
-    { id: 'Storage', label: 'Storage', count: productCounts['Storage'] || 0 },
-    { id: 'Cooler', label: 'Coolers', count: productCounts['Cooler'] || 0 },
-    { id: 'Monitor', label: 'Monitors', count: productCounts['Monitor'] || 0 },
-    { id: 'Laptop', label: 'Laptops', count: productCounts['Laptop'] || 0 },
+    { id: null, label: t('category.all'), count: Object.values(productCounts).reduce((a: number, b: number) => a + b, 0) },
+    { id: 'GPU', label: t('category.gpus'), count: productCounts['GPU'] || 0 },
+    { id: 'RAM', label: t('category.ram'), count: productCounts['RAM'] || 0 },
+    { id: 'CPU', label: t('category.cpus'), count: productCounts['CPU'] || 0 },
+    { id: 'Motherboards', label: t('category.motherboards'), count: productCounts['Motherboards'] || 0 },
+    { id: 'Power Supply', label: t('category.psus'), count: productCounts['Power Supply'] || 0 },
+    { id: 'Case', label: t('category.cases'), count: productCounts['Case'] || 0 },
+    { id: 'Storage', label: t('category.storage'), count: productCounts['Storage'] || 0 },
+    { id: 'Cooler', label: t('category.coolers'), count: productCounts['Cooler'] || 0 },
+    { id: 'Monitor', label: t('category.monitors'), count: productCounts['Monitor'] || 0 },
+    { id: 'Laptop', label: t('category.laptops'), count: productCounts['Laptop'] || 0 },
     {
       id: 'Accessories',
-      label: 'More',
+      label: t('category.more'),
       count: (productCounts['Laptop RAM'] || 0) + (productCounts['Mouse'] || 0) + (productCounts['Keyboard'] || 0) + (productCounts['Headset'] || 0) + (productCounts['Fans'] || 0) + (productCounts['Thermals'] || 0),
       isDropdown: true,
       children: [
-        { id: 'Laptop RAM', label: 'Laptop RAM', count: productCounts['Laptop RAM'] || 0 },
-        { id: 'Fans', label: 'Fans', count: productCounts['Fans'] || 0 },
-        { id: 'Thermals', label: 'Thermals', count: productCounts['Thermals'] || 0 },
-        { id: 'Mouse', label: 'Mouse', count: productCounts['Mouse'] || 0 },
-        { id: 'Keyboard', label: 'Keyboard', count: productCounts['Keyboard'] || 0 },
-        { id: 'Headset', label: 'Headsets', count: productCounts['Headset'] || 0 }
+        { id: 'Laptop RAM', label: t('category.laptopRam'), count: productCounts['Laptop RAM'] || 0 },
+        { id: 'Fans', label: t('category.fans'), count: productCounts['Fans'] || 0 },
+        { id: 'Thermals', label: t('category.thermals'), count: productCounts['Thermals'] || 0 },
+        { id: 'Mouse', label: t('category.mouse'), count: productCounts['Mouse'] || 0 },
+        { id: 'Keyboard', label: t('category.keyboard'), count: productCounts['Keyboard'] || 0 },
+        { id: 'Headset', label: t('category.headset'), count: productCounts['Headset'] || 0 }
       ]
     }
   ];

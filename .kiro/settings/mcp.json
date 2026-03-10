@@ -1,18 +1,13 @@
 ﻿{
   "mcpServers": {
-    "firebase": {
-      "command": "firebase",
-      "args": ["mcp"],
+    "fetch": {
+      "command": "uvx",
+      "args": ["mcp-server-fetch"],
       "env": {
         "FASTMCP_LOG_LEVEL": "ERROR"
       },
       "disabled": false,
-      "autoApprove": [
-        "firebase-get-config",
-        "firebase-list-projects",
-        "firebase-get-database-data",
-        "firebase-list-collections"
-      ]
+      "autoApprove": []
     }
   }
 }

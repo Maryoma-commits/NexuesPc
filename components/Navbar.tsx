@@ -1,12 +1,13 @@
 
 import React, { useState } from 'react';
 import { Search, Cpu, Heart, Wrench, Bell, Users, Plus } from 'lucide-react';
-import { ThemeToggle } from './ui';
+import { ThemeToggle, LanguageToggle } from './ui';
 import UserMenu from './auth/UserMenu';
 import NotificationsPanel from './NotificationsPanel';
 import UnifiedNotificationBadge from './UnifiedNotificationBadge';
 import { Notification } from '../services/notificationService';
 import { Notification as CommunityNotification } from '../types/community-posts';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface NavbarProps {
   onSearch: (query: string) => void;
@@ -39,6 +40,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 }) => {
   const [inputValue, setInputValue] = useState('');
   const [isFocused, setIsFocused] = useState(false);
+  const { t } = useLanguage();
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newVal = e.target.value;
@@ -67,9 +69,6 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <Cpu className="h-6 w-6 text-cyan-400" />
               </div>
             </div>
-            <span className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white via-gray-200 to-gray-400 tracking-tight">
-              Nexus<span className="text-cyan-400">PC</span>
-            </span>
           </div>
 
           {/* Navigation Tabs */}
@@ -82,7 +81,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   : 'text-gray-400 hover:text-white hover:bg-white/5'
               }`}
             >
-              Products
+              {t('nav.products')}
             </button>
             <button
               onClick={onOpenCommunity}
@@ -93,7 +92,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               }`}
             >
               <Users className="h-4 w-4 inline mr-1.5" />
-              Community
+              {t('nav.community')}
             </button>
           </div>
 
@@ -113,7 +112,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                     onFocus={() => setIsFocused(true)}
                     onBlur={() => setIsFocused(false)}
                     className="block w-full pl-3 pr-4 py-3.5 bg-transparent text-gray-100 placeholder-gray-500 focus:outline-none text-sm transition-all"
-                    placeholder="Search GPUs, CPUs, Motherboards..."
+                    placeholder={t('nav.search')}
                     disabled={isLoading}
                     autoComplete="off"
                   />
@@ -142,7 +141,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <div className="flex items-center gap-2">
                   <Plus className="h-4 w-4 text-nexus-accent" />
                   <span className="text-sm font-medium text-nexus-accent hidden sm:inline">
-                    Create Post
+                    {t('nav.createPost')}
                   </span>
                 </div>
               </button>
@@ -164,6 +163,9 @@ export const Navbar: React.FC<NavbarProps> = ({
               onChatNotificationClick={onNotificationClick}
               onCommunityNotificationClick={onCommunityNotificationClick}
             />
+
+            {/* Language Toggle */}
+            <LanguageToggle />
 
             {/* Theme Toggle */}
             <ThemeToggle

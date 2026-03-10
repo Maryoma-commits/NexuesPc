@@ -654,7 +654,7 @@ def scrape_and_save_all_sites():
     # Print header
     print()
     print("=" * 60)
-    print("  🚀 NexusPC Scraper - Starting All Sites")
+    print("  🚀 Scraper - Starting All Sites")
     print("=" * 60)
     print()
     
@@ -763,7 +763,7 @@ def interactive_menu():
     """Interactive CLI menu for scraping"""
     print()
     print("=" * 60)
-    print("  🛒 NexusPC Scraper - Interactive Mode")
+    print("  🛒 Scraper - Interactive Mode")
     print("=" * 60)
     
     sites = {
@@ -847,7 +847,7 @@ if __name__ == "__main__":
     
     # Check for admin mode
     if len(sys.argv) > 1 and sys.argv[1] == "admin":
-        print("🚀 NexusPC Admin Dashboard Starting...")
+        print("🚀 Admin Dashboard Starting...")
         print("📱 Opening admin dashboard in your browser...")
         
         # Start server in background and open browser
@@ -863,12 +863,12 @@ if __name__ == "__main__":
         uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
     else:
         # CLI mode - run interactive menu
-        print("🚀 NexusPC Product Scraper - CLI Mode")
+        print("🚀 Product Scraper - CLI Mode")
         print("💡 Tip: Run 'python main.py admin' for web dashboard!")
         interactive_menu()
 else:
     # Server mode (when running with uvicorn)
-    print("🚀 Starting NexusPC Product Aggregator...")
+    print("🚀 Starting Product Aggregator...")
     
     # DISABLED: Auto-scraping for compatibility editor mode
     # threading.Thread(target=update_products_cache).start()

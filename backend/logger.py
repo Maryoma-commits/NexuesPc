@@ -1,5 +1,5 @@
 """
-Clean console logging utility for NexusPC Scraper
+Clean console logging utility for Scraper
 Provides consistent, organized output formatting
 """
 

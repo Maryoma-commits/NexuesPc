@@ -440,7 +440,7 @@ class ImageCacheService {
  * Handles offline data storage using localStorage
  */
 class OfflineCacheService {
-  private readonly STORAGE_KEY_PREFIX = 'nexuspc_offline_';
+  private readonly STORAGE_KEY_PREFIX = 'offline_';
   private readonly MAX_OFFLINE_POSTS = 100;
 
   /**

@@ -151,7 +151,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
           {showResetPassword ? 'Reset Password' : isSignUp ? 'Create Account' : 'Welcome Back'}
         </h2>
         <p className="text-gray-600 dark:text-gray-400 mb-6">
-          {showResetPassword ? 'Enter your email to receive a password reset link' : isSignUp ? 'Join the NexusPC community' : 'Sign in to start chatting'}
+          {showResetPassword ? 'Enter your email to receive a password reset link' : isSignUp ? 'Join the community' : 'Sign in to start chatting'}
         </p>
 
         {/* Error message */}
